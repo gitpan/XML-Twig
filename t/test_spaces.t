@@ -27,7 +27,7 @@ sub test
     if( $res eq $expected_res)
       { print "ok $test_nb\n"; }
     else
-      { print "nok $test_nb\n";
+      { print "not ok $test_nb\n";
         warn "  expected: \n$expected_res\n  result: \n$res\n";
       }
   }

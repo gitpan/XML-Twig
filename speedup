@@ -1,6 +1,6 @@
 #!/bin/perl 
 
-# $Id: speedup,v 1.2 2003/09/04 14:03:41 mrodrigu Exp $
+# $Id: speedup,v 1.3 2003/11/12 12:42:48 mrodrigu Exp $
 
 use XML::Parser;
 
@@ -41,8 +41,8 @@ while( <>)
     s/(\$,a-z][a-z_]*(?:\[\d\])?)->is_text/((exists $1\->{'pcdata'}) || (exists $1\->{'cdata'}))/g; 
 
     s/(\$[a-z_]+(?:\[\d\])?)->is_empty/($1\->{'empty'} || 0)/g;
-    s/(\$[a-z_]+(?:\[\d\])?)->set_empty(?!_)/$1\->{empty}= 1 unless( $1\->is_empty)/g;
-    s/(\$[a-z_]+(?:\[\d\])?)->set_not_empty/delete $1\->{empty} if( $1\->is_empty)/g;
+    s/(\$[a-z_]+(?:\[\d\])?)->set_empty(?:\(([^)]*)\))?(?!_)/"$1\->{empty}= " . ($2 || 1)/ge;
+    s/(\$[a-z_]+(?:\[\d\])?)->set_not_empty/delete $1\->{empty}/g;
 
     print $_ ;
   }

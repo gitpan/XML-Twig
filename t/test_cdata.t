@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_cdata.t,v 1.1.1.1 2003/08/29 18:52:41 mrodrigu Exp $
+# $Id: test_cdata.t,v 1.2 2004/01/23 23:16:45 mrodrigu Exp $
 
 use XML::Twig;
 
@@ -19,28 +19,28 @@ $t->parse( $xml);
 $result= $t->sprint;
 ($expected_result=<DATA>)=~ s{\n*$}{}s; 
 if( $result eq $expected_result) { print "ok 1\n"; }
-else { print "nok 1\n"; warn "expected: $expected_result\n result  : $result"; }
+else { print "not ok 1\n"; warn "expected: $expected_result\n result  : $result"; }
 
 $t= XML::Twig->new( twig_handlers => { 'ehtml/#CDATA' => sub { $_->remove_cdata; } });
 $t->parse( $xml);
 $result= $t->sprint;
 ($expected_result=<DATA>)=~ s{\n*$}{}s; 
 if( $result eq $expected_result) { print "ok 2\n"; }
-else { print "nok 2\n"; warn "expected: $expected_result\n result  : $result"; }
+else { print "not ok 2\n"; warn "expected: $expected_result\n result  : $result"; }
 
 $t= XML::Twig->new( keep_encoding => 1, twig_handlers => { 'ehtml/#CDATA' => sub { $_->set_asis; } });
 $t->parse( $xml);
 $result= $t->sprint;
 ($expected_result=<DATA>)=~ s{\n*$}{}s; 
 if( $result eq $expected_result) { print "ok 3\n"; }
-else { print "nok 3\n"; warn "test keep_encoding / asis\n  expected: $expected_result\n  result  : $result"; }
+else { print "not ok 3\n"; warn "test keep_encoding / asis\n  expected: $expected_result\n  result  : $result"; }
 
 $t= XML::Twig->new( keep_encoding => 1, twig_handlers => { 'ehtml/#CDATA' => sub { $_->remove_cdata; } });
 $t->parse( $xml);
 $result= $t->sprint;
 ($expected_result=<DATA>)=~ s{\n*$}{}s; 
 if( $result eq $expected_result) { print "ok 4\n"; }
-else { print "nok 4\n"; warn "test keep_encoding / remove_cdata\n  expected: $expected_result\n  result  : $result"; }
+else { print "not ok 4\n"; warn "test keep_encoding / remove_cdata\n  expected: $expected_result\n  result  : $result"; }
 
 __DATA__
 <doc>

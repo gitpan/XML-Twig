@@ -49,7 +49,7 @@ foreach my $exp ( @exp)
     if( $result eq $expected_result)
       { print "ok $i\n"; }
     else
-      { print "nok $i\n";
+      { print "not ok $i\n";
         print STDERR "$exp: expected $expected_result - real $result\n";
       }
     $i++;

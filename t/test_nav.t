@@ -54,7 +54,7 @@ foreach my $cond ( keys %result)
     if( $result eq $expected_result)
       { print "ok $i\n"; }
     else
-      { print "nok $i\n";
+      { print "not ok $i\n";
         print STDERR "$cond: expected $expected_result - real $result\n";
 	die;
       }

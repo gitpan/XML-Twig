@@ -25,7 +25,7 @@ $expected_result=~ s{\s*$}{}s;     # remove trailing spaces (and \n)
 if( $result eq $expected_result)
   { print "ok 1\n"; }
 else
-  { print "nok 1\n"; 
+  { print "not ok 1\n"; 
     print STDERR "expected: \n$expected_result\n",
                  "real: \n$result\n";
   }

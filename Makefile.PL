@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.4 2003/09/24 14:18:18 mrodrigu Exp $
+# $Id: Makefile.PL,v 1.5 2004/01/08 16:38:34 mrodrigu Exp $
 # tool installation part shamelessly lifted from YAML's Makefile.PL
 
 use ExtUtils::MakeMaker;
@@ -7,7 +7,7 @@ my @programs;
 
 for (split "\n", <<'QUERIES') {
 xml_pp|y|XML pretty printer
-xml_grep|y|XML grep - grep XML files using XML::Twig's subset of expat
+xml_grep|y|XML grep - grep XML files using XML::Twig's subset of XPath
 xml_spellcheck|y|spellcheck XML files skipping tags
 QUERIES
     my ($program, $default, $description) = split /\|/, $_;

@@ -202,7 +202,7 @@ $t= XML::Twig->new(
 $t->parse( '<b><a/></b>');
 my $calls= ($a || '_') . ($ba || '_') . ($rba || '_');
 if( $calls eq '111') { print "ok 19\n"; }
-else                 { print "nok 19\n"; warn "\n$calls instead of 111\n"; }
+else                 { print "not ok 19\n"; warn "\n$calls instead of 111\n"; }
 
 ##################################################################################
 # test functions

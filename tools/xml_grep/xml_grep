@@ -9,7 +9,7 @@ my $VERSION="0.4";
 
 # options (all used globally in the script)
 my( $help, $man, @roots, @paths, $files, $count, $nb_results, $encoding,
-    $wrap, $descr, $group, $pretty_print, $version, $text_only);
+    $wrap, $descr, $group, $pretty_print, $version, $text_only, $date);
 
 # used to check if the wrapping tags need to be output
 my $results      = 0;
@@ -34,6 +34,7 @@ GetOptions( 'help'            => \$help,
             'group_by_file:s' => \$group,
 	          'pretty_print:s'  => \$pretty_print,
 			      'text_only'       => \$text_only,
+						'date!'           => \$date,
 	  ) or pod2usage(2);
 
 pod2usage(1) if $help;
@@ -48,13 +49,19 @@ if( ($files or $count) and (@roots or $encoding or defined( $wrap)
 if( $files and !@ARGV)               { pod2usage(1); exit; }
 if( !$files and !$count and @paths and !@roots) { @roots= @paths; @paths=(); }
 
+$date=1 unless( defined $date);
+
 # defaults for optional arguments to options
 $group        = 'file'     if( defined $group        and !$group);
 $pretty_print = 'indented' if( defined $pretty_print and !$pretty_print);
 $wrap         = 'xml_grep' if( !defined( $wrap) and (@roots or @paths));
 if( !defined( $descr) and (@roots or @paths))
-  { my $date= localtime();
-    $descr        = qq{version="$VERSION" date="$date"}
+  { if( $date)
+		  { $date= localtime();
+        $descr        = qq{version="$VERSION" date="$date"}
+      }
+    else
+		  { $descr        = qq{version="$VERSION"}; }
   } 
 
 # some globals
@@ -164,15 +171,15 @@ sub result_start
   { $results=1;
 		return if( $text_only);
     my $enc_decl= $encoding ? qq{encoding="$encoding" } : '';
-    return   qq{<?xml version="1.0" $enc_decl?>\n}
-           . qq{<$wrap $descr>\n};
+    return $wrap ?  qq{<?xml version="1.0" $enc_decl?>\n<$wrap $descr>\n}
+					       : '';
   }
 
 sub result_end
   { my $result;
 		return if( $text_only);
     if( !$group) { $result= "\n"; }
-    $result .= qq{</$wrap>\n};
+    $result .= qq{</$wrap>\n} if( $wrap);
     return $result;
   }
 
@@ -198,15 +205,22 @@ __END__
 
 =head1 NAME
 
-xmlgrep - grep XML files looking for specific elements
+xml_grep - grep XML files looking for specific elements
 
 =head1 SYNOPSYS
 
-xmlgrep [options] [file ...]
+  xml_grep [options] <file list> 
 
- Options:
-   -help            brief help message
-   -man             full documentation
+or
+
+  xml_grep <xpath expression> <file list>
+
+By default you can just give C<xml_grep> an XPath expression and
+a list of files, and get an XML file with the result.
+
+This is equivalent to writing 
+
+  xml_grep --group_by_file file --pretty_print indented --cond <file list>
 
 =head1 OPTIONS
 
@@ -254,17 +268,27 @@ return only the number of matches in each file
 usage of this option precludes using any of the options that define the XML output:
 C<--roots>, C<--encoding>, C<--wrap>, C<--group_by_file> or C<--pretty_print>
 
-=item B<--nb_results> <nb>
+=item B<--date>
 
-output only <nb> results
+when on (by default) the wrapping element get a C<date> attribute that gives
+the date the tool was run.
+
+with C<--nodate> this attribute is not added, which can be useful if you need
+to compare 2 runs.
 
 =item B<--encoding> <enc>
 
 encoding of the xml output (utf-8 by default)
 
+=item B<--nb_results> <nb>
+
+output only <nb> results
+
 =item B<--wrap> <tag>
 
 wrap the xml result in the provided tag (defaults to 'xml_grep')
+
+If wrap is set to an empty string (C<--wrap ''>) then the xml result is not wrapped at all. 
 
 =item B<--descr> <string>
 
@@ -311,7 +335,7 @@ and can be abbreviated (-r instead of --root for example)
 
 =head1 DESCRIPTION
 
-B<xmlgrep> does a grep on XML files. Instead of using regular 
+B<xml_grep> does a grep on XML files. Instead of using regular 
 expressions it uses XPath expressions (in fact the subset of 
 XPath supported by XML::Twig)
 

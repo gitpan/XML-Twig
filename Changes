@@ -1,6 +1,55 @@
-$Id: Changes,v 1.2 2003/09/04 14:03:41 mrodrigu Exp $
+$Id: Changes,v 1.22 2004/01/29 09:11:15 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.12
+
+      added lots of tests (900), thanks to David Rigaudiere, Forrest 
+      Cahoon, Sebastien Aperghis-Tramoni, Henrik Tougaard and Sam Tregar
+      for testing this release on various OSs, Perl, XML::Parser and 
+      expat versions.
+
+      added XML::Twig::XPath that uses XML::XPath as the XPath engine
+      for findnodes, findnodes_as_string, findvalue, exists, find and
+      matches. Just use XML::Twig::XPath instead of use XML::Twig;
+      (see the tests in t/xmlxpath_*).
+
+      Added special case to output some HTML tags ('script' to start with)
+      as not empty.
+      XML::Twig::Elt->new now properly flags empty elements (spotted by
+      Dave Roe)
+      added XML::Twig::Elt contains_a_single method
+      added #ENT twig_handlers (not necessarily complete, so not yet
+      documented, needs more tests)
+      added doc for XML::Twig and XML::Twig::Elt subs_text methods
+      tags starting with # are now "invisible" (they are not output),
+      useful for example for pretty_printing
+      added new options --wrap '' and --date to xml_grep
+      improved XPath support (added [nb] support)
+      added xpath method, which generates a unique XPath for an element
+      added has_child and has_children as synonyms of first_child
+      added XML::Twig::set_id_seed to control how generated id's are
+      created
+
+      when using ignore on an element, end_tag_handlers are now tested
+      at the end of the element (so you can for exemple get the byte 
+      offset in the document), suggestion of Philippe Verdret
+
+      added XML::Twig::Elt change_att_name 
+      XML::Twig::Elt new now properly works when called as an object
+      (and not a class) method
+
+      fixed namespace processing somewhat
+      fixed SAX output methods
+      fixed bug when keep_atts_order on and using set_att on an element
+      with no existing attribute (spotted by scharloi) 
+
+      WARNING - potentially incompatible changes -
+      when using finish_print, the document used to be flushed. This is no
+      longer the case, you will have to do it before calling finish_print. 
+      This way you have the choice of doing it or not.
+
+      Removed XML::Twig::Elt::unescape function (was no longer used)
 
 Changes in 3.11
 

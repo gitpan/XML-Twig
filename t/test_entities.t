@@ -124,7 +124,7 @@ sub check_result
     if( $result eq $expected_result)
       { print "ok $test_no\n"; }
     else
-      { print "nok $test_no\n"; 
+      { print "not ok $test_no\n"; 
         print STDERR "\ntest $test_no:\n",
 	             "expected: \n$expected_result\n",
                      "real: \n$result\n";

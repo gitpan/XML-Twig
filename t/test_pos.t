@@ -47,7 +47,7 @@ sub test
     if( $pos == $expected_pos)
       { print "ok $i\n"; }
     else
-      { print "nok $i\n";
+      { print "not ok $i\n";
         my $filter=  $exp ? " filter: $exp" : '';
         warn "test $i: $id $filter - expected $expected_pos, actual $pos\n";
       }  

@@ -20,7 +20,7 @@ my $expected= '<?pi pi in doc ?>';
 if( $result eq $expected)
   { print "ok 1\n"; }
 else
-  { print "nok 1\n";
+  { print "not ok 1\n";
     warn "expected: $expected\nfound   : $result\n";
   }
 
@@ -33,7 +33,7 @@ $expected= '<?pi pi in doc ?>';
 if( $result eq $expected)
   { print "ok 2\n"; }
 else
-  { print "nok 2\n";
+  { print "not ok 2\n";
     warn "expected: $expected\nfound   : $result\n";
   }
 
@@ -44,7 +44,7 @@ $expected= '<?pi pi in doc ?>';
 if( $result eq $expected)
   { print "ok 3\n"; }
 else
-  { print "nok 3\n";
+  { print "not ok 3\n";
     warn "expected: $expected\nfound   : $result\n";
   }
 
@@ -59,6 +59,6 @@ $expected= 'pi/pi in doc ';
 if( $result eq $expected)
   { print "ok 4\n"; }
 else
-  { print "nok 4\n";
+  { print "not ok 4\n";
     warn "expected: /$expected/\nfound   : /$result/\n";
   }

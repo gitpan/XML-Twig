@@ -1,5 +1,7 @@
 #!/bin/perl -w
 
+# $Id: test1.t,v 1.2 2003/11/28 12:17:05 mrodrigu Exp $
+
 use strict;
 use Carp;
 
