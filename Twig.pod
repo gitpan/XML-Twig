@@ -9,7 +9,7 @@ SYNOPSIS
             $t->print;
 
         chunk mode 
-            my $t= new XML::Twig( Handlers => { section => \&flush});
+            my $t= new XML::Twig( TwigHandlers => { section => \&flush});
             $t->parsefile( 'doc.xml');
             $t->flush;
             sub flush { $_[0]->flush; }
@@ -35,11 +35,10 @@ METHODS
     on the other hand should not be used for Start, End and Char,
     see `the section on "/BUGS'"
 
-    - new
-        This is a class method, the constructor for XML::Twig.
-        Options are passed as keyword value pairs. Recognized
-        options are the same as the XML::Parser manpage, plus some
-        XML::Twig specifics:
+    new This is a class method, the constructor for XML::Twig. Options
+        are passed as keyword value pairs. Recognized options are
+        the same as the XML::Parser manpage, plus some XML::Twig
+        specifics:
 
     - TwigHandlers
             This argument replaces the corresponding XML::Parser
@@ -54,6 +53,31 @@ METHODS
             and sub-element in an element there is no way to store
             the text as just an attribute of the enclosing element).
 
+    LoadDTD If this argument is set to a true value, parse or parsefile
+            on the twig will load the DTD information. This
+            information can then be accessed through the twig, in a
+            DTDHandler for example. This will load even an external
+            DTD.
+
+            See the section on "DTD Handling" for more information
+
+    DTDHandler
+            Sets a handler that will be called once the doctype (and
+            the DTD) have been loaded, with 2 arguments, the twig
+            and the DTD.
+
+            -item StartTagHandlers
+
+            A hash { gi => \&handler}. Sets element handlers that
+            are called when the element is open (at the end of the
+            XML::Parser Start handler). THe handlers are called with
+            2 params: the twig and the element. The element is empty
+            at that point, its attributes are created though.
+
+            THe main use for those handlers is probably to create
+            temporary attributes that will be used when processing
+            the element with the normal TwigHanlder.
+
     - Id    This optional argument gives the name of an attribute that
             can be used as an ID in the document. Elements whose ID
             is known can be accessed through the elt_id method. Id
@@ -62,11 +86,14 @@ METHODS
     root
         Returns the root element of a twig
 
-    change_gi      (old_gi, new_gi)
+    entity_list
+        Returns the entity list of a twig
+
+    change_gi      ($old_gi, $new_gi)
         Performs a (very fast) global change. All elements old_gi
         are now new_gi. See `the section on "/BUGS'"
 
-    flush            [FILEHANDLE]
+    flush            OPTIONAL_FILEHANDLE OPTIONNAL_OPTIONS
         Flushes a twig up to (and including) the current element,
         then deletes all unnecessary elements from the tree that's
         kept in memory. flush keeps track of which elements need to
@@ -74,14 +101,40 @@ METHODS
         to worry about anything. Just keep flushing the twig every
         time you're done with a sub-tree and it will come out well-
         formed. After the whole parsing don't forget to flush one
-        more time to print the end of the document. flush take an
-        optional filehandle as an argument
+        more time to print the end of the document. The doctype and
+        entity declarations are also printed.
+
+        OPTIONNAL_OPTIONS
+
+    Update_DTD
+            Use that option if you have updated the (internal) DTD
+            and/or the enity list and you want the updated DTD to be
+            output
+
+            Example $t->flush( Update_DTD => 1); $t->flush( \*FILE,
+            Update_DTD => 1); $t->flush( \*FILE);
+
+        flush take an optional filehandle as an argument.
+
+    print            OPTIONNAL_FILEHANDLE OPTIONNAL_OPTIONS
+        Prints the whole document associated with the twig. To be
+        used only AFTER the parse.
+
+        OPTIONNAL_OPTIONS: see the flush manpage.
+
+    print_prolog     OPTIONNAL_FILEHANDLE OPTIONNAL_OPTIONS
+        Prints the prolog (XML declaration + DTD + entity
+        declarations) of a document.
+
+        OPTIONNAL_OPTIONS: see the flush manpage.
 
   Element
 
     new Should be private.
 
     set_gi         ($gi)
+        Sets the gi of an element
+
     gi  Returns the gi of the element
 
     closed
@@ -103,42 +156,62 @@ METHODS
     twig
         Returns the twig containing the element.
 
-    parent        [$gi]
+    parent        ($optional_gi)
         Returns the parent of the element, or the first ancestor
         whose gi is $gi.
 
-    first_child   [$gi]
-    Returns the first child of the element, or the first child whose gi is $gi 
-    (ie the first of the element children whose gi matches) .
-    last_child    [$gi]
-    Returns the last child of the element, or the last child whose gi is $gi 
-    (ie the last of the element children whose gi matches) .
-    prev_sibling  [$gi]
-    Returns the previous sibling of the element, or the first one whose gi is $gi
-    next_sibling  [$gi]
-    Returns the next sibling of the element, or the first one whose gi is $gi
+    first_child   ($optional_gi)
+        Returns the first child of the element, or the first child
+        whose gi is $gi. (ie the first of the element children whose
+        gi matches) .
+
+    last_child    ($optional_gi)
+        Returns the last child of the element, or the last child
+        whose gi is $gi. (ie the last of the element children whose
+        gi matches) .
+
+    prev_sibling  ($optional_gi)
+        Returns the previous sibling of the element, or the first
+        one whose gi is $gi.
+
+    next_sibling  ($optional_gi)
+        Returns the next sibling of the element, or the first one
+        whose gi is $gi.
+
     atts
-    Returns a hash containing the element attributes
+        Returns a hash ref containing the element attributes
+
     set_atts      ({att1=>$att1_val, att2=> $att2_val... )
-    Sets the element attributes with the hash supplied as argument
+        Sets the element attributes with the hash supplied as
+        argument
+
     del_atts
-    Deletes all the element attributes.
+        Deletes all the element attributes.
+
     set_att      ($att, $att_value)
-    Sets the attribute of the element to a value
+        Sets the attribute of the element to a value
+
     att          ($att)
-    Returns the attribute value
+        Returns the attribute value
+
     del_att { delete $_[0]->{'att'}->{$_[1]}; }
-    Delete the attribute for the element
+        Delete the attribute for the element
+
     set_id       ($id)
-    Sets the id attribute of the element to a value.
-    See `the section on "/elt_id'" to change the id attribute name
-    id
-    Gets the id attribute vakue
-    children     [$gi]
-    Returns the list of children (optionally whose gi is $gi) of the element
-    ancestors    [$gi]
-    Returns the list of ancestors (optionally whose gi is $gi) of the element
-    next_elt     [$gi]
+        Sets the id attribute of the element to a value. See `the
+        section on "/elt_id'" to change the id attribute name
+
+    id  Gets the id attribute vakue
+
+    children     ($optional_gi)
+        Returns the list of children (optionally whose gi is $gi) of
+        the element
+
+    ancestors    ($optional_gi)
+        Returns the list of ancestors (optionally whose gi is $gi)
+        of the element
+
+    next_elt     ($optional_gi)
         Returns the next elt (optionally whose gi is $gi) of the
         element. This is defined as the next element which opens
         after the current element opens. Which usually means the
@@ -146,25 +219,27 @@ METHODS
         look this allows you to loop through the whole document by
         starting from the root.
 
-    prev_elt     [$gi]
+    prev_elt     ($optional_gi)
         Returns the previous elt (optionally whose gi is $gi) of the
         element. This is the first element which open the current
         one. So it's usually either the last descendant of the
         previous sibling or simply the parent
 
-    level
-        Returns the depth of the element in the tree (root is 1)
+    level       ($optionnal_gi)
+        Returns the depth of the element in the tree (root is 1) If
+        the optionnal gi is given then only ancestors of the given
+        type are counted
 
     in           ($potential_parent)
         Returns true if the element is in the potential_parent
 
-    in_context   ($gi, [$level])
+    in_context   ($gi, $optional_level)
         Returns true if the element is included in an element whose
-        gi is $gi (within $level levels)
+        gi is $gi, within $level levels.
 
     cut Cuts the element from the tree.
 
-    paste       ([$pos], $ref)
+    paste       ($optional_position, $ref)
         Pastes a (previously cut) element. The optionnal position
         element can be
 
@@ -174,8 +249,9 @@ METHODS
 
     - last_child
             The element is pasted as the last child of the $ref
-            element =item - before
+            element
 
+    - before
             The element is pasted before the $ref element, as its
             previous sibling
 
@@ -200,7 +276,7 @@ METHODS
         Returns the string for the end tag of an element, empty for
         an empty one.
 
-    print         [FILEHANDLE]
+    print         OPTIONNAL_FILEHANDLE
         Prints an entire element, including the tags, optionally to
         a FILEHANDLE
 
@@ -212,6 +288,17 @@ METHODS
         Returns a string consisting of all the PCDATA in an element,
         without the tagging
 
+    set_text        ($string)
+        Sets the text for the element: if the element is a PCDATA,
+        just set its text, otherwise cut all the children of the
+        element and create a single PCDATA child for it, which holds
+        the text
+
+    set_content    (@list_of_elt_and_strings)
+        Sets the content for the element, from as list of strings
+        and elements. Cuts all the element children, then pastes the
+        list elements, creating a PCDATA element for strings.
+
     private methods
     close
     set_parent        ( $parent)
@@ -222,21 +309,102 @@ METHODS
     flushed
     flush
         Those methods should not be used, unless of course you find
-        some creative and interesting ways to do it.
+        some creative and interesting, not to mention usefull, ways
+        to do it.
+
+  Entity_list
+
+    new Creates an entity list
+
+    add         ($ent)
+        Adds an entity to an entity list.
+
+    delete     ($ent or $gi).
+        Deletes an entity (defined by its name or by the Entity
+        object) from the list.
+
+    print      (OPTIONAL_FILEHANDLE)
+        Prints the entity list
+
+  Entity
+
+    new        ($name, $val, $sysid, $pubid, $ndata)
+        Same arguments has the Entity handler for XML::Parser
+
+    print       (OPTIONNAL_FILEHANDLE)
+        Prints an entity declaration
+
+    text
+        Returns the entity declaration text
 
 EXAMPLES
-AUTHOR
-    Michel Rodriguez <m.v.rodriguez@ieee.org>
+    See the test file in XML-Twig-1.6/t/test[1-n].t
 
-    This library is free software; you can redistribute it and/or
-    modify it under the same terms as Perl itself.
+    To figure out what flush does call the following script with an
+    xml file and an element name as arguments
 
-    Bug reports and comments to m.v.rodriguez@ieee.org.
+    use XML::Twig;
 
-SEE ALSO
-    the XML::Parser manpage
+    my ($file, $elt)= @ARGV; my $t= new XML::Twig( TwigHandlers => {
+    $elt => sub {$_[0]->flush; print "\n[flushed here]\n";} }); $t-
+    >parsefile( $file, ErrorContext => 2); $t->flush; print "\n";
 
-HINTS
+NOTES
+  DTD Handling
+
+    3 possibilities here
+
+    No DTD
+        No doctype, no DTD information, no entitiy information, the
+        world is simple...
+
+    Internal DTD
+        The XML document includes an internal DTD, and maybe entity
+        declarations
+
+        If you use the TwigLoadDTD when creating the twig the DTD
+        information and the entity declarations can be accessed.
+
+        The DTD and the entity declarations will be flush'ed (or
+        print'ed) either asis (if they have not been modified) or as
+        reconstructed (poorly, comments are lost, order is not kept,
+        due to it's content this DTD should not be viewed bu anyone)
+        if they have been modified. You can also modify them
+        directly by changing the $twig->{twig_doctype}->{internal}
+        field (straight from XML::Parser, see the Doctype handler
+        doc)
+
+    External DTD
+        The XML document includes a reference to an external DTD,
+        and maybe entity declarations.
+
+        If you use the TwigLoadDTD when creating the twig the DTD
+        information and the entity declarations can be accessed. The
+        entity declarations will be flush'ed (or print'ed) either
+        asis (if they have not been modified) or as reconstructed
+        (badly, comments are lost, order is not kept).
+
+        You can change the doctype through the $twig->set_doctype
+        method and print the dtd through the $twig->dtd_text or
+        $twig->dtd_print methods.
+
+        If you need to modify the entity list this is probably the
+        easiest way to do it.
+
+  Whitespace Handling
+
+    If an element contains ONLY whitespaces (as in the regexp \s),
+    then XML::Twig does not generate a PCDATA child for this
+    element.
+
+    This can bite you if you are interested in the white spaces
+    included in some elements. This could be improved in a future
+    version, through a general option that processes all spaces, or
+    by giving a list of elements for which whitespaces are to be
+    processed. Let me know what your requirements are!
+
+  Flush
+
     If you set handlers and use flush, do not forget to flush the
     twig one last time AFTER the parsing, or you might be missing
     the end of the document.
@@ -260,22 +428,40 @@ BUGS
         XML::Twig should really prevent calls to some XML::Parser
         methods, especially the setHandlers one.
 
+    - Notation declarations
+        Are not output (in fact they are completely ignored).
+
 TODO
     - multiple twigs are not well supported
-            A number of twig features are just global at the moment.
-            These include the ID list and the "gi pool" (if you use
-            change_gi then you change the gi for ALL twigs).
+        A number of twig features are just global at the moment.
+        These include the ID list and the "gi pool" (if you use
+        change_gi then you change the gi for ALL twigs).
 
-            Next version will try to support these while trying not
-            to be to hard on performances (at least when a single
-            twig is used!).
+        Next version will try to support these while trying not to
+        be to hard on performances (at least when a single twig is
+        used!).
 
     - XML::Parser-like handlers
-            Sometimes it would be nice to be able to use both
-            XML::Twig handlers and XML::Parser handlers, for example
-            to perform generic tasks on all open tags, like adding
-            an ID, or taking care of the autonumbering.
+        Sometimes it would be nice to be able to use both XML::Twig
+        handlers and XML::Parser handlers, for example to perform
+        generic tasks on all open tags, like adding an ID, or taking
+        care of the autonumbering.
 
-            Next version...
+        Next version...
 
-    - create an element (not a twig) from a string
+    - create an element (not a twig) from a string.
+BENCHMARKS
+    You can use the `benchmark' file to do additional bechmarks.
+    Please send me bechmark information for additional systems.
+
+AUTHOR
+    Michel Rodriguez <m.v.rodriguez@ieee.org>
+
+    This library is free software; you can redistribute it and/or
+    modify it under the same terms as Perl itself.
+
+    Bug reports and comments to m.v.rodriguez@ieee.org.
+
+SEE ALSO
+    the XML::Parser manpage
+

@@ -26,9 +26,13 @@ INSTALLATION
 
 CHANGES
 
-    This is version 1.6.
-    Entity processing added.
+    This is version 1.7.
+    DTD interface added. 
+    StartHandlers Added.
+    Various bugs fixed
 
+    Note: the DTD interface is in ALPHA mode (ie it may be changed in 
+    the future)
 
 AUTHOR
 

@@ -50,7 +50,7 @@ my $doc='<?xml version="1.0" standalone="no"?>
 my $i=0;
 my $failed=0;
 
-my $TMAX=79; # don't forget to update!
+my $TMAX=81; # don't forget to update!
 
 print "1..$TMAX\n";
 
@@ -249,7 +249,7 @@ stest( (join ":", map { $_->id} $section2->children),
 
 $para4->delete;
 stest( (join ":", map { $_->id} $section2->children), 
-       'paraintro3:title2:para5:para6', 'erase');
+       'paraintro3:title2:para5:para6', 'delete');
 $t->change_gi( 'paraintro', 'para');
 stest( (join ":", map { $_->gi} $section2->children), 
        'para:title:para:para', 'change_gi');
@@ -264,14 +264,25 @@ stest( $section1->sprint,
 
 # let's have a look at those entities
 # first their names
-stest( join( ':', sort keys %{$t->{twig_entity_list}}), 'e1:e2:e3', 'entity_list');
+stest( join( ':', $t->entity_names), 'e1:e2:e3', 'entity_list');
 # let's look at their content
-my $e1= $t->{twig_entity_list}->{e1};
+my $e1= $t->entity( 'e1');
 stest( $e1->text, '<!ENTITY e1 SYSTEM "e1.gif" NDATA gif>', 'e1 text');
-my $e2= $t->{twig_entity_list}->{e2};
+my $e2= $t->entity( 'e2');
 stest( $e2->text, '<!ENTITY e2 SYSTEM "e2.gif" NDATA gif>', 'e2 text');
-my $e3= $t->{twig_entity_list}->{e3};
+my $e3= $t->entity( 'e3');
 stest( $e3->text, '<!ENTITY e3 "internal entity">', 'e3 text');
+
+
+# additionnal erase test
+$section1= $root->first_child;
+stest( (join ":", map { $_->id} $section1->children), 
+       'intro1:para1:para2:note1', 'erase (2)');
+$intro1= $section1->first_child( 'intro');
+$intro1->erase;
+stest( (join ":", map { $_->id} $section1->children), 
+       'paraintro1:paraintro2:para1:para2:note1', 'erase (3)');
+
 
 
 

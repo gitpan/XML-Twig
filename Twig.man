@@ -1,0 +1,736 @@
+.rn '' }`
+''' $RCSfile$$Revision$$Date$
+'''
+''' $Log$
+'''
+.de Sh
+.br
+.if t .Sp
+.ne 5
+.PP
+\fB\\$1\fR
+.PP
+..
+.de Sp
+.if t .sp .5v
+.if n .sp
+..
+.de Ip
+.br
+.ie \\n(.$>=3 .ne \\$3
+.el .ne 3
+.IP "\\$1" \\$2
+..
+.de Vb
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve
+.ft R
+
+.fi
+..
+'''
+'''
+'''     Set up \*(-- to give an unbreakable dash;
+'''     string Tr holds user defined translation string.
+'''     Bell System Logo is used as a dummy character.
+'''
+.tr \(*W-|\(bv\*(Tr
+.ie n \{\
+.ds -- \(*W-
+.ds PI pi
+.if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.if (\n(.H=4u)&(1m=20u) .ds -- \(*W\h'-12u'\(*W\h'-8u'-\" diablo 12 pitch
+.ds L" ""
+.ds R" ""
+'''   \*(M", \*(S", \*(N" and \*(T" are the equivalent of
+'''   \*(L" and \*(R", except that they are used on ".xx" lines,
+'''   such as .IP and .SH, which do another additional levels of
+'''   double-quote interpretation
+.ds M" """
+.ds S" """
+.ds N" """""
+.ds T" """""
+.ds L' '
+.ds R' '
+.ds M' '
+.ds S' '
+.ds N' '
+.ds T' '
+'br\}
+.el\{\
+.ds -- \(em\|
+.tr \*(Tr
+.ds L" ``
+.ds R" ''
+.ds M" ``
+.ds S" ''
+.ds N" ``
+.ds T" ''
+.ds L' `
+.ds R' '
+.ds M' `
+.ds S' '
+.ds N' `
+.ds T' '
+.ds PI \(*p
+'br\}
+.\"	If the F register is turned on, we'll generate
+.\"	index entries out stderr for the following things:
+.\"		TH	Title 
+.\"		SH	Header
+.\"		Sh	Subsection 
+.\"		Ip	Item
+.\"		X<>	Xref  (embedded
+.\"	Of course, you have to process the output yourself
+.\"	in some meaninful fashion.
+.if \nF \{
+.de IX
+.tm Index:\\$1\t\\n%\t"\\$2"
+..
+.nr % 0
+.rr F
+.\}
+.TH Twig 3 "perl 5.004, patch 04" "8/Nov/99" "User Contributed Perl Documentation"
+.UC
+.if n .hy 0
+.if n .na
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.de CQ          \" put $1 in typewriter font
+.ft CW
+'if n "\c
+'if t \\&\\$1\c
+'if n \\&\\$1\c
+'if n \&"
+\\&\\$2 \\$3 \\$4 \\$5 \\$6 \\$7
+'.ft R
+..
+.\" @(#)ms.acc 1.5 88/02/08 SMI; from UCB 4.2
+.	\" AM - accent mark definitions
+.bd B 3
+.	\" fudge factors for nroff and troff
+.if n \{\
+.	ds #H 0
+.	ds #V .8m
+.	ds #F .3m
+.	ds #[ \f1
+.	ds #] \fP
+.\}
+.if t \{\
+.	ds #H ((1u-(\\\\n(.fu%2u))*.13m)
+.	ds #V .6m
+.	ds #F 0
+.	ds #[ \&
+.	ds #] \&
+.\}
+.	\" simple accents for nroff and troff
+.if n \{\
+.	ds ' \&
+.	ds ` \&
+.	ds ^ \&
+.	ds , \&
+.	ds ~ ~
+.	ds ? ?
+.	ds ! !
+.	ds /
+.	ds q
+.\}
+.if t \{\
+.	ds ' \\k:\h'-(\\n(.wu*8/10-\*(#H)'\'\h"|\\n:u"
+.	ds ` \\k:\h'-(\\n(.wu*8/10-\*(#H)'\`\h'|\\n:u'
+.	ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'^\h'|\\n:u'
+.	ds , \\k:\h'-(\\n(.wu*8/10)',\h'|\\n:u'
+.	ds ~ \\k:\h'-(\\n(.wu-\*(#H-.1m)'~\h'|\\n:u'
+.	ds ? \s-2c\h'-\w'c'u*7/10'\u\h'\*(#H'\zi\d\s+2\h'\w'c'u*8/10'
+.	ds ! \s-2\(or\s+2\h'-\w'\(or'u'\v'-.8m'.\v'.8m'
+.	ds / \\k:\h'-(\\n(.wu*8/10-\*(#H)'\z\(sl\h'|\\n:u'
+.	ds q o\h'-\w'o'u*8/10'\s-4\v'.4m'\z\(*i\v'-.4m'\s+4\h'\w'o'u*8/10'
+.\}
+.	\" troff and (daisy-wheel) nroff accents
+.ds : \\k:\h'-(\\n(.wu*8/10-\*(#H+.1m+\*(#F)'\v'-\*(#V'\z.\h'.2m+\*(#F'.\h'|\\n:u'\v'\*(#V'
+.ds 8 \h'\*(#H'\(*b\h'-\*(#H'
+.ds v \\k:\h'-(\\n(.wu*9/10-\*(#H)'\v'-\*(#V'\*(#[\s-4v\s0\v'\*(#V'\h'|\\n:u'\*(#]
+.ds _ \\k:\h'-(\\n(.wu*9/10-\*(#H+(\*(#F*2/3))'\v'-.4m'\z\(hy\v'.4m'\h'|\\n:u'
+.ds . \\k:\h'-(\\n(.wu*8/10)'\v'\*(#V*4/10'\z.\v'-\*(#V*4/10'\h'|\\n:u'
+.ds 3 \*(#[\v'.2m'\s-2\&3\s0\v'-.2m'\*(#]
+.ds o \\k:\h'-(\\n(.wu+\w'\(de'u-\*(#H)/2u'\v'-.3n'\*(#[\z\(de\v'.3n'\h'|\\n:u'\*(#]
+.ds d- \h'\*(#H'\(pd\h'-\w'~'u'\v'-.25m'\f2\(hy\fP\v'.25m'\h'-\*(#H'
+.ds D- D\\k:\h'-\w'D'u'\v'-.11m'\z\(hy\v'.11m'\h'|\\n:u'
+.ds th \*(#[\v'.3m'\s+1I\s-1\v'-.3m'\h'-(\w'I'u*2/3)'\s-1o\s+1\*(#]
+.ds Th \*(#[\s+2I\s-2\h'-\w'I'u*3/5'\v'-.3m'o\v'.3m'\*(#]
+.ds ae a\h'-(\w'a'u*4/10)'e
+.ds Ae A\h'-(\w'A'u*4/10)'E
+.ds oe o\h'-(\w'o'u*4/10)'e
+.ds Oe O\h'-(\w'O'u*4/10)'E
+.	\" corrections for vroff
+.if v .ds ~ \\k:\h'-(\\n(.wu*9/10-\*(#H)'\s-2\u~\d\s+2\h'|\\n:u'
+.if v .ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'\v'-.4m'^\v'.4m'\h'|\\n:u'
+.	\" for low resolution devices (crt and lpr)
+.if \n(.H>23 .if \n(.V>19 \
+\{\
+.	ds : e
+.	ds 8 ss
+.	ds v \h'-1'\o'\(aa\(ga'
+.	ds _ \h'-1'^
+.	ds . \h'-1'.
+.	ds 3 3
+.	ds o a
+.	ds d- d\h'-1'\(ga
+.	ds D- D\h'-1'\(hy
+.	ds th \o'bp'
+.	ds Th \o'LP'
+.	ds ae ae
+.	ds Ae AE
+.	ds oe oe
+.	ds Oe OE
+.\}
+.rm #[ #] #H #V #F C
+.SH "NAME"
+XML::Twig \- A perl module for processing huge XML documents in tree mode.
+.SH "SYNOPSIS"
+.PP
+.Vb 4
+\&    single-tree mode    
+\&        my $t= new XML::Twig();
+\&        $t->parse( '<doc><para>para1</para></doc>');
+\&        $t->print;
+.Ve
+.Vb 5
+\&    chunk mode 
+\&        my $t= new XML::Twig( TwigHandlers => { section => \e&flush});
+\&        $t->parsefile( 'doc.xml');
+\&        $t->flush;
+\&        sub flush { $_[0]->flush; }
+.Ve
+.SH "DESCRIPTION"
+This module provides a way to process XML documents. It is build on top
+of the \fIXML::Parser\fR manpage.
+.PP
+The module offers a tree interface to the document, while allowing to output the parts of it that have been completely processed.
+.PP
+What should you use it for: xml to xml or xml to html conversions of documents that are small enough to fit in memory, or that can be divided in chunks that can be processed separately.
+.SH "METHODS"
+.Sh "Twigs "
+A twig is a subclass of \s-1XML::\s0Parser, so all \s-1XML::\s0Parser methods can be used
+on one, including parse and parsefile.
+setHandlers on the other hand should not be used for Start, End and Char,
+see \f(CWthe \f(CWBUGS\fR entry elsewhere in this document \fR
+.Ip "new " 4
+This is a class method, the constructor for \s-1XML::\s0Twig. Options are passed
+as keyword value pairs. Recognized options are the same as the \fI\s-1XML::\s0Parser\fR manpage,
+plus some \s-1XML::\s0Twig specifics:
+.Ip "- TwigHandlers" 8
+This argument replaces the corresponding \s-1XML::\s0Parser argument. It consists
+of a hash { gi => \e&handler} 
+A gi (generic identifier I guess) is just a tag name by the way.
+When an element is \s-1CLOSED\s0 the corresponding handler is called, with 2 arguments,
+the twig and the \f(CWthe \f(CWElement\fR entry elsewhere in this document \fR. The twig includes the document tree taht has been 
+built so far, the element is the complete sub-tree for the element.
+Text is stored in elements which gi is #\s-1PCDATA\s0 (due to mixed content, text
+and sub-element in an element there is no way to store the text as just an
+attribute of the enclosing element).
+.Ip "LoadDTD" 8
+If this argument is set to a true value, parse or parsefile on the twig will load  
+the \s-1DTD\s0 information. This information can then be accessed through the twig, 
+in a DTDHandler for example. This will load even an external \s-1DTD\s0.
+.Sp
+See the section on \fI\s-1DTD\s0 Handling\fR for more information
+.Ip "DTDHandler" 8
+Sets a handler that will be called once the doctype (and the \s-1DTD\s0) have been loaded,
+with 2 arguments, the twig and the \s-1DTD\s0.
+.Sp
+-item StartTagHandlers
+.Sp
+A hash { gi => \e&handler}. Sets element handlers that are called when the element 
+is open (at the end of the \s-1XML::\s0Parser Start handler). THe handlers are called with
+2 params: the twig and the element. The element is empty at that point, its attributes
+are created though.
+.Sp
+THe main use for those handlers is probably to create temporary attributes that will
+be used when processing the element with the normal TwigHanlder.  
+.Ip "- Id" 8
+This optional argument gives the name of an attribute that can be used as
+an \s-1ID\s0 in the document. Elements whose \s-1ID\s0 is known can be accessed through
+the elt_id method. Id defaults to \*(L'id\*(R'.
+See \f(CWthe \f(CWBUGS\fR entry elsewhere in this document \fR
+.Ip "root" 4
+Returns the root element of a twig
+.Ip "entity_list" 4
+Returns the entity list of a twig
+.Ip "change_gi      ($old_gi, $new_gi)" 4
+Performs a (very fast) global change. All elements old_gi are now new_gi.
+See \f(CWthe \f(CWBUGS\fR entry elsewhere in this document \fR
+.Ip "flush            \s-1OPTIONAL_FILEHANDLE\s0 \s-1OPTIONNAL_OPTIONS\s0" 4
+Flushes a twig up to (and including) the current element, then deletes
+all unnecessary elements from the tree that's kept in memory.
+flush keeps track of which elements need to be open/closed, so if you
+flush from handlers you don't have to worry about anything. Just keep 
+flushing the twig every time you're done with a sub-tree and it will
+come out well-formed. After the whole parsing don't forget to flush
+one more time to print the end of the document.
+The doctype and entity declarations are also printed.
+.Sp
+\s-1OPTIONNAL_OPTIONS\s0
+.Ip "Update_DTD" 8
+Use that option if you have updated the (internal) \s-1DTD\s0 and/or the enity list
+and you want the updated \s-1DTD\s0 to be output 
+.Sp
+Example \f(CW$t\fR\->\fIflush\fR\|( Update_DTD => 1);
+        \f(CW$t\fR\->\fIflush\fR\|( \e*\s-1FILE\s0, Update_DTD => 1);
+        \f(CW$t\fR\->\fIflush\fR\|( \e*\s-1FILE\s0);
+.Sp
+flush take an optional filehandle as an argument.
+.Ip "print            \s-1OPTIONNAL_FILEHANDLE\s0 \s-1OPTIONNAL_OPTIONS\s0" 4
+Prints the whole document associated with the twig. To be used only \s-1AFTER\s0 the
+parse.
+.Sp
+\s-1OPTIONNAL_OPTIONS\s0: see the \fIflush\fR manpage.
+.Ip "print_prolog     \s-1OPTIONNAL_FILEHANDLE\s0 \s-1OPTIONNAL_OPTIONS\s0" 4
+Prints the prolog (\s-1XML\s0 declaration + \s-1DTD\s0 + entity declarations) of a document.
+.Sp
+\s-1OPTIONNAL_OPTIONS\s0: see the \fIflush\fR manpage.
+.Sh "Element"
+.Ip "new " 4
+Should be private.
+.Ip "set_gi         ($gi)" 4
+Sets the gi of an element
+.Ip "gi                       " 4
+Returns the gi of the element
+.Ip "closed                   " 4
+Returns true if the element has been closed. Might be usefull if you are
+somewhere in the tree, during the parse, and have no idea whether a parent
+element is completely loaded or not.
+.Ip "set_pcdata     ($text)" 4
+Sets the text of a #\s-1PCDATA\s0 element. Returns the text or undef if the element
+was not a #\s-1PCDATA\s0.
+.Ip "pcdata" 4
+Returns the text of a #\s-1PCDATA\s0 element or undef
+.Ip "root " 4
+Returns the root of the twig containing the element
+.Ip "twig " 4
+Returns the twig containing the element. 
+.Ip "parent        ($optional_gi)" 4
+Returns the parent of the element, or the first ancestor whose gi is \f(CW$gi\fR.
+.Ip "first_child   ($optional_gi)" 4
+Returns the first child of the element, or the first child whose gi is \f(CW$gi\fR. 
+(ie the first of the element children whose gi matches) .
+.Ip "last_child    ($optional_gi)" 4
+Returns the last child of the element, or the last child whose gi is \f(CW$gi\fR. 
+(ie the last of the element children whose gi matches) .
+.Ip "prev_sibling  ($optional_gi)" 4
+Returns the previous sibling of the element, or the first one whose gi is \f(CW$gi\fR. 
+.Ip "next_sibling  ($optional_gi)" 4
+Returns the next sibling of the element, or the first one whose gi is \f(CW$gi\fR. 
+.Ip "atts" 4
+Returns a hash ref containing the element attributes
+.Ip "set_atts      ({att1=>$att1_val, att2=> $att2_val... )" 4
+Sets the element attributes with the hash supplied as argument
+.Ip "del_atts" 4
+Deletes all the element attributes.
+.Ip "set_att      ($att, $att_value)" 4
+Sets the attribute of the element to a value
+.Ip "att          ($att)" 4
+Returns the attribute value
+.Ip "del_att { delete $_[0]\->{'att'}\->{$_[1]}; }" 4
+Delete the attribute for the element
+.Ip "set_id       ($id)" 4
+Sets the id attribute of the element to a value.
+See \f(CWthe \f(CWelt_id\fR entry elsewhere in this document \fR to change the id attribute name
+.Ip "id" 4
+Gets the id attribute vakue
+.Ip "children     ($optional_gi)" 4
+Returns the list of children (optionally whose gi is \f(CW$gi\fR) of the element
+.Ip "ancestors    ($optional_gi)" 4
+Returns the list of ancestors (optionally whose gi is \f(CW$gi\fR) of the element
+.Ip "next_elt     ($optional_gi)" 4
+Returns the next elt (optionally whose gi is \f(CW$gi\fR) of the element. This is 
+defined as the next element which opens after the current element opens.
+Which usually means the first child of the element.
+Counter-intuitive as it might look this allows you to loop through the
+whole document by starting from the root.
+.Ip "prev_elt     ($optional_gi)" 4
+Returns the previous elt (optionally whose gi is \f(CW$gi\fR) of the element. This
+is the first element which open the current one. So it's usually either
+the last descendant of the previous sibling or simply the parent
+.Ip "level       ($optionnal_gi)" 4
+Returns the depth of the element in the tree (root is 1)
+If the optionnal gi is given then only ancestors of the given type are counted 
+.Ip "in           ($potential_parent)" 4
+Returns true if the element is in the potential_parent
+.Ip "in_context   ($gi, $optional_level)" 4
+Returns true if the element is included in an element whose gi is \f(CW$gi\fR,
+within \f(CW$level\fR levels.
+.Ip "cut" 4
+Cuts the element from the tree.
+.Ip "paste       ($optional_position, $ref)" 4
+Pastes a (previously cut) element.
+The optionnal position element can be
+.Ip "- first_child (default)" 8
+The element is pasted as the first child of the \f(CW$ref\fR element
+.Ip "- last_child" 8
+The element is pasted as the last child of the \f(CW$ref\fR element
+.Ip "- before" 8
+The element is pasted before the \f(CW$ref\fR element, as its previous sibling
+.Ip "- after" 8
+The element is pasted after the \f(CW$ref\fR element, as its next sibling
+.Ip "erase" 4
+Erases the element: the element is deleted and all of its children are
+pasted in its place.
+.Ip "delete" 4
+Cut the element and frees the memory
+.Ip "\s-1DESTROY\s0" 4
+Frees the element from memory 
+.Ip "start_tag" 4
+Returns the string for the start tag for the element, including the
+/> at the end of an empty element tag
+.Ip "end_tag" 4
+Returns the string for the end tag of an element, empty for an empty one.
+.Ip "print         \s-1OPTIONNAL_FILEHANDLE\s0" 4
+Prints an entire element, including the tags, optionally to a \s-1FILEHANDLE\s0     
+.Ip "sprint  " 4
+Returns the string for an entire element, including the tags. To be used 
+with caution!
+.Ip "text" 4
+Returns a string consisting of all the \s-1PCDATA\s0 in an element, without the
+tagging
+.Ip "set_text        ($string)" 4
+Sets the text for the element: if the element is a \s-1PCDATA\s0, just set its
+text, otherwise cut all the children of the element and create a single
+\s-1PCDATA\s0 child for it, which holds the text
+.Ip "set_content    (@list_of_elt_and_strings)" 4
+Sets the content for the element, from as list of strings and elements.
+Cuts all the element children, then pastes the list elements, creating a 
+\s-1PCDATA\s0 element for strings.
+.Ip "private methods" 4
+.Ip "close" 8
+.Ip "set_parent        ( $parent)" 8
+.Ip "set_first_child   ( $first_child)" 8
+.Ip "set_last_child    ( $last_child)" 8
+.Ip "set_prev_sibling  ( $set_prev_sibling)" 8
+.Ip "set_next_sibling  ( $set_next_sibling)" 8
+.Ip "flushed" 8
+.Ip "flush" 8
+.Sp
+Those methods should not be used, unless of course you find some creative 
+and interesting, not to mention usefull, ways to do it.
+.Sh "Entity_list"
+.Ip "new" 4
+Creates an entity list
+.Ip "add         ($ent)" 4
+Adds an entity to an entity list.
+.Ip "delete     ($ent or $gi)." 4
+Deletes an entity (defined by its name or by the Entity object) from the list.
+.Ip "print      (\s-1OPTIONAL_FILEHANDLE\s0)" 4
+Prints the entity list
+.Sh "Entity"
+.Ip "new        ($name, $val, $sysid, $pubid, $ndata)" 4
+Same arguments has the Entity handler for \s-1XML::\s0Parser
+.Ip "print       (\s-1OPTIONNAL_FILEHANDLE\s0)" 4
+Prints an entity declaration
+.Ip "text" 4
+Returns the entity declaration text
+.SH "EXAMPLES"
+See the test file in XML\-Twig-1.6/t/test[1-n].t 
+.PP
+To figure out what flush does call the following script with an xml file and an element name as arguments
+.PP
+use XML::Twig;
+.PP
+my ($file, \f(CW$elt\fR)= \f(CW@ARGV\fR;
+my \f(CW$t\fR= new \fIXML::Twig\fR\|( TwigHandlers => 
+    { \f(CW$elt\fR => sub {$_[0]\->flush; print \*(L"\en[flushed here]\en\*(R";} });
+\f(CW$t\fR\->\fIparsefile\fR\|( \f(CW$file\fR, ErrorContext => 2);
+\f(CW$t\fR\->flush;
+print \*(L"\en\*(R";
+.SH "NOTES"
+.Sh "\s-1DTD\s0 Handling"
+3 possibilities here
+.Ip "No \s-1DTD\s0" 4
+No doctype,  no \s-1DTD\s0 information, no entitiy information, the world is simple...
+.Ip "Internal \s-1DTD\s0" 4
+The \s-1XML\s0 document includes an internal \s-1DTD\s0, and maybe entity declarations
+.Sp
+If you use the TwigLoadDTD when creating the twig the \s-1DTD\s0 information and the entity 
+declarations can be accessed. 
+.Sp
+The \s-1DTD\s0 and the entity declarations will be flush'ed (or print'ed) either asis
+(if they have not been modified) or as reconstructed (poorly, comments are lost, 
+order is not kept, due to it's content this \s-1DTD\s0 should not be viewed bu anyone) 
+if they have been modified. You can also modify them directly by changing the 
+\f(CW$twig\fR\->{twig_doctype}\->{internal} field (straight from \s-1XML::\s0Parser, see the Doctype 
+handler doc)
+.Ip "External \s-1DTD\s0" 4
+The \s-1XML\s0 document includes a reference to an external \s-1DTD\s0, and maybe entity declarations.
+.Sp
+If you use the TwigLoadDTD when creating the twig the \s-1DTD\s0 information and the entity 
+declarations can be accessed. The entity declarations will be flush'ed (or print'ed)
+either asis (if they have not been modified) or as reconstructed (badly, comments are
+lost, order is not kept).
+.Sp
+You can change the doctype through the \f(CW$twig\fR\->set_doctype method and print the dtd 
+through the \f(CW$twig\fR\->dtd_text or \f(CW$twig\fR\->dtd_print methods.
+.Sp
+If you need to modify the entity list this is probably the easiest way to do it.
+.Sh "Whitespace Handling"
+If an element contains \s-1ONLY\s0 whitespaces (as in the regexp \es), then \s-1XML::\s0Twig 
+does not generate a \s-1PCDATA\s0 child for this element.
+.PP
+This can bite you if you are interested in the white spaces included in some elements.
+This could be improved in a future version, through a general option that processes
+all spaces, or by giving a list of elements for which whitespaces are to be processed.
+Let me know what your requirements are!
+.Sh "Flush"
+If you set handlers and use flush, do not forget to flush the twig one
+last time \s-1AFTER\s0 the parsing, or you might be missing the end of the document.
+.PP
+Remember that element handlers are called when the element is \s-1CLOSED\s0, so
+if you have handlers for nested elements the inner handlers will be called
+first. It makes it for example trickier than it would seem to number nested
+clauses.
+.SH "BUGS"
+.Ip "- \s-1ID\s0 list" 4
+The \s-1ID\s0 list is \s-1NOT\s0 updated at the moment when \s-1ID\s0's are modified or elements 
+cut or deleted.
+.Ip "- change_gi" 4
+Does not work if you do:
+     \f(CW$twig\fR\->\fIchange_gi\fR\|( \f(CW$old1\fR, \f(CW$new\fR);
+     \f(CW$twig\fR\->\fIchange_gi\fR\|( \f(CW$old2\fR, \f(CW$new\fR);
+     \f(CW$twig\fR\->\fIchange_gi\fR\|( \f(CW$new\fR, \f(CW$even_newer\fR);
+.Ip "- sanity check on \s-1XML::\s0Parser method calls" 4
+\s-1XML::\s0Twig should really prevent calls to some \s-1XML::\s0Parser methods, especially the setHandlers one.
+.Ip "- Notation declarations" 4
+Are not output (in fact they are completely ignored).
+.SH "TODO"
+.Ip "- multiple twigs are not well supported" 4
+A number of twig features are just global at the moment. These include
+the \s-1ID\s0 list and the \*(L"gi pool\*(R" (if you use change_gi then you change the gi 
+for \s-1ALL\s0 twigs).
+.Sp
+Next version will try to  support these while trying not to be to hard on
+performances (at least when a single twig is used!).  
+.Ip "- \s-1XML::\s0Parser-like handlers" 4
+Sometimes it would be nice to be able to use both \s-1XML::\s0Twig handlers and
+\s-1XML::\s0Parser handlers, for example to perform generic tasks on all open
+tags, like adding an \s-1ID\s0, or taking care of the autonumbering.
+.Sp
+Next version...
+.Ip "- create an element (not a twig) from a string." 4
+.SH "BENCHMARKS"
+You can use the \f(CWbenchmark\fR file to do additional bechmarks.
+Please send me bechmark information for additional systems.
+.SH "AUTHOR"
+Michel Rodriguez <m.v.rodriguez@ieee.org>
+.PP
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+.PP
+Bug reports and comments to m.v.rodriguez@ieee.org.
+.SH "SEE ALSO"
+the \fIXML::Parser\fR manpage
+
+.rn }` ''
+.IX Title "Twig 3"
+.IX Name "XML::Twig - A perl module for processing huge XML documents in tree mode."
+
+.IX Header "NAME"
+
+.IX Header "SYNOPSIS"
+
+.IX Header "DESCRIPTION"
+
+.IX Header "METHODS"
+
+.IX Subsection "Twigs "
+
+.IX Item "new "
+
+.IX Item "- TwigHandlers"
+
+.IX Item "LoadDTD"
+
+.IX Item "DTDHandler"
+
+.IX Item "- Id"
+
+.IX Item "root"
+
+.IX Item "entity_list"
+
+.IX Item "change_gi      ($old_gi, $new_gi)"
+
+.IX Item "flush            \s-1OPTIONAL_FILEHANDLE\s0 \s-1OPTIONNAL_OPTIONS\s0"
+
+.IX Item "Update_DTD"
+
+.IX Item "print            \s-1OPTIONNAL_FILEHANDLE\s0 \s-1OPTIONNAL_OPTIONS\s0"
+
+.IX Item "print_prolog     \s-1OPTIONNAL_FILEHANDLE\s0 \s-1OPTIONNAL_OPTIONS\s0"
+
+.IX Subsection "Element"
+
+.IX Item "new "
+
+.IX Item "set_gi         ($gi)"
+
+.IX Item "gi                       "
+
+.IX Item "closed                   "
+
+.IX Item "set_pcdata     ($text)"
+
+.IX Item "pcdata"
+
+.IX Item "root "
+
+.IX Item "twig "
+
+.IX Item "parent        ($optional_gi)"
+
+.IX Item "first_child   ($optional_gi)"
+
+.IX Item "last_child    ($optional_gi)"
+
+.IX Item "prev_sibling  ($optional_gi)"
+
+.IX Item "next_sibling  ($optional_gi)"
+
+.IX Item "atts"
+
+.IX Item "set_atts      ({att1=>$att1_val, att2=> $att2_val... )"
+
+.IX Item "del_atts"
+
+.IX Item "set_att      ($att, $att_value)"
+
+.IX Item "att          ($att)"
+
+.IX Item "del_att { delete $_[0]\->{'att'}\->{$_[1]}; }"
+
+.IX Item "set_id       ($id)"
+
+.IX Item "id"
+
+.IX Item "children     ($optional_gi)"
+
+.IX Item "ancestors    ($optional_gi)"
+
+.IX Item "next_elt     ($optional_gi)"
+
+.IX Item "prev_elt     ($optional_gi)"
+
+.IX Item "level       ($optionnal_gi)"
+
+.IX Item "in           ($potential_parent)"
+
+.IX Item "in_context   ($gi, $optional_level)"
+
+.IX Item "cut"
+
+.IX Item "paste       ($optional_position, $ref)"
+
+.IX Item "- first_child (default)"
+
+.IX Item "- last_child"
+
+.IX Item "- before"
+
+.IX Item "- after"
+
+.IX Item "erase"
+
+.IX Item "delete"
+
+.IX Item "\s-1DESTROY\s0"
+
+.IX Item "start_tag"
+
+.IX Item "end_tag"
+
+.IX Item "print         \s-1OPTIONNAL_FILEHANDLE\s0"
+
+.IX Item "sprint  "
+
+.IX Item "text"
+
+.IX Item "set_text        ($string)"
+
+.IX Item "set_content    (@list_of_elt_and_strings)"
+
+.IX Item "private methods"
+
+.IX Item "close"
+
+.IX Item "set_parent        ( $parent)"
+
+.IX Item "set_first_child   ( $first_child)"
+
+.IX Item "set_last_child    ( $last_child)"
+
+.IX Item "set_prev_sibling  ( $set_prev_sibling)"
+
+.IX Item "set_next_sibling  ( $set_next_sibling)"
+
+.IX Item "flushed"
+
+.IX Item "flush"
+
+.IX Subsection "Entity_list"
+
+.IX Item "new"
+
+.IX Item "add         ($ent)"
+
+.IX Item "delete     ($ent or $gi)."
+
+.IX Item "print      (\s-1OPTIONAL_FILEHANDLE\s0)"
+
+.IX Subsection "Entity"
+
+.IX Item "new        ($name, $val, $sysid, $pubid, $ndata)"
+
+.IX Item "print       (\s-1OPTIONNAL_FILEHANDLE\s0)"
+
+.IX Item "text"
+
+.IX Header "EXAMPLES"
+
+.IX Header "NOTES"
+
+.IX Subsection "\s-1DTD\s0 Handling"
+
+.IX Item "No \s-1DTD\s0"
+
+.IX Item "Internal \s-1DTD\s0"
+
+.IX Item "External \s-1DTD\s0"
+
+.IX Subsection "Whitespace Handling"
+
+.IX Subsection "Flush"
+
+.IX Header "BUGS"
+
+.IX Item "- \s-1ID\s0 list"
+
+.IX Item "- change_gi"
+
+.IX Item "- sanity check on \s-1XML::\s0Parser method calls"
+
+.IX Item "- Notation declarations"
+
+.IX Header "TODO"
+
+.IX Item "- multiple twigs are not well supported"
+
+.IX Item "- \s-1XML::\s0Parser-like handlers"
+
+.IX Item "- create an element (not a twig) from a string."
+
+.IX Header "BENCHMARKS"
+
+.IX Header "AUTHOR"
+
+.IX Header "SEE ALSO"
+
