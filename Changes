@@ -1,6 +1,88 @@
 CHANGES
 
-    This is version 3.04 - 2001-04-01
+      $Id: Changes,v 1.12 2002/07/01 16:18:17 mrodrigu Exp $
+
+      Added _ALPHA_ SAX export methods: 
+        XML::Twig toSAX1, toSAX2, flush_toSAX1, flush_toSAX2
+	XML::Twig::Elt toSAX1, toSAX2
+
+      The following gotchas apply:
+
+        - these methods work only for documents that are completely
+          loaded by XML::Twig (ie if you use twig_roots the data
+          outside of the roots will not be output as SAX). 
+        - SAX1 support is a bit dodgy: the encoding is not preserved
+	  (it is always set to 'UTF-8'),
+	- locator is not supported (and probably will not, what's the 
+	  location of a newly created element?)
+
+      Also when exporting SAX you should consider setting Twig to a 
+      mode where all aspects of the XML are treated as nodes by XML::Twig,
+      by setting the following options when you create the twig:
+      comments => 'process', pi => 'process', keep_spaces => 1
+       
+     
+      twig_print_outside_roots now supports a file handle ref as argument:
+      the untouched part of the tree will be output to the filehandle:
+
+      Added the 'indented_c' style that gives a slightly more compact pretty
+      print than 'indented': the end tags are on the same line as the 
+      preceeding text (suggestion of Hugh Myers)
+     
+      Added option in get_xpath (aka find_nodes) to apply the query to
+      a list of elements 
+
+      Added processing of conditions on the current node in get_xpath:
+      my @result= get_xpath( q{.[@att="val"]});
+      This is of course mostly useful with the previous option.
+      The idea stemmed from a post from Liam Quin to the perl-xml list
+
+      Added XML::Twig xml_version, set_xml_version, standalone, set_standalone
+      methods on the XML declaration
+
+      Fixed a bug in change_gi (which simply did not work at all), found
+      by Ron Hayden.
+
+      Fixed bug in space handling with CDATA (spaces before the CDATA section
+      were moved to within the section), comments and PI's
+
+      Fixed bug in parse_url (exit was not called at the end of the child),
+      found by David Kulp
+
+      Cleanup a bit the code that parses xpath expressions (still some work 
+      to be done on this though), fixed a bug with last, found by Roel de Cock
+
+      Fixed the SYNOPSIS (parsefile is used to parse files, spotted by 
+      e.sammer)
+
+      Fixed a bug in pretty printing (reported by Zhu Zhou)
+
+      Fixed a bugin the install: the Makefile now uses the same perl used 
+      to perl Makefile.PL to run speedup and check_optional_modules 
+      (reported by Ralf Santos)
+
+      Fixed bugs in pretty printing when using flush, trying to figure out
+      as well as possible if an element contains other elements or text 
+      (there is still a gotcha, see the BUGS section in the docs) 
+
+      Fixed a bug that caused the XML declaration and the DTD not to be reset
+      between parses
+
+      Improved the conversion functions (errors are now reported when the
+      function is created and not when it is first used)
+
+      Added the output_encoding option to XML::Twig->new, which allows 
+      specifying an encoding for the output: the conversion filter is
+      created using Encode (perl 5.8.0) Text::Iconv or Unicode::* The
+      XML declaration is also updated
+
+      #CDATA and #ENT can now be used in handler expressions
+
+      added XML::Twig::Elt remove_cdata method, which turns CDATA sections
+      into regular PCDATA elements
+
+      set_asis can now be used to output CDATA sections un-escaped (and without
+      the CDATA section markers) 
 
     Changed in 3.04
 
@@ -21,6 +103,7 @@ CHANGES
       turned %valid_option into a package global so AnyData can access it
       
       fixed a bug in sprint that prevented it from working with filters
+
       fixed a bug in erase when erasing an empty element that was the
       last child of its parent ([RT390], thanks to Julian Arnold)
       

@@ -41,12 +41,12 @@ INSTALLATION
 NOTES
 
    It is very much recommended to install Text::Iconv (for easy character
-   encoding conversions) and WeakRef (to avoid memory leaks) with this version
-   if you can.
+   encoding conversions, at least for versions of Perl pre-5.8) and WeakRef
+   (to avoid memory leaks) with this version if you can.
 
 CHANGES
 
-    This is version 3.04 - 2002-04-01
+    $Id: README,v 1.3 2002/07/09 13:28:29 mrodrigu Exp $
 
     See the Changes file    
 

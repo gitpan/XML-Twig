@@ -1,3 +1,5 @@
+# $Id: Makefile.PL,v 1.4 2002/06/24 21:38:19 mrodrigu Exp $
+
 use ExtUtils::MakeMaker;
 
 
@@ -10,5 +12,5 @@ WriteMakefile(
     'dist'  => { COMPRESS    => 'gzip -9f',
                  SUFFIX	     => 'gz',
                },
-    'depend' => { 'Twig.pm' => "Twig.pm.slow\n\tperl speedup Twig.pm.slow > Twig.pm\n\tperl check_optional_modules"},
+    'depend' => { 'Twig.pm' => "Twig.pm.slow\n\t\$(PERL) speedup Twig.pm.slow > Twig.pm\n\t\$(PERL) check_optional_modules"},
 );

@@ -134,9 +134,11 @@ sub read_result
     local $/="\n";
     open( RESULT, "<$file") or die "cannot read $file: $!";
     my @result= grep {m/\S/} <RESULT>;
+    my $result= join( '', @result);
+    $result=~  s{(^|\n)\s*(\n|$)}{}g;    # remove empty lines
     close RESULT;
     unlink $file;
-    return join '', @result;
+    return $result;
   }
 
 __DATA__

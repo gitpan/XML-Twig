@@ -1,4 +1,7 @@
-#!/bin/perl
+#!/bin/perl 
+
+# $Id: speedup,v 1.2 2002/05/31 15:43:07 mrodrigu Exp $
+
 use XML::Parser;
 
 
