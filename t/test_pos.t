@@ -72,4 +72,3 @@ elt2_2	_		6
 elt2_2	elt1		0
 elt2_2	elt2		2
 elt2_2	toto		0
-

@@ -6,6 +6,9 @@ Twig.pm.slow
 Twig.pm
 speedup
 check_optional_modules
+tools/xml_pp/xml_pp
+tools/xml_grep/xml_grep
+tools/xml_spellcheck/xml_spellcheck
 t/test1.t
 t/test2.t
 t/test2_1.exp

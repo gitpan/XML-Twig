@@ -1,7 +1,100 @@
-$Id: Changes,v 1.40 2002/11/01 17:12:52 mrodrigu Exp $
+$Id: Changes 38 2003-02-19 16:09:35Z mrodrigu $
 
 CHANGES
 
+Changes in 3.10
+
+      added xml_pp xml_grep and xml_spellcheck to the distribution
+
+      the print method now calls 'print $elt->sprint' instead of printing
+      content as it converts them to text, in order to reduce the number
+      of calls to Perl's print (which should increase performance)
+
+      changed XML::Twig::Elt erase to allow erasing the root element 
+      if it has only 1 child
+
+      added findvalue method to XML::Twig and XML::Twig::Elt
+
+      aliased findnodes to get_xpath in XML::Twig and XML::Twig::Elt
+
+      added the elt_class option to XML::Twig::new
+
+      added the do_not_chain_handlers option to XML::Twig::new
+
+      added the XML::Twig::Elt is_first_child and is_last_child methods
+
+      set_gi,set_text, prefix, suffix, set_att, set_atts, del_atts, del_att
+      now return the element for easier chains
+
+      Fixed a bug in pretty printing comments before elements (RT #2315)
+
+      Added the XML::Twig::Elt children_copy method which returns a list
+      of elements that are copies of the children of the element
+
+      Fixed a bug in wrap_in when the element wrapped is not attached to a tree
+
+      Fixed a bug with get_xpath: regexp modifiers were not taken into account
+      spotted by Eric Safern (RT #2284)
+
+      Fixed a bug in methods inherited from XML::Parser::Expat (arguments
+      were not properly passed)
+
+      Installed local empty SIG handlers to trap error messages triggered
+      by require for optional modules, so that user signal handlers would
+      not have to deal with them (suggestion from Philippe Verdret)
+
+      Fixed a bug in the navigation XPath engine: text() was used instead of 
+      string(). Both are now allowed.
+
+      Added XML::Twig::Elt sort_children, sort_children_on_value, 
+      sort_children_on_att and sort_children_on_field methods that sort the
+      children of an element in place
+
+      Added XML::Twig::Elt field_to_att and att_to_field methods
+
+      Fixed a memory leak due to ids not being weak references
+
+      Added the XML::Twig::Elt wrap_children method that wraps children
+      of an element that satisfy a regexp in a new element
+
+      Added the XML::Twig::Elt add_id method that adds an id to an element
+      
+      Added the XML::Twig::Elt strip_add method that deletes an attribute
+      from an element and its descendants
+
+      Fixed a quasi-bug in set_att where the hash passed in reference was
+      used directly, which makes it a problem when the same reference is
+      passed several times: all the elements share the same attributes.
+      This is a potentially incompatible change for code that relied on 
+      this feature. Please report problems to the author.
+
+      fixed a bug in set_id
+
+      fixed a bug spotted by Bill Gunter: allowed _ as the initial character 
+      for XML names. Also now allow ':' as the first element
+
+      added the simplify methods, which load a twig into an XML::Simple like 
+      data structure
+
+      fixed a bug in get_type and is_elt, spotted and fixed by Paul Stodghill
+
+      added the XML::Twig::Elt ancestors_or_self method
+
+      fixed bug when doc root is also a twig_root (twig was not built)
+
+      updated the README (fleshed out examples, added OS X to the list of 
+      tested platforms)
+
+      fixed a bug when using the no_dtd_output option
+
+      added doc for the XML::Twig::Elt children_count method
+
+      added the XML::Twig::Elt children_text method
+
+      updated the doc so it can be properly formated by my custom pod2html,
+      the generated doc (with a bigger ToC and better links) is available
+      from the XML::Twig page at http://xmltwig.com/xmltwig/
+      
 Changes in 3.09
 
       added XML::Twig::Elt xml_text method

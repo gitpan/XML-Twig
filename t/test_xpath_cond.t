@@ -17,6 +17,7 @@ $t->parse(
       <elt2 att_int="2" id="elt2-3">2</elt2>
       <elt2 att_int="3" id="elt2-4">3</elt2>
     </elt2>
+    <:elt id=":elt">yep, that is a vaid name</:elt>
  </doc>');
 
 my @data= grep { !/^##/  && m{\S} } <DATA>;
@@ -67,6 +68,7 @@ __DATA__
 /doc/*[@id=~/elt2/]     => elt2-1 elt2-2
 /doc//*[@id=~/elt2/]    => elt2-1 elt2-2 elt2-3 elt2-4
 //*[@id=~/elt2-[34]/]   => elt2-3 elt2-4
-//*[@id!~/^elt/]        => doc
+//*[@id!~/^elt/]        => doc :elt
 //[@id=~/elt2-[34]/]    => elt2-3 elt2-4
-//[@id!~/elt2-[34]/]    => doc elt-1 elt-2 elt2-1 elt-3 elt2-2
+//[@id!~/elt2-[34]/]    => doc elt-1 elt-2 elt2-1 elt-3 elt2-2 :elt
+//:elt                  => :elt

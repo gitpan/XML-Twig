@@ -6,7 +6,7 @@ use XML::Twig;
 
 $|=1;
 
-my $TMAX=10; # do not forget to update!
+my $TMAX=12; # do not forget to update!
 print "1..$TMAX\n";
 
 $/= "\n\n";
@@ -66,12 +66,19 @@ $t= XML::Twig->new( twig_roots => { elt3 => sub { } },
                   );
 test_twig( $t, 9);
 
-$t= XML::Twig->new( twig_roots =>         { elt => sub { print RESULT "elt handler called\n";       }, },
-                    start_tag_handlers => { doc => sub { print RESULT "start tag handler called\n"; }, },
-                    end_tag_handlers   => { doc => sub { print RESULT "end tag handler called\n";   }, },
+$t= XML::Twig->new( twig_roots =>         { elt => sub { print RESULT "elt handler called on ", $_->gi, "\n";   }, },
+                    start_tag_handlers => { doc => sub { print RESULT "start tag handler called on ", $_->gi, "\n"; }, },
+                    end_tag_handlers   => { doc => sub { print RESULT "end tag handler called on $_[1]\n";   }, },
                   );
 test_twig( $t, 10);
 
+# test with doc root as root
+$t= XML::Twig->new( twig_roots => { doc => sub { $_->print( \*RESULT); } });
+test_twig( $t, 11);
+
+# test with elt as root
+$t= XML::Twig->new( twig_roots => { elt => sub { $_->print( \*RESULT); } });
+test_twig( $t, 12);
 
 
 sub test_twig
@@ -314,6 +321,13 @@ __DATA__
 </doc>
 
 # expected_res 10
-start tag handler called
-elt handler called
-end tag handler called
+start tag handler called on doc
+elt handler called on elt
+end tag handler called on doc
+
+# expected_res 11
+<doc><elt/></doc>
+
+# expected_res 12
+<elt/>
+
