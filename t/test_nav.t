@@ -12,10 +12,10 @@ my $i=1;
 my $t= XML::Twig->new;
 $t->parse( 
 '<doc id="doc">
-    <elt id="elt-1">
+    <elt id="elt-1" toto="foo" val="1">
       <subelt id="subelt-1">text1</subelt>
     </elt>
-    <elt id="elt-2"/>
+    <elt id="elt-2" val="2"/>
     <elt2 id="elt2-1"/>
     <elt2 id="elt2-2">text</elt2>
     <elt2 id="elt2-3">
@@ -56,6 +56,7 @@ foreach my $cond ( keys %result)
     else
       { print "nok $i\n";
         print STDERR "$cond: expected $expected_result - real $result\n";
+	die;
       }
     $i++;
   }
@@ -64,10 +65,15 @@ __DATA__
                            => elt-1
 elt                        => elt-1
 #ELT                       => elt-1
+!#ELT                      => text level1
 #TEXT                      => text level1
+!#TEXT                     => elt-1
 elt2                       => elt2-1
 foo                        => none
 elt[@id]                   => elt-1
+elt[@id!="elt-1"]          => elt-2
+elt[@toto]                 => elt-1
+elt[!@toto]                => elt-2
 /2$/                       => elt2-1
 elt[@id="elt-1"]           => elt-1
 elt2[@id=~/elt2/]          => elt2-1
@@ -86,7 +92,7 @@ elt2[text(subelt)="text}"] => elt2-3
 elt2[text()="text}"]       => none
 elt2[text(subelt)='text"'] => elt2-3
 elt2[text(subelt)="text'"] => elt2-3
-[text(subelt)="text}"]     => elt2-3
+##[text(subelt)="text}"]     => elt2-3
 [text(subelt)="text1"]     => elt-1
 [text(subelt)="text 2"]    => elt2-3
 elt2[text(subelt)="text 2"]=> elt2-3
@@ -106,3 +112,12 @@ elt2[text(subelt)=~/^et/]  => none
 elt2[text(subelt)=~/^et}/]  => none
 /ELT/i                     => elt-1
 ##elt2[text(subelt)="text\""] => elt2-3
+elt[@val>'1']                => elt-2
+@val>"1"                     => elt-2
+elt[@val<"2"]                => elt-1
+@val<"2"                     => elt-1
+elt[@val>1]                  => elt-2
+@val>1                       => elt-2
+elt[@val<2]                  => elt-1
+@val<2                       => elt-1
+@val                         => elt-1

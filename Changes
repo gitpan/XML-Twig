@@ -1,6 +1,29 @@
 CHANGES
 
-    This is version 3.02 - 2001-01-16
+    This is version 3.03 - 2001-03-26
+
+    Changed in 3.03
+
+      fixed bugs in entity handling in twig_roots mode
+
+      added the ignore_elts option, to skip completely elements
+
+      enhanced the XPath-like syntax in navigation and get_xpath
+      methods: added operators (>, < ...)
+
+      fixed [RT 168]: setTwigHandler failed when no handler was already set
+      turned %valid_option into a package global so AnyData can access it
+      (thanks to Jerry)
+      
+      fixed a bug in sprint that prevented it from working with filters
+      fixed a bug in erase when erasing an empty element that was the
+      las child of its parent ([RT390], thanks to Julian Arnold)
+      
+      copy now correctly copies the asis status of elements
+
+      fixed typos on the docs (thanks to Shlomo Yona)
+
+      added tests (for erase and entities in twig_roots mode)
 
     Changed in 3.02
 

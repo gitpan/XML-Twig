@@ -22,3 +22,6 @@ t/test5.t
 t/is_field.t
 t/test_nav.t
 t/test_attregexp_cond.t
+t/test_entities.t
+t/test_erase.t
+t/test_ignore_elts.t
