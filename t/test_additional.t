@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_additional.t,v 1.127 2005/02/02 13:24:49 mrodrigu Exp $
+# $Id: test_additional.t,v 1.128 2005/02/14 16:40:28 mrodrigu Exp $
 
 # test designed to improve coverage of the module
 
@@ -1293,9 +1293,11 @@ sub xml_escape
 }
 
 # test SAX2 export
-{ eval "require XML::SAX::Writer;";
+{ eval "require XML::SAX::Writer;"; 
   if( $@)
     { skip(5, "XML::SAX::Writer not available"); }
+  elsif( $XML::SAX::Writer::VERSION < 0.39)
+    { skip( 5, "XML::SAX::Writer version 0.39 and above required to use SAX2 export"); }
   else
     { eval "require XML::Filter::BufferText;";
       if( $@)

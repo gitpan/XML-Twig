@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.184 2005/02/10 11:49:52 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.191 2005/03/16 14:03:52 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -77,7 +77,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.16';
+$VERSION = '3.17';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -87,7 +87,7 @@ croak "need at least XML::Parser version $needVersion" unless $parser_version >=
 if( $] >= 5.008) 
   { eval "use Encode qw( :all)";
     $FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
-    $FB_HTMLCREF = 0x0200; #Encode::FB_HTMLCREF;
+    $FB_HTMLCREF = 0x0200; # Encode::FB_HTMLCREF;
   }
 
 # test whether we can use weak references
@@ -2174,10 +2174,6 @@ sub _twig_default
           { $ent= _twig_insert_ent( $t, $string); 
           }
 
-        # meant to trigger entity handler, does not seem to be activated at this time
-        #if( my $handler= $t->{twig_handlers}->{gi}->{'#ENT'})
-        #  { local $_= $ent; $handler->( $t, $ent); }
-
         return $ent;
       }
   }
@@ -2816,7 +2812,7 @@ sub finish_print
 
 sub set_remove_cdata { return XML::Twig::Elt::set_remove_cdata( @_); }
 
-sub output_filter { return XML::Twig::Elt::output_filter( @_); }
+sub output_filter     { return XML::Twig::Elt::output_filter( @_);     }
 sub set_output_filter { return XML::Twig::Elt::set_output_filter( @_); }
 
 sub output_text_filter { return XML::Twig::Elt::output_text_filter( @_); }
@@ -6735,7 +6731,7 @@ BEGIN {
       }
 
     # generate a unique mark (a string) not found in the string, 
-    # used to mark < and & in hte extra data
+    # used to mark < and & in the extra data
     sub _gen_mark
       { $mark="AAAA";
         $mark++ while( index( $_[0], $mark) > -1);
@@ -6771,7 +6767,7 @@ BEGIN {
         { unless( $keep_encoding)
             { if( $do_not_escape_amp_in_atts)
                 { $string=~ s{([$quote<])}{$XML::Twig::base_ent{$1}}g; 
-                  $string=~ s{&(?!\w+;)}{&amp;}g; # dodgy: escape & that do not start an entity
+                  $string=~ s{&(?!(\w+|#\d+|[xX][0-9a-fA-F]+);)}{&amp;}g; # dodgy: escape & that do not start an entity
                 }
               else
                 { $string=~ s{([$quote<&])}{$XML::Twig::base_ent{$1}}g; }
@@ -7525,6 +7521,11 @@ XML::Twig - A perl module for processing huge XML documents in tree mode.
 
 =head1 SYNOPSIS
 
+Note that this documentation is intended as a reference to the module.
+
+Complete docs, including a tutorial, examples, an easier to use HTML version,
+a quick reference card and a FAQ are available at http://www.xmltwig.com/xmltwig
+
 Small documents (loaded in memory as a tree):
 
   my $twig=XML::Twig->new();    # create the twig
@@ -7551,9 +7552,6 @@ Huge documents (processed in combined stream/tree mode):
 See L<XML::Twig 101|XML::Twig 101> for other ways to use the module, as a 
 filter for example
 
-Note that this documentation is intended as a reference to the module. A 
-tutorial is available at http://www.xmltwig.com/xmltwig/tutorial/index.html
-and a FAQ is at http://www.xmltwig.com/xmltwig/XML-Twig-FAQ.html
 
 =head1 DESCRIPTION
 
@@ -9519,7 +9517,15 @@ the element are duplicated.
 Paste a (previously C<cut> or newly generated) element. Die if the element
 already belongs to a tree.
 
-The element is pasted 
+Note that the calling element is pasted:
+
+  $child->paste( first_child => $existing_parent);
+	$new_sibling->paste( after => $this_sibling_is_already_in_the_tree);
+
+or
+
+  my $new_elt= XML::Twig::Elt->new( tag => $content);
+	$new_elt->paste( $position => $existing_elt);
 
 Example:
 
@@ -11191,6 +11197,9 @@ F<Processing XML efficiently with Perl and XML::Twig:
 L<http://www.xmltwig.com/xmltwig/tutorial/index.html>>
 
 =head1 SEE ALSO
+
+Complete docs, including a tutorial, examples, an easier to use HTML version,
+a quick reference card and a FAQ are available at http://www.xmltwig.com/xmltwig/
 
 XML::Parser,XML::Parser::Expat, Encode, Text::Iconv, Scalar::Utils
 

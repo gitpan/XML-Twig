@@ -85,19 +85,18 @@ DEPENDANCIES
 
 CHANGES
 
-    $Id: README,v 1.8 2005/02/10 12:27:15 mrodrigu Exp $
+    $Id: README,v 1.10 2005/03/16 14:03:52 mrodrigu Exp $
 
     See the Changes file    
 
 AUTHOR
 
     Michel Rodriguez (mirod@cpan.org)
-    The Twig page is at http://www.xmltwig.com/
+    The Twig page is at http://www.xmltwig.com/xmltwig
     See the XML::Twig tutorial at http://www.xmltwig.com/xmltwig/tutorial/index.html
 
 COPYRIGHT
 
-       Copyright (c) 1999-2004, Michel Rodriguez. All Rights Reserved.
-     This module is free software. It may be used, redistributed
-     and/or modified under the terms of the Perl Artistic License
-          (see http://www.perl.com/perl/misc/Artistic.html)
+       Copyright (c) 1999-2005, Michel Rodriguez. All Rights Reserved.
+       This library is free software; you can redistribute it and/or modify
+       it under the same terms as Perl itself.

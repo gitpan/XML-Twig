@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: xml_merge,v 1.2 2005/02/10 11:45:07 mrodrigu Exp $
+# $Id: xml_merge,v 1.1 2005/02/14 18:07:34 mrodrigu Exp $
 use strict;
 
 use XML::Twig;

@@ -1,6 +1,25 @@
-$Id: Changes,v 1.56 2005/02/10 12:27:15 mrodrigu Exp $
+$Id: Changes,v 1.60 2005/03/16 14:03:52 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.17
+
+      documentation changes, mostly to point better to 
+			the resources at http://www.xmltwig.com
+			
+
+      fix a few tests that would fail under perl 5.6.*
+      and Solaris (t/test_safe_encode.t and t/test_bug_3.15.t),
+      see RT bug # 11844, thanks to Sven Neuhaus
+
+      made the licensing terms in the README match the
+      ones in the main module (same as Perl), see RT
+      bug #11725
+
+      added a test on XML::SAX::Writer version number to 
+      avoid failing tests with old versions (<0.39)
+
+      improved xml_split
 
 Changes in 3.16
 

@@ -27,10 +27,21 @@ print "1..$TMAX\n";
 
 { # testing to see if bug RT #7523 is still around
   my $t= XML::Twig->new->parse( '<doc/>');
-  $t->set_output_encoding( 'utf8');
-  $t->sprint;
-  ok(1);
+  if( eval( '$t->iconv_convert( "utf8");'))
+    { $t->set_output_encoding( 'utf8');
+      eval { $t->sprint;};
+      ok( !$@, 'checking bug RT 7523');
+    }
+  else
+    { if( $@=~ m{^Can't locate Text/Iconv.pm})
+        { skip( 1, "Text::Iconv not available"); }
+      elsif( $@=~ m{^Unsupported encoding: utf8})
+        { skip( 1, "your version of iconv does not support utf8"); }
+      else
+        { skip( 1, "odd error creating filter with iconv: $@"); }
+    }
 }
+
 
 { # bug on comments
   my $doc= "<doc>\n  <!-- comment -->\n  <elt>foo</elt>\n</doc>\n";
@@ -46,7 +57,7 @@ print "1..$TMAX\n";
 
   XML::Twig::Elt::init_global_state();
   my $regular=XML::Twig->new( pretty_print => 'none')->parse( $doc)->root->sprint;
-  (my $expected= $text)=~ s{&(uuml|ent2);}{}g;
+  (my $expected= $text)=~ s{&(uuml|ent2);}{}g;  # yes, entities in attributes just vanish!
   is( $regular => $expected, "entities in atts, no option");
 
   XML::Twig::Elt::init_global_state();
@@ -55,7 +66,11 @@ print "1..$TMAX\n";
 
   XML::Twig::Elt::init_global_state();
   my $with_dneaia=XML::Twig->new(do_not_escape_amp_in_atts => 1)->parse( $doc)->root->sprint;
-  is( $with_dneaia => $text, "entities in atts with do_not_escape_amp_in_atts");
+  if( $with_dneaia eq '<doc att="Mnchen"><elt att=""/><elt att="A&amp;E">&ent3;</elt></doc>')
+    { skip( 1, "option do_not_escape_amp_in_atts not available, probably due to an old version of expat being used"); }
+  else
+    { is( $with_dneaia => $text, "entities in atts with do_not_escape_amp_in_atts"); }
+    
 
   # checking that all goes back to normal
   XML::Twig::Elt::init_global_state();

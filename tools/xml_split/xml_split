@@ -1,25 +1,29 @@
 #!/usr/bin/perl -w
-# $Id: xml_split,v 1.5 2005/02/10 11:45:07 mrodrigu Exp $
+# $Id: xml_split,v 1.2 2005/03/03 06:01:15 mrodrigu Exp $
 use strict;
 
 use XML::Twig;
 use FindBin qw( $RealBin $RealScript);
 use Getopt::Std;
 
+import xml_split::state::parser;
+import xml_split::state::twig;
+
 $Getopt::Std::STANDARD_HELP_VERSION=1; # to stop processing after --help or --version
 
 use vars qw( $VERSION $USAGE);
 
-$VERSION= "0.02";
-$USAGE= "xml_split [-l <level> | -c <cond>] [-b <base>] [-n <nb>] [-e <ext>] [-d] [-v] [-h] [-m] [-V] <files>\n";
+$VERSION= "0.03";
+$USAGE= "xml_split [-l <level> | -c <cond>] [-b <base>] [-n <nb>] [-e <ext>] [-p <plugin>] [-I <plugin_dir>] [-d] [-v] [-h] [-m] [-V] <files>\n";
 
 { # main block
 
 my $opt={};
-getopts('l:c:b:n:e:dvhmV', $opt);
+getopts('l:c:b:n:e:p:dvhmV', $opt);
 
 # defaults
 $opt->{n} ||= 2; # number of digits used for creating parts
+$opt->{I} ||= ˝"$ENV{HOME}/.xml_split";
 
 if( $opt->{h}) { die $USAGE, "\n";            }
 if( $opt->{m}) { exec "pod2text $RealBin/$RealScript"; }
@@ -28,84 +32,189 @@ if( $opt->{V}) { print "xml_split version $VERSION\n"; exit; }
 if( $opt->{c}) { die "cannot use --level and --condition at the same time\n" if( $opt->{l}); }
 else           { $opt->{l} ||= 1; $opt->{c}= "level( $opt->{l})"; }
 
-my $options= { cond => $opt->{c}, base => $opt->{b}, nb_digits => $opt->{n}, ext => $opt->{e}, verbose => $opt->{v}, no_pi => $opt->{d} };
+my $options= { cond    => $opt->{c}, 
+               base    => $opt->{b}, nb_digits => $opt->{n}, ext => $opt->{e},
+               plugin  => $opt->{p},
+               no_pi   => $opt->{d},
+               verbose => $opt->{v}, 
+             };
+
 
 my $state;
-$state->{seq_nb}=0;
+if( my $plugin= $opt->{p}) 
+  { if( $plugin!~ m{^[\w:.-]+$}) { die "wrong plugin name '$plugin' (only word characters are allowed in plugin names)\n"; }
+    push @INC, $opt->{I};
+    eval { require $plugin };
+    if( $@) { die "cannot find plugin '$plugin': $!"; }
+    import $plugin;
+    $state= $plugin->new( $options);
+  }
+  
 
-if( !@ARGV)
-  { $options->{base} ||= 'out';
-    $options->{ext}  ||= '.xml';
-    my $twig_options= twig_options( $options);
-    my $t= XML::Twig->new( %$twig_options);
-    $t->parse( \*STDIN);
-    end_file( $t, $options, $state);
+if( $opt->{l})
+  { $state||= xml_split::state::parser->new( $options);
+    $state->{level}= $opt->{l};
+    warn "using XML::Parser\n" if( $opt->{v});
+    split_with_parser( $state, @ARGV);
   }
 else
-  { foreach my $file (@ARGV)
-      { 
-        unless( $options->{base})
-          { $state->{seq_nb}=0; }
-        my( $base, $ext)= ($file=~ m{^(.*?)(\.\w+)?$});
-        $options->{base} ||= $base;
-        $options->{ext}  ||= $ext || '.xml';
-        my $twig_options= twig_options( $options, $state);
-        my $t= XML::Twig->new( %$twig_options);
-        $t->parsefile( $file);
-        end_file( $t, $options, $state);
+  { $state||= xml_split::state::twig->new( $options);
+    split_with_twig( $state, @ARGV);
+  }
+
+exit;
+}    
+
+sub split_with_twig
+  { my( $state, @files)= @_;
+    if( !@files)
+      { $state->{base} ||= 'out';
+        $state->{ext}  ||= '.xml';
+        my $twig_options= twig_options( $state);
+        my $t= XML::Twig->new( %$twig_options, $state);
+        $state->{twig}= $t;
+        $t->parse( \*STDIN);
+        end_file( $t, $state);
+      }
+    else
+      { foreach my $file (@files)
+          { 
+            unless( $state->{base}) { $state->{seq_nb}=0; }
+            my( $base, $ext)= ($file=~ m{^(.*?)(\.\w+)?$});
+            $state->{base} ||= $base;
+            $state->{ext}  ||= $ext || '.xml';
+            my $twig_options= twig_options( $state);
+            my $t= XML::Twig->new( %$twig_options);
+            $state->{twig}= $t;
+            $t->parsefile( $file);
+            end_file( $t, $state);
+          }
       }
   }
 
-}    
+sub split_with_parser
+  { my( $state, @files)= @_;
+    if( !@files)
+      { $state->{base} ||= 'out';
+        $state->{ext}  ||= '.xml';
+        my $parser_options= parser_options( $state);
+        my $p= XML::Parser->new( %$parser_options);
+        $state->{parser}= $p;
+        $p->parse( \*STDIN);
+      }
+    else
+      { foreach my $file (@files)
+          { 
+            unless( $state->{base}) { $state->{seq_nb}=0; }
+            my( $base, $ext)= ($file=~ m{^(.*?)(\.\w+)?$});
+            $state->{base} ||= $base;
+            $state->{ext}  ||= $ext || '.xml';
+            my $parser_options= parser_options( $state);
+            my $p= XML::Parser->new( %$parser_options);
+            $state->{parser}= $p;
+            $p->parsefile( $file);
+          }
+      }
+  }
+  
+sub parser_options
+  { my( $state)= @_;
+		# prepare output to the main document
+		unless( $state->{no_pi})
+		  { my $file_name= $state->main_file_name(); # main file name
+				warn "generating main file $file_name\n" if( $state->{verbose});
+				open( my $out, '>', $file_name) or die "cannot create main file '$file_name': $!";
+				$state->{main_fh}= $out;
+        $state->{current_fh}= $out;
+      }
+
+   my $handlers= { Start   => sub { parser_start_tag( $state, shift( @_)); },
+                   End     => sub { parser_end_tag( $state, shift( @_));   },
+                   Default => sub { default( $state, shift( @_));          },
+                 };
+    
+    return { Handlers => $handlers };
+  }
+
+sub parser_start_tag
+  { my( $state, $p)= @_;
+    if( $p->depth == $state->{level})
+      { $state->{seq_nb}++;
+        my $file_name= $state->file_name;
+        # prepare chunk file
+        warn "generating $file_name\n" if( $state->{verbose});
+        open( my $out, '>', $file_name) or die "cannot create output file '$file_name': $!";
+        $state->{current_fh}= $out;
+        # output pi
+        unless( $state->{no_pi})
+          { print {$state->{main_fh}} $state->include( $file_name) ; }
+      }
+    print {$state->{current_fh}} $p->original_string if( $state->{current_fh});
+  }
+  
+sub parser_end_tag
+  { my( $state, $p)= @_;
+    print {$state->{current_fh}} $p->original_string if( $state->{current_fh});
+    if( $p->depth == $state->{level})
+      { close $state->{current_fh};
+        $state->{current_fh}= $state->{main_fh};
+      }
+  }
+
+sub default
+  { my( $state, $p)= @_;
+    print {$state->{current_fh}} $p->original_string if( $state->{current_fh});
+  }
+        
+        
 
 sub twig_options
-  { my( $tool_options, $state)= @_;
+  { my( $state)= @_;
 
 		# base options, ensures maximun fidelity to the original document
     my $twig_options= { keep_encoding => 1, keep_spaces => 1 };
 
 		# prepare output to the main document
-		unless( $tool_options->{no_pi})
-		  { my $file_name= file_name( $tool_options, { %$state, seq_nb  => 0} ); # main file name
-				warn "generating main file $file_name\n" if( $tool_options->{verbose});
+		unless( $state->{no_pi})
+		  { my $file_name= $state->main_file_name(); # main file name
+				warn "generating main file $file_name\n" if( $state->{verbose});
 				open( my $out, '>', $file_name) or die "cannot create main file '$file_name': $!";
 				$state->{out}= $out;
 				$twig_options->{twig_print_outside_roots}= $out;
-				$twig_options->{start_tag_handlers}= { $tool_options->{cond} => sub { $_->set_att( '#in_fragment' => 1); }  };
+				$twig_options->{start_tag_handlers}= { $state->{cond} => sub { $_->set_att( '#in_fragment' => 1); }  };
 		  }
 		
-    $twig_options->{twig_roots}= { $tool_options->{cond} => sub { dump_elt( @_, $tool_options, $state); } };
+    $twig_options->{twig_roots}= { $state->{cond} => sub { dump_elt( @_, $state); } };
     return $twig_options;
   }
 
 sub dump_elt
-  { my( $t, $elt, $options, $state)= @_;
+  { my( $t, $elt, $state)= @_;
     $state->{seq_nb}++;
+    $state->{elt}= $elt;
 
-    my $file_name= file_name( $options, $state);
-    warn "generating $file_name\n" if( $options->{verbose});
+    my $file_name= $state->file_name;
+    warn "generating $file_name\n" if( $state->{verbose});
 
     my $fragment= XML::Twig->new();
     $fragment->{twig_xmldecl} = $t->{twig_xmldecl};
     $fragment->{twig_doctype} = $t->{twig_doctype};
     $fragment->{twig_dtd}     = $t->{twig_dtd};
    
-    if( !$options->{no_pis})
+    if( !$state->{no_pis})
       { # if we are still witin a fragment, just replace the element by the PI
 				# otherwise print it to the main document
-				my $subdocs= $elt->att( '#has_subdocs') || 0;
-				my $pi=	XML::Twig::Elt->new( '#PI')
-                              ->set_pi( merge => " subdocs = $subdocs :$file_name");
+        my $include= $state->include( $file_name)
 															
 				$elt->del_att( '#in_fragment');
 				
 				if( $elt->inherited_att( '#in_fragment'))
 				  { $elt->parent( '*[@#in_fragment="1"]')->set_att( '#has_subdocs' => 1);
-						$pi->replace( $elt);
+						$include->replace( $elt);
 					}
 				else
 				  { $elt->cut;
-						$pi->print( $state->{out});
+						$include->print( $state->{out});
 				  }
       }
 		else
@@ -118,22 +227,73 @@ sub dump_elt
   }
   
 sub end_file
-  { my( $t, $options, $state)= @_;
-    unless( $options->{no_pi})
+  { my( $t, $state)= @_;
+    unless( $state->{no_pi})
       { close $state->{out}; }
   }  
-  
-sub file_name
-  { my( $options, $state)= @_;
-    my $nb= sprintf( "%0$options->{nb_digits}d", $state->{seq_nb});
-    my $file_name= "$options->{base}-$nb$options->{ext}";
-    return $file_name;
-  }
 
  
 # for Getop::Std
 sub HELP_MESSAGE    { return $USAGE;   }
 sub VERSION_MESSAGE { return $VERSION; } 
+
+package xml_split::state;
+
+sub new 
+  { my( $ref, $options)= @_;
+    my $state= bless $options, $ref;
+    $state->{seq_nb}=0;
+    return $state;
+  }
+
+sub file_name
+  { my( $state)= @_;
+    my $nb= sprintf( "%0$state->{nb_digits}d", $state->{seq_nb});
+    my $file_name= "$state->{base}-$nb$state->{ext}";
+    return $file_name;
+  }
+
+sub main_file_name
+  { my( $state)= @_;
+    my $nb= sprintf( "%0$state->{nb_digits}d", 0);
+    my $file_name= "$state->{base}-$nb$state->{ext}";
+    return $file_name;
+  }
+1;
+
+package xml_split::state::parser;
+import xml_split::state;
+use base 'xml_split::state';
+
+sub include
+  { my( $state, $file_name)= @_;
+    if( $state->{include} eq 'xinclude')
+      { return qq{<xi:include href="$file_name">}; }
+    else
+      { return qq{<?merge subdocs = 0 :$file_name?>}; }
+  }
+1;
+
+package xml_split::state::twig;
+import xml_split::state;
+use base 'xml_split::state';
+
+sub include
+  { my( $state, $file_name)= @_;
+    my $include;
+    if( $state->{include} eq 'xinclude')
+      { $include= XML::Twig::Elt->new( 'xi:include', { href => $file_name}); }
+    else
+      { my $subdocs= $state->{elt}->att( '#has_subdocs') || 0;
+        my $include=	XML::Twig::Elt->new( '#PI')
+                                    ->set_pi( merge => " subdocs = $subdocs :$file_name");
+      }
+    return $include;
+  }
+
+1;
+
+package main;
 
 __END__
 
@@ -175,6 +335,8 @@ generate a file for each element that passes the condition
 xml_split -c <section> will put each C<section> element in its own file (nested
 sections are handled too)
 
+Note that at the moment this option is a lot slower than using C<-l>
+
 =item -b <name>
 
 base name for the output, files will be named <base>-<nb><.ext>
@@ -203,6 +365,9 @@ defaults to the original file extension or C<.xml>
 =item -v
 
 verbose output
+
+Note that this option can slow down processing considerably (by an order of
+magnitude) when generating lots of small documents
 
 =item -V
 
