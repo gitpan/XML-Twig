@@ -180,7 +180,8 @@ __DATA__
 
 # expected_res 3
 <?xml version="1.0"?>
-<!DOCTYPE doc SYSTEM "t/dummy.dtd"><doc>
+<!DOCTYPE doc SYSTEM "t/dummy.dtd">
+<doc>
   <elt2>tata &ent2;</elt2>
   <elt2>tutu &ent4;</elt2>
 </doc>
@@ -202,7 +203,8 @@ __DATA__
 
 # expected_res 6
 <?xml version="1.0"?>
-<!DOCTYPE doc SYSTEM "t/dummy.dtd"><doc>
+<!DOCTYPE doc SYSTEM "t/dummy.dtd">
+<doc>
   <elt2>tata &ent2;</elt2>
   <elt2>tutu &ent4;</elt2>
 </doc>

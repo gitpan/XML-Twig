@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: xml_pp,v 1.1.1.2 2003/09/15 16:57:56 mrodrigu Exp $
+# $Id: xml_pp,v 1.2 2004/02/09 19:13:25 mrodrigu Exp $
 use strict;
 
 use XML::Twig;
@@ -147,7 +147,7 @@ __END__
 
 =head1 NAME
 
-xml_pp
+xml_pp - xml pretty-printer
 
 =head1 SYNOPSYS
 
@@ -164,7 +164,7 @@ XML pretty printer using XML::Twig
 =item -i[<extension>]
 
 edits the file(s) in place, if an extension is provided (no space between 
--i and the extension) then the original file is backed-up with that extension
+C<-i> and the extension) then the original file is backed-up with that extension
 
 The rules for the extension are the same as Perl's (see perldoc perlrun): if
 the extension includes no "*" then it is appended to the original file name,
@@ -179,7 +179,7 @@ record_c (see XML::Twig docs for the exact description of those styles),
 
 =item -p <tag(s)> 
 
-preserves white spaces in tags. You can use several -p options or quote the 
+preserves white spaces in tags. You can use several C<-p> options or quote the 
 tags if you need more than one
 
 =item -e <encoding>
@@ -258,7 +258,7 @@ will be output as
   <elt>
     <b>b</b>toto<b>bold</b></elt>
 
-Using the -l option solves this bug (but uses more memory)
+Using the C<-l> option solves this bug (but uses more memory)
 
 =head1 TODO
 

@@ -26,6 +26,7 @@ t/test5.t
 t/is_field.t
 t/test_nav.t
 t/test_additional.t
+t/test_class_methods.t
 t/test_with_lwp.t
 t/test_with_lwp.xml
 t/test_with_lwp_not_wf.xml
@@ -36,6 +37,7 @@ t/test_ignore_elts.t
 t/test_cdata.t
 t/test_twig_roots.t
 t/test_spaces.t
+t/test_simplify.t
 t/test_entities.t
 t/test_pi_handler.t
 t/test_comment_handler.t
@@ -84,4 +86,7 @@ t/pod.t
 t/test_expand_external_entities.t
 t/test_expand_external_entities.xml
 t/test_expand_external_entities.dtd
+t/test_need_io_scalar.t
+t/test_need_use_bytes.t
+t/zz_dump_config.t
 META.yml                                Module meta-data (added by MakeMaker)

@@ -36,7 +36,8 @@ __DATA__
 <!DOCTYPE e SYSTEM "dummy.dtd">
 <e> &c;b</e>
 
-<!DOCTYPE e SYSTEM "dummy.dtd"><e> &c;b</e>
+<!DOCTYPE e SYSTEM "dummy.dtd">
+<e> &c;b</e>
 
 <!DOCTYPE e SYSTEM "dummy.dtd">
 <e><sub1> &c;b</sub1>
@@ -45,7 +46,8 @@ __DATA__
    </sub1>
 </e>
 
-<!DOCTYPE e SYSTEM "dummy.dtd"><e><sub1> &c;b</sub1>
+<!DOCTYPE e SYSTEM "dummy.dtd">
+<e><sub1> &c;b</sub1>
    <sub1> 
      &c;
    </sub1>
@@ -58,7 +60,8 @@ __DATA__
    </sub1>
 </e>
 
-<!DOCTYPE e SYSTEM "dummy.dtd"><e><sub1> &c;b</sub1>
+<!DOCTYPE e SYSTEM "dummy.dtd">
+<e><sub1> &c;b</sub1>
    <sub1> 
      &c;
    </sub1>

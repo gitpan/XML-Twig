@@ -1,5 +1,5 @@
 #!/bin/perl -w
-# $Id: xmlxpath_xpath_cond.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_xpath_cond.t,v 1.6 2004/03/10 10:39:27 mrodrigu Exp $
 use strict;
 
 BEGIN 
@@ -37,7 +37,7 @@ foreach( @data)
     push @exp, $exp;
   }
 
-my $nb_tests= keys %result;
+my $nb_tests= 2 + keys %result;
 print "1..$nb_tests\n";
 
 my $i=1;
@@ -60,6 +60,42 @@ foreach my $exp ( @exp)
     $i++;
   }
 
+my $exp=  '//* |//@* | /';
+my @result= $t->findnodes( $exp);
+my @elts= $t->descendants( '#ELT');
+
+# first check the number of results
+my $result= @result;
+my $nb_atts=0;
+foreach (@elts) { $nb_atts+= $_->att_nb; }
+my $expected_result= scalar @elts + $nb_atts + 1;
+
+if( $result == $expected_result)
+  { print "ok $i\n"; }
+else
+  { print "nok $i\n";
+    print STDERR "$exp: expected $expected_result - real $result\n";
+  }
+$i++;
+
+# then check the results (to make sure they are in hte right order)
+my @expected_results;
+push @expected_results, "XML::Twig::XPath '" . $t->sprint ."'";
+foreach my $elt (@elts)
+  { push @expected_results, ref( $elt) . " '" . $elt->sprint . "'" ;
+    foreach my $att ($elt->att_names)
+      { push @expected_results, qq{XML::Twig::XPath::Attribute '$att="} . $elt->att( $att) . q{"'} ; }
+  }
+$expected_result= join( "\n          ", @expected_results);
+$result= join( "\n          ", map { ref( $_) . " '" . $_->toString ."'" } @result);
+if( $result eq $expected_result)
+  { print "ok $i\n"; }
+else
+  { print "nok $i\n";
+    print STDERR "$exp:\nexpected: $expected_result\n\nreal     : $result\n";
+  }
+$i++;
+
 __DATA__
 /elt                  => none
 //elt                 => elt-1 elt-2 elt-3
@@ -70,6 +106,5 @@ __DATA__
 //elt[@id="elt-1" or @id="elt-2" or @id="elt-3"]      => elt-1 elt-2 elt-3
 //elt2[@att_int > 2]  => elt2-4
 /doc/elt2[ last()]/*  => elt2-3 elt2-4
-//*[@id="elt2-2"]        => elt2-2
+//*[@id="elt2-2"]     => elt2-2
 /doc/elt2[./elt[@id="elt-3"]] => elt2-1
-

@@ -7,7 +7,7 @@ $|=1;
 
 use XML::Twig;
 
-my $TMAX=1; 
+my $TMAX=3; 
 
 print "1..$TMAX\n";
 
@@ -29,11 +29,26 @@ while( $dtd=~ m{<!ENTITY \s+ (\w+) \s+ "([^"]*)" \s* >}gx) { $ent{$1}= $2; } #"
 # replace in xml
 ($xml_expanded= $xml)=~ s{&(\w+);}{$ent{$1}}g;
 
+{
 my $t= XML::Twig->new( load_DTD => 1);
 $t->set_expand_external_entities;
 $t->parsefile( $xml_file);
-
 is( normalize_xml( $t->sprint), normalize_xml( $xml_expanded), "expanded document");
+}
+
+{
+my $t= XML::Twig->new( load_DTD => 1, expand_external_ents => 1);
+$t->parsefile( $xml_file);
+is( normalize_xml( $t->sprint), normalize_xml( $xml_expanded), "expanded document");
+}
+
+{
+(my $xml_no_dtd= $xml_expanded)=~ s{^<!DOCTYPE.*?>}{}s;
+my $t= XML::Twig->new( load_DTD => 1, expand_external_ents => 1, do_not_output_DTD => 1);
+$t->parsefile( $xml_file);
+is( normalize_xml( $t->sprint), normalize_xml( $xml_no_dtd), "expanded document");
+}
+
 
 ############################################################################
 # tools                                                                    #

@@ -123,9 +123,10 @@ sub process_text
   }
 
 __END__
+
 =head1 NAME
 
-xml_spellcheck
+xml_spellcheck - spellcheck XML files
 
 =head1 SYNOPSIS
 

@@ -1,6 +1,32 @@
-$Id: Changes,v 1.25 2004/01/31 09:01:51 mrodrigu Exp $
+$Id: Changes,v 1.37 2004/03/17 16:57:49 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.14
+
+      Namespace processing has been enhanced and should work fine now,
+      as long as twig_roots is not used.
+
+      Potentially uncompatible change: the behaviour of simplify has
+      been changed to mimic as exactly as possible XML::Simple's XMLin
+
+      Completed the pod to cover the entire API
+ 
+      Tests now pass with perl 5.005_04-RC1 (fail with 5.005 reported
+      by David Claughton), added more tests and a config summary at the
+      end of the tests
+
+      Added methods on the class attribute, convenient for dealing with
+      XHTML or preparing display with CSS:
+      class set_class add_to_class att_to_class add_att_to_class 
+      move_att_to_class tag_to_class add_tag_to_class set_tag_class in_class
+      navigation functions can use '.<class>' expressions
+
+      fixed (yet another!) bug in the way DTDs were output
+      fixed bug for pi => 'drop' option
+
+      changed the names of lots on internal (undocumented) methods, prefixed
+      them with _
 
 Changes in 3.13
 

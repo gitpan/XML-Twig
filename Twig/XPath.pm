@@ -1,4 +1,4 @@
-# $Id: XPath.pm,v 1.10 2004/01/22 01:30:45 mrodrigu Exp $
+# $Id: XPath.pm,v 1.13 2004/03/16 10:59:36 mrodrigu Exp $
 package XML::Twig::XPath;
 use XML::Twig;
 use XML::XPath;
@@ -34,7 +34,7 @@ sub new
   }
 
 	
-sub node_cmp($$)       { return $_[1] == $_[0] ? 0 : 1; } # document is before anything but itself
+sub node_cmp($$)       { return $_[1] == $_[0] ? 0 : -1; } # document is before anything but itself
 sub set_namespace      { my $t= shift; $t->{twig_xp}->set_namespace( @_); }
 sub isElementNode   { 0 }
 sub isAttributeNode { 0 }
@@ -70,18 +70,18 @@ sub getAttributes
   { my $elt= shift;
     my $atts= $elt->atts;
 		# alternate, faster but less clean, way
-		#my @atts= map { bless( { name => $_, value => $atts->{$_}, elt => $elt }, 
-		#                       'XML::Twig::XPath::Attribute') 
-		#              }
-		#                keys %$atts; 
-    my @atts= map { XML::Twig::XPath::Attribute->new( $elt, $_) } keys %$atts; 
+		my @atts= map { bless( { name => $_, value => $atts->{$_}, elt => $elt }, 
+		                       'XML::Twig::XPath::Attribute') 
+		              }
+		               sort keys %$atts; 
+		# my @atts= map { XML::Twig::XPath::Attribute->new( $elt, $_) } sort keys %$atts; 
     return wantarray ? @atts : \@atts;
   }
 
 sub getNamespace
   { my $elt= shift;
 	  my $prefix= shift() || $elt->ns_prefix;
-		if( my $expanded= $elt->get_namespace( $prefix))
+		if( my $expanded= $elt->namespace( $prefix))
 		  { return XML::Twig::XPath::Namespace->new( $prefix, $expanded); }
 		else
 		  { return XML::Twig::XPath::Namespace->new( $prefix, ''); }
@@ -96,11 +96,11 @@ sub node_cmp($$)
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Attribute'))
       { # elt <=> att, compare the elt to the att->{elt}
 				# if the elt is the att->{elt} (cmp return 0) then 1, elt is before att
-        return ($a->cmp( $b->{elt}) ) || 1 ;
+        return ($a->cmp( $b->{elt}) ) || -1 ;
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath'))
       { # elt <=> document, elt is after document
-				return -1;
+				return 1;
       } 
     else
       { die "unknown node type ", ref( $b); }
@@ -151,24 +151,24 @@ sub getNamespace
 		    else                         { $prefix='';  }
       }
 
-		if( my $expanded= $att->{elt}->get_namespace( $prefix))
+		if( my $expanded= $att->{elt}->namespace( $prefix))
 		  { return XML::Twig::XPath::Namespace->new( $prefix, $expanded); }
   }
 
 sub node_cmp($$) 
   { my( $a, $b)= @_;
     if( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Attribute')) 
-      { # 2 attributes, compare by name 
+      { # 2 attributes, compare their elements, then their name 
         return ($a->{elt}->cmp( $b->{elt}) ) || ($a->{name} cmp $b->{name});
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Elt'))
       { # att <=> elt : compare the att->elt and the elt
         # if att->elt is the elt (cmp returns 0) then -1 (elt is before att)
-        return ($a->{elt}->cmp( $b) ) || -1 ;
+        return ($a->{elt}->cmp( $b) ) || 1 ;
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath'))
       { # att <=> document, att is after document 
-        return -1;
+        return 1;
       }
     else
       { die "unknown node type ", ref( $b); }

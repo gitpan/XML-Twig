@@ -22,21 +22,21 @@ my $init_warn= $SIG{__WARN__};
   matches( $warning, "^invalid option Dummy", "invalid option");
 }
 
-{ eval "XML::Twig->new( twig_print_outside_roots => 1)";
+{ eval {XML::Twig->new( twig_print_outside_roots => 1)};
   matches( $@, "^cannot use TwigPrintOutsideRoots without TwigRoots", "invalid option");
 }
 
-{ eval "XML::Twig->new( keep_spaces => 1, discard_spaces => 1 )";
+{ eval {XML::Twig->new( keep_spaces => 1, discard_spaces => 1 )};
   matches( $@, "^cannot use both keep_spaces and discard_spaces", "invalid option combination 1");
-  eval "XML::Twig->new( keep_spaces => 1, keep_spaces_in => ['p'])";
+  eval {XML::Twig->new( keep_spaces => 1, keep_spaces_in => ['p'])};
   matches( $@, "^cannot use both keep_spaces and keep_spaces_in", "invalid option combination 2");
-  eval "XML::Twig->new( discard_spaces => 1, keep_spaces_in => ['p'])";
+  eval {XML::Twig->new( discard_spaces => 1, keep_spaces_in => ['p'])};
   matches( $@, "^cannot use both discard_spaces and keep_spaces_in", "invalid option combination 3");
-  eval "XML::Twig->new( keep_spaces_in => [ 'doc' ], discard_spaces_in => ['p'])";
+  eval {XML::Twig->new( keep_spaces_in => [ 'doc' ], discard_spaces_in => ['p'])};
   matches( $@, "^cannot use both keep_spaces_in and discard_spaces_in", "invalid option combination 4");
-  eval "XML::Twig->new( comments => 'wrong') ";
+  eval {XML::Twig->new( comments => 'wrong') };
   matches( $@, "^wrong value for comments argument: 'wrong'", "invalid option value for comment");
-  eval "XML::Twig->new( pi => 'wrong') ";
+  eval {XML::Twig->new( pi => 'wrong') };
   matches( $@, "^wrong value for pi argument: 'wrong'", "invalid option value for pi");
 }
 
@@ -47,20 +47,20 @@ my $init_warn= $SIG{__WARN__};
 }
 {
   foreach my $wrong_path ( 'wrong path', 'wrong#path', '1', '1tag', '///tag', 'tag/')
-    { eval( "XML::Twig->new( twig_handlers => { '$wrong_path' => sub {}});");
+    { eval {XML::Twig->new( twig_handlers => { $wrong_path => sub {}});};
       matches( $@, "^unrecognized expression in handler: '$wrong_path'", "wrong handler ($wrong_path)");
     }
 
-  eval( "XML::Twig->new( input_filter => 'dummy')");
+  eval {XML::Twig->new( input_filter => 'dummy')};
   matches( $@, "^invalid input filter:", "input filter");
-  eval( "XML::Twig->new( input_filter => {})");
+  eval {XML::Twig->new( input_filter => {})};
   matches( $@, "^invalid input filter:", "input filter");
 }
 
 { foreach my $bad_tag ( 'toto', '<1toto', '<foo:bar:baz', '< foo::bar', '<_toto', '<-toto', '<totoatt=', '<#toto', '<toto')
-    { eval "XML::Twig::parse_start_tag( qq{$bad_tag})";
+    { eval {XML::Twig::_parse_start_tag( qq{$bad_tag})};
       matches( $@, "^error parsing tag '$bad_tag'", "bad tag '$bad_tag'");
-      eval "XML::Twig::Elt::match_expr( qq{$bad_tag})";
+      eval {XML::Twig::Elt::_match_expr( qq{$bad_tag})};
       matches( $@, "^error parsing tag '$bad_tag'", "bad tag '$bad_tag'");
     }
 }
@@ -149,15 +149,14 @@ my $init_warn= $SIG{__WARN__};
 }
   
 { my $t= XML::Twig->new->parse( '<doc/>');
-  foreach my $method (qw( depth in_element within_element context
-                           current_line current_column current_byte
-                           recognized_string original_string 
-                           xpcroak xpcarp 
-                           xml_escape
-                           base current_element element_index 
-                           position_in_context))
-    { eval { $t->$method; };
-      matches( $@, "^calling $method after parsing is finished", "$method");
+  my @methods= qw( depth in_element within_element context current_line current_column current_byte
+                   recognized_string original_string xpcroak xpcarp xml_escape base current_element 
+                   element_index position_in_context
+                 );
+  my $method;
+  foreach $method ( @methods)
+    { eval "\$t->$method"; 
+      matches( $@, "^calling $method after parsing is finished", $method);
     }
   $SIG{__WARN__}= $init_warn;
 }

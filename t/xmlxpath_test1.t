@@ -5,13 +5,15 @@
 use strict;
 use Carp;
 
+my $DEBUG=0;
+
 BEGIN 
   { if( eval( 'require XML::Twig::XPath'))
-      { import XML::Twig::XPath; require Test; import Test; plan( tests => 97); }
+      { import XML::Twig::XPath; require Test; import Test; plan( tests => 114); }
     else
       { print "1..1\nok 1\n"; warn "skipping: XML::XPath not available\n"; exit; }
   }
-
+	
 # This just tests a complete twig, no callbacks
 
 $|=1;
@@ -64,6 +66,11 @@ test( $t, 'twig creation');
 # test parse
 $t->parse( $doc, ErrorContext=>2);
 test( $t, 'parse');
+
+test( ($t->node_cmp( $t->root)  == -1), 'cmp twig to root');
+test( ($t->node_cmp( $t) == 0), 'cmp twig to root');
+
+
 
 # test the root
 my $root= $t->root;
@@ -191,7 +198,7 @@ stest( $title1->att('id'), 'newtitleid', 'att( id)');
 $title1->set_id( 'title1');
 
 
-# now let's cut and paste
+# now cut and paste
 $title1->cut;
 stest( (join ":", map { $_->id} $section1->children), 
        'intro1:para1:para2:note1:para3', 'cut (1)');
@@ -255,8 +262,8 @@ $title1->cut;
 stest( (join ":", map { $_->id} $section2->children), 
        'intro2:title2:para4:para5:para6', 'cut (8)');
 
-# now let's mess up the document
-# let's erase that pesky intro
+# now we mess up the document
+# erase that pesky intro
 $intro2->erase;
 stest( (join ":", map { $_->id} $section2->children), 
        'paraintro3:title2:para4:para5:para6', 'erase');
@@ -276,10 +283,10 @@ stest( $section1->sprint,
 '<section id="section1"><intro id="intro1"><para id="paraintro1">S1 I1</para><para id="paraintro2">S1 I2</para></intro><para id="para1">S1 P1</para><para id="para2">S2 P2</para><note id="note1"><para id="paranote1">Note P1</para></note></section>',
  'sprint');
 
-# let's have a look at those entities
+# have a look at those entities
 # first their names
 stest( join( ':', $t->entity_names), 'e1:e2:e3', 'entity_list');
-# let's look at their content
+# look at their content
 my $e1= $t->entity( 'e1');
 stest( $e1->text, '<!ENTITY e1 SYSTEM "e1.gif" NDATA gif>', 'e1 text');
 my $e2= $t->entity( 'e2');
@@ -364,6 +371,31 @@ my $pcdata= $el2->first_child( PCDATA);
 $pcdata->prefix( 'p3:');
 sttest( $t6->root,'<doc>p1:<el1>p2:text</el1><el2>p3:more text</el2></doc>', 
         "prefix pcdata"); 
+
+is( $t6->node_cmp( 1), -1, "compare twig with scalar");
+my_ok( UNIVERSAL::isa( $t->root->getParentNode, 'XML::Twig::XPath'), 'getParentNode on the root');
+my_ok( UNIVERSAL::isa( $t->root->first_child->getParentNode, 'XML::Twig::XPath::Elt'), 'getParentNode on an elt');
+eval '$t6->root->node_cmp( []);';
+matches( $@, "^unknown node type ", "compare elt with scalar");
+my $elt= XML::Twig::XPath::Elt->new( elt => { att1 => 1, att2 => 2 }, "99");
+my( $att1, $att2)= $elt->getAttributes;
+is( $att1->node_cmp( $att2), -1, "attribute comparison");
+is( $att2->node_cmp( $att1),  1, "attribute comparison (reverse order)");
+is( $att2->node_cmp( $elt),   1, "compare attribute with elt");
+is( $att2->node_cmp( $t6),   1, "compare attribute with elt");
+is( $elt->node_cmp( $att1),  -1, "compare elt with attribute");
+is( $att1->node_cmp( $att1),  0, "compare attribute with itself");
+is( $elt->node_cmp( $elt),    0, "compare elt with itself");
+eval( '$att1->node_cmp( 1)');
+matches( $@, "^unknown node type ", "compare att with scalar");
+$elt->set_att( att3 => 3);
+my $att3= XML::Twig::XPath::Attribute->new( $elt => 'att3');
+is( $att1->node_cmp( $att3), -1, "attribute comparison");
+my_ok( $att2->to_number == 2, "to_number on att");
+my_ok( $elt->to_number == 99, "to_number on elt");
+
+
+
 
 ##################################################################################
 # test functions
@@ -453,6 +485,15 @@ sub test
         carp "  $message\n"; }
   }
 
+sub matches
+  { my( $got, $expected_regexp, $message)= @_;
+    $i++; 
+
+    if( $got=~ /$expected_regexp/) { print "ok $i\n"; }
+    else { print "not ok $i\n"; 
+           warn "$message: expected to match /$expected_regexp/, got '$got'\n";
+         }
+  }
 
 sub stringifyh
   { my %h= @_;
@@ -464,3 +505,44 @@ sub stringify
   { return '' unless @_; 
     return join ":", @_; 
   }
+
+  sub my_ok
+    { my $cond   = shift; my $message=shift;
+      $i++; 
+
+      if( $cond)
+        { print "ok $i\n"; 
+          warn "ok $i $message\n" if( $DEBUG); 
+        }
+      else { print "not ok $i\n"; warn "$message: false\n"; }
+    }
+
+  sub nok
+    { my $cond   = shift; my $message=shift;
+      $i++; 
+
+      if( !$cond)
+        { print "ok $i\n"; 
+          warn "ok $i $message\n" if( $DEBUG); 
+        }
+      else { print "not ok $i\n"; warn "$message: true (should be false): '$cond'\n"; }
+    }
+
+  sub is
+    { my( $got, $expected, $message) = @_;
+      $i++; 
+
+      if( $expected eq $got) 
+        { print "ok $i\n";
+          warn "ok $i $message\n" if( $DEBUG); 
+        }
+      else 
+        { print "not ok $i\n"; 
+          if( length( $expected) > 20)
+            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
+          else
+            { warn "$message: expected '$expected', got '$got'\n"; }
+        }
+    }
+
+
