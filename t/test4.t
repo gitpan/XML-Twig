@@ -279,3 +279,8 @@ sub test
 
 sub stringify
   { return join ":", @_; }
+
+sub hstringify
+  { my %hash= %{shift()};
+    return join ":", map { "$_:%hash{$_}"}  sort keys %hash; 
+  }

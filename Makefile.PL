@@ -1,8 +1,5 @@
 use ExtUtils::MakeMaker;
 
-sub MY::speedup 
- { "Twig.pm: Twig.pm.slow\n\tspeedup Twig.pm.slow > Twig.pm\n";    }
-
 
 WriteMakefile(
     'NAME'	=> 'XML::Twig',

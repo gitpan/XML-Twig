@@ -166,7 +166,7 @@ $title1->set_att('no', '1');
 $title1->set_att('newatt', 'newval');
 stest( $title1->att('newatt'), 'newval', 'set att( newval)');
 $title1->del_att('newatt');
-stest( stringify( %{$title1->atts}), 'id:title1:no:1', 'del_att');
+stest( stringifyh( %{$title1->atts}), 'id:title1:no:1', 'del_att');
 
 $title1->set_att('id', 'newid');
 stest( $title1->id, 'newid', 'set_att(id)');
@@ -176,12 +176,12 @@ stest( $title1->id, 'title1', 'set_id');
 stest( $title1->att( 'id'), 'title1', 'set_id');
 
 
-stest( stringify( %{$title1->atts}), 'id:title1:no:1', 'atts');
+stest( stringifyh( %{$title1->atts}), 'id:title1:no:1', 'atts');
 
 $title1->del_atts;
 stest( $title1->att( 'id'), '', 'del_atts');
 $title1->set_atts( { 'no' => '1', 'id' => 'newtitleid'});
-stest( stringify( %{$title1->atts}), 'id:newtitleid:no:1', 'set_atts');
+stest( stringifyh( %{$title1->atts}), 'id:newtitleid:no:1', 'set_atts');
 stest( $title1->id, 'newtitleid', 'id');
 stest( $title1->att('id'), 'newtitleid', 'att( id)');
 $title1->set_id( 'title1');
@@ -449,6 +449,12 @@ sub test
         warn "  $message\n"; }
   }
 
+
+sub stringifyh
+  { my %h= @_;
+    return '' unless @_; 
+    return join ':', map { "$_:$h{$_}"} sort keys %h; 
+  }
 
 sub stringify
   { return '' unless @_; 

@@ -86,7 +86,7 @@ my @model= sort keys %{$dtd->{model}};
 stest( stringify( @model), 'doc:intro:note:para:section:title', 'element list');
 
 stest( $t->model( 'title'), '(#PCDATA)', 'title model');
-stest( $t->model( 'section'), '(intro?, title, (para|note)+)', 'section model');
+mtest( $t->model( 'section'), '\(intro\?,\s*title,\s*\(para|note\)+\)', 'section model');
 stest( $t->dtd->{att}->{section}->{id}->{type}, 'ID', 'section id type');
 stest( $t->dtd->{att}->{section}->{id}->{default}, '#IMPLIED', 'section id default');
 exit;
@@ -149,6 +149,19 @@ sub stest
       }
   }
 
+# testing if the result matches a pattern
+sub mtest
+  { my ($result, $expected, $message)= @_;
+    $i++;
+    if( $result=~ /$expected/)
+      { print "ok $i\n"; }
+    else
+      { print "not ok $i\n    -- $message\n";  
+        warn "          expecting ", $expected, "\n";
+         warn"          found     ", $result, "\n";
+      }
+  }
+
 sub test
   { my ($result, $message)= @_;
     $i++;
@@ -189,3 +202,7 @@ sub load_file
 sub stringify
   { return join ":", @_; }
 
+sub hstringify
+  { my %hash= %{shift()};
+    return join ":", map { "$_:%hash{$_}"}  sort keys %hash; 
+  }

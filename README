@@ -33,71 +33,31 @@ INSTALLATION
 
 CHANGES
 
-    This is version 1.10
-    NOTE: The module source is now Twig.pm.slow
-    Twig.pm.slow is completely object
-    Twig.pm.slow is pre-processed by speedup which replaces object
-                 methods by access to the fields of the structure
-    speedup can also be used to speedup scripts using Twig.pm (certain
-                 restrictions apply, such as the use of brackets in
-                 arguments for $obj->set_method( <arguments>) calls)
-    added XML::Twig purge method, to purge the twig without printing it 
-    added XML::Twig sprint method, returning the text of the entire doc 
-    added XML::Twig:Elt prefix, which adds a prefix to an element
-    fixed a bug in CDATA handling (of the ]]&lt; sequence)
-    fixed a bug in set_text on a CDATA element
-    fixed the various print methods so they print to the select'ed output
-                  instead of STDOUT 
-    added XML::Twig finish, depth, in_element and within element methods
-    added XML::Twig finish_print methods which stops twig_processing and
-                 finishes printing the document as fast as possible
-    added TwigRoots and TwigPrintOutsideRoots option to allow processing 
-                 of only sub-trees in the document
-
-    - TwigRoots
- 
-      This argument let's you build the tree only for those elements you are 
-      interested in. 
-      Example: my $t= new XML::Twig( TwigRoots => { title => 1, subtitle => 1});
-               $t->parsefile( file);
-               returns a twig containing a document including only title and
-               subtitle elements, all children of the root element.
-
-      This feature is still in ALPHA mode but it is quite powerfull.
-
-      WARNING: TwigRoots elements should NOT be nested, that would hopelessly 
-               confuse XML::Twig ;--(
-
-   - TwigPrintOutsideRoots
-
-     To be used in conjunction with the TwigRoots argument. When set to a true 
-     value this will print the document outside of the TwigRoots elements.
-     Example: my $t= new XML::Twig( TwigRoots =>
-                                      { title    => 1 },
-                                    TwigPrintOutsideRoots => 1,
-                                    TwigHandlers => 
-                                      { title    => \&number_title },
-                                  );
-              $t->parsefile( file);
-              { my $nb;
-              sub number_title
-                { my( $twig, $title);
-                  $nb++;
-                  $title->prefix( "$nb "; }
-                  $title->print;
-                }
-              }
-               
-
-     This example prints the document outside of the title element, calls 
-     number_title for each title element, prints it, and then resumes printing 
-     the document. The twig is built only for the title elements. 
+    This is version 2.00
+    Fixed tests so they pass on Perl 5.6, using XML::Parser 2.28
+    Fixed bug when calling new::XML::Twig::Elt( 'CDATA');
+    Added check to XML::Twig::Elt paste method not to paste 
+          an element that has a parent
+    Changed XML::Twig::Elt insert interface so a list of elements
+          can be inserted
+    Fixed bugs in TwigPrintOutsideRoots (the root element tags were not printed)
+    Added XML::Twig flush_up_to and purge_up_to methods
+    Added XML::Twig context and path methods
+    Added XML::Twig::Elt path method
+    Added XML::Twig::Elt replace method
+    Added XML::Twig::Elt wrap_in method
+    Added XML::Twig::Elt suffix method
+    Added XML::Twig::Elt cmp. before and after methods
+    Added XML::Twig setTwigHandlers, setTwigHandler, setStartTagHandlers,
+          setStartTagHandler methods
+    Added path option in TwigHandlers argument for XML::Twig::new
+    Added path option in TwigRoots argument for XML::Twig::new
 
 
 AUTHOR
 
     Michel Rodriguez (m.v.rodriguez@ieee.org)
-    The Twig page is at http://standards.ieee.org/resources/spasystem/twig/
+    The Twig page is at http://www.xmltwig.cx
 
 COPYRIGHT
 
