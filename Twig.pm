@@ -1,6 +1,6 @@
 # XML::Twig  %W% - %E%
 #
-# Copyright (c) 1999 Michel Rodriguez
+# Copyright (c) 1999-2000 Michel Rodriguez
 # All rights reserved.
 #
 # This program is free software; you can redistribute it and/or
@@ -8,7 +8,9 @@
 
 # This is created in the caller's space
 BEGIN
-  { sub ::PCDATA { '#PCDATA' } }
+  {sub ::PCDATA { '#PCDATA' } 
+   sub ::CDATA  { '#CDATA'  } 
+  }
 
 ######################################################################
 package XML::Twig;
@@ -22,21 +24,32 @@ use Carp;
 
 
 sub PCDATA { '#PCDATA' }
+sub CDATA { '#CDATA' }
+
 
 BEGIN
 {
     require XML::Parser;
-    $VERSION = '1.8';
+    $VERSION = '1.9';
 
     my $needVersion = '2.21';
     croak "need at least XML::Parser version $needVersion"
 	unless $XML::Parser::VERSION >= $needVersion;
+
+    # Unicode::map8 support if you use ConvertEncoding
+    #use autouse 'Unicode::Map8';
+
     import XML::Twig::Elt;
     import XML::Twig::Entity;
     import XML::Twig::Entity_list;
 }
 
 @ISA = ("XML::Parser");
+
+# fake gi's used in TwigHandlers and StartHandlers
+my $ALL    = '_all_';     # the associated function is always called
+my $DEFAULT= '_default_'; # the function is called if no other handler has been called
+
 
 my %twig_handlers=( Start   => \&twig_start, 
                     End     => \&twig_end, 
@@ -46,6 +59,8 @@ my %twig_handlers=( Start   => \&twig_start,
                     Doctype => \&twig_doctype, 
                     Element => \&twig_element, 
                     Attlist => \&twig_attlist, 
+                    CdataStart => \&twig_cdatastart, 
+                    CdataEnd => \&twig_cdataend, 
                   );
 
 # those handlers are only used if DTD info is needed
@@ -60,7 +75,7 @@ my %twig_noexpand_handlers= ( Default => \&twig_default,
 my $ID= 'id'; # default value, set by the Id argument
 
 # used to store the gi's
-# should be set for each twig really, at least when tere are several
+# should be set for each twig really, at least when there are several
 my %gi2index; # gi => index
 my @index2gi; # list of gi's
 
@@ -73,7 +88,6 @@ my %base_ent= ( '>' => '&gt;',
                 "'" => '&apos;',
                 '"' => '&quot;',
               );
-
 
 1;
 
@@ -107,14 +121,67 @@ sub new
     delete $args{CharHandler};
     $self->{twig_read_external_dtd}= $args{LoadDTD};
     delete $args{LoadDTD};
+
+    # space policy
+    if( $args{KeepSpaces})
+      { die "cannot use both KeepSpaces and DiscardSpaces"
+          if( $args{DiscardSpaces});
+        die "cannot use both KeepSpaces and KeepSpacesIn"
+          if( $args{KeepSpacesIn});
+        $self->{twig_keep_spaces}=1;
+        delete $args{KeepSpaces}; 
+      }
+    if( $args{DiscardSpaces})
+      { die "cannot use both DiscardSpaces and KeepSpacesIn"
+          if( $args{KeepSpacesIn});
+        $self->{twig_discard_spaces}=1; 
+        delete $args{DiscardSpaces}; 
+      }
+    if( $args{KeepSpacesIn})
+      { die "cannot use both KeepSpacesIn and DiscardSpacesIn"
+          if( $args{DiscardSpacesIn});
+        $self->{twig_discard_spaces}=1; 
+        $self->{twig_keep_spaces_in}={}; 
+        my @tags= @{$args{KeepSpacesIn}}; 
+        foreach my $tag (@tags)
+          { $self->{twig_keep_spaces_in}->{$tag}=1; } 
+        delete $args{KeepSpacesIn}; 
+      }
+    if( $args{DiscardSpacesIn})
+      { $self->{twig_keep_spaces}=1; 
+        $self->{twig_discard_spaces_in}={}; 
+        my @tags= @{$args{DiscardSpacesIn}};
+        foreach my $tag (@tags)
+          { $self->{twig_discard_spaces_in}->{$tag}=1; } 
+        delete $args{DiscardSpacesIn}; 
+      }
+    # discard spaces by default 
+    $self->{twig_discard_spaces}= 1 unless(  $self->{twig_keep_spaces});
+
+    # encoding options
+    die "cannot use both KeepEncoding and ConvertEncoding options"
+      if( $args{KeepEncoding} && $args{ConvertEncoding});
+
     $self->{twig_keep_ents}= $args{KeepEncoding};
     delete $args{KeepEncoding};
+
+    if( my $encoding= $args{ConvertEncoding})
+      { $self->{twig_convert_encoding}= $encoding;
+        unless( $encoding eq 'original')
+          { my $out_map= Unicode::Map8->new( $encoding) 
+            || die "cannot find map for encoding $encoding";
+          }
+
+        delete $args{ConvertEncoding};
+      }
+
     $self->{twig}= $self;
 
     
     $self->{twig_entity_list}= new XML::Twig::Entity_list; 
 
     $self->{twig_id}= $ID; 
+    $self->{twig_stored_spaces}='';
 
     bless $self, $class;
     return $self;
@@ -125,26 +192,39 @@ sub new
 sub twig_start($$%)
   { my ($p, $gi, %att)  = @_;
     my $t=$p->{twig};
+
+    # empty the stored pcdata (space stored in case
+    # they are really part of a pcdata element)
+    # or stored it if the space policy dictades so
+    if( $t->{twig_stored_spaces})
+      { my $current_gi= $t->{twig_current}->gi;
+        $t->{twig_space_policy}->{$current_gi}= space_policy( $t, $current_gi)
+          unless defined( $t->{twig_space_policy}->{$current_gi});
+        if( $t->{twig_space_policy}->{$current_gi})
+          { insert_pcdata( $t, $t->{twig_stored_spaces} ); }
+        $t->{twig_stored_spaces}='';
+      }
+
+
     my $parent= $t->{twig_current};
-    my $elt= new XML::Twig::Elt();
+    my $elt= new XML::Twig::Elt( $gi);
+    $elt->{att}= \%att;
  
     delete $parent->{twig_current} if( $parent);
     $t->{twig_current}= $elt;
     $elt->{twig_current}=1;
 
-    $elt->set_gi( $gi);
-    $elt->set_atts( \%att);
 
     if( $parent)
       { my $prev_sibling= $parent->last_child;
         if( $prev_sibling) 
-          { $prev_sibling->set_next_sibling( $elt); 
-            $elt->set_prev_sibling( $prev_sibling);
+          { $prev_sibling->{next_sibling}= $elt; 
+            $elt->{prev_sibling}= $prev_sibling;
           }
 
         $elt->{parent}= $parent;
-        $parent->set_first_child( $elt) unless( $parent->first_child); 
-        $parent->set_last_child( $elt);
+        $parent->{first_child}= $elt unless( $parent->first_child); 
+        $parent->{last_child}= $elt;
       }
     else 
       { # processing root
@@ -163,13 +243,16 @@ sub twig_start($$%)
     if( $id) { $t->{twig_id_list}->{$id}= $elt; }
 
 
-    # empty the stored pcdata (space stored in case
-    # they are really part of a pcdata element)
-    $t->{twig_stored_pcdata}='';
-
     # call user handler if need be
     if( defined $t->{twig_starttag_handlers}->{$gi})
       { $t->{twig_starttag_handlers}->{$gi}->($t, $elt); }
+    elsif( defined $t->{twig_starttag_handlers}->{$DEFAULT})
+      { # else call default handler if defined
+        $t->{twig_starttag_handlers}->{$DEFAULT}->($t, $elt); 
+      }
+    # call 'all' handler if defined
+    if( defined $t->{twig_starttag_handlers}->{$ALL})
+      { $t->{twig_starttag_handlers}->{$ALL}->($t, $elt); }
   }
 
 
@@ -177,20 +260,31 @@ sub twig_end($$%)
   { my ($p, $gi)  = @_;
     my $t=$p->{twig};
         
-    # build the tree
-    delete $t->{twig_current}->{twig_current} if( $t->{twig_current});
+    if( $t->{twig_stored_spaces})
+      { $t->{twig_space_policy}->{$gi}= space_policy( $t, $gi)
+          unless defined( $t->{twig_space_policy}->{$gi});
+        if( $t->{twig_space_policy}->{$gi})
+          { insert_pcdata( $t, $t->{twig_stored_spaces}) };
+        $t->{twig_stored_spaces}='';
+      }
+    # the new twig_current is the parent
+
     my $elt= $t->{twig_current};
-    $elt->{twig_current}=1;
-
-    $t->{twig_current}= $t->{twig_current}->parent;
-
-    # empty the stored pcdata (spaces stored in case
-    # they are really part of a pcdata element)
-    $t->{twig_stored_pcdata}='';
+    my $parent= $elt->{parent};
+    delete $elt->{twig_current};
+    $parent->{twig_current}=1 if( $parent);
+    $t->{twig_current}= $parent;
 
     # call user handler if need be
     if( defined $t->{twig_handlers}->{$gi})
       { $t->{twig_handlers}->{$gi}->($t, $elt); }
+    elsif( defined $t->{twig_handlers}->{$DEFAULT})
+      { # else call default handler if defined
+        $t->{twig_handlers}->{$DEFAULT}->($t, $elt); 
+      }
+    # call 'all' handler if defined
+    if( defined $t->{twig_handlers}->{$ALL})
+      { $t->{twig_handlers}->{$ALL}->($t, $elt); }
 
   }
 
@@ -202,52 +296,112 @@ sub twig_char($$$)
     # the parsed (UTF-8 converted) one
     $string= $p->original_string() if( $t->{twig_keep_ents});
 
-    # why o why does Expat silently convert XML base enttities?
-    if( !$called_from_default)
+    # why o why does Expat silently convert XML base entities?
+    if( !$called_from_default && !$t->{twig_keep_ents})
       { $string=~ s/&/&amp;/g; }
-    $string=~ s/([<>'"])/$base_ent{$1}/g;
+
+    # escape special characters
+    $string=~ s/([<>'"])/$base_ent{$1}/g unless( $t->{twig_in_cdata});
 
     if( $t->{twig_char_handler})
       { $string= $t->{twig_char_handler}->( $string); }
-
-
 
     delete $t->{twig_current}->{twig_current} if( $t->{twig_current});
     my $elt= $t->{twig_current};
     $elt->{twig_current}=1;
 
-    if( $elt->gi eq PCDATA)
+    if( exists $elt->{pcdata})
       { # text is the continuation of a previously created pcdata
-        $elt->set_pcdata( $elt->{pcdata}.$string); } 
+        $elt->{pcdata} .=$string; } 
+    elsif( exists $elt->{cdata})
+      { # text is the continuation of a previously created cdata
+        $elt->{cdata} .=$string; } 
     else
-      { # if text is just spaces then it's probably to be discarded
+      { # if text is just spaces then store it, we'll decide what to 
+        # do with it according to the space policy later
         if( $string=~/\A\s*\Z/)
-          { $t->{twig_stored_pcdata}= $string; 
-            return;
+          { $t->{twig_stored_spaces}.= $string; 
+            #return;
           } 
-        # create a new #PCDATA element
-        my $parent= $t->{twig_current};    # always defined
-        my $elt=  new XML::Twig::Elt();
-        $elt->set_gi( PCDATA);
-        # if empty spaces had been previously stored they have to be added
-        $string= $t->{twig_stored_pcdata}.$string;
-        $t->{twig_stored_pcdata}='';
-        $elt->set_pcdata( $string);
-        my $prev_sibling= $parent->last_child;
-        if( $prev_sibling) 
-          { $prev_sibling->set_next_sibling( $elt); 
-            $elt->set_prev_sibling( $prev_sibling);
-          }
-
-        $elt->set_parent( $parent);
-        $parent->set_first_child( $elt) unless( $parent->first_child); 
-        $parent->set_last_child( $elt);
+        elsif( $t->{twig_in_cdata})
+          { $elt->{cdata} .= $t->{twig_stored_spaces}.$string; }
+        else
+          { insert_pcdata( $t, $t->{twig_stored_spaces}.$string); }
       }
-    delete $t->{twig_current}->{twig_current} if( $t->{twig_current});
-    $elt->{twig_current}=1;
-   $t->{twig_current}= $elt;
+    $t->{twig_current}= $elt;
   }
- 
+
+sub twig_cdatastart
+  { my $p= shift;
+    my $t=$p->{twig};
+    $t->{twig_in_cdata}=1;
+    my $twig_current= $t->{twig_current};
+    my $cdata=  new XML::Twig::Elt( '#CDATA');
+    if( $twig_current->is_pcdata)
+      { # create the node as a sibling of the #PCDATA
+        $cdata->{prev_sibling}= $twig_current;
+        $twig_current->{next_sibling}= $cdata;
+        $cdata->{parent}= $twig_current->{parent};
+      }
+    else
+      { # create the node as a child of the current element
+        $cdata->{parent}= $twig_current;
+        $twig_current->{last_child}= $cdata;
+        if( my $prev_sibling= $twig_current->{first_child})
+          { $cdata->{prev_sibling}= $prev_sibling;
+            $prev_sibling->{next_sibling}= $cdata;
+          }
+        else
+          { $twig_current->{first_child}= $cdata; }
+      }
+
+    delete $twig_current->{twig_current};
+    $t->{twig_current}= $cdata;
+    $cdata->{twig_current}=1;
+  }
+
+sub twig_cdataend
+  { my $p= shift;
+    my $t=$p->{twig};
+    $t->{twig_in_cdata}=0;
+    delete $t->{twig_current}->{twig_current} if( $t->{twig_current});
+    my $elt= $t->{twig_current};
+    $elt->{twig_current}=1;
+
+    $t->{twig_current}= $t->{twig_current}->parent;
+  }
+
+sub insert_pcdata
+  { my( $t, $string)= @_;
+    # create a new #PCDATA element
+    my $parent= $t->{twig_current};    # always defined
+    my $elt=  new XML::Twig::Elt( '#PCDATA');
+    $elt->{pcdata}= $string;
+    my $prev_sibling= $parent->{last_child};
+    if( $prev_sibling) 
+      { $prev_sibling->{next_sibling}= $elt; 
+        $elt->{prev_sibling}= $prev_sibling;
+      }
+
+    $elt->{parent}= $parent;
+    $parent->{first_child}= $elt unless( $parent->{first_child}); 
+    $parent->{last_child}= $elt;
+    $t->{twig_stored_spaces}='';
+  }
+
+
+sub space_policy
+  { my( $t, $gi)= @_;
+    my $policy;
+    $policy=0 if( $t->{twig_discard_spaces});
+    $policy=1 if( $t->{twig_keep_spaces});
+    $policy=1 if( $t->{twig_keep_spaces_in}
+               && $t->{twig_keep_spaces_in}->{$gi});
+    $policy=0 if( $t->{twig_discard_spaces_in} 
+               && $t->{twig_discard_spaces_in}->{$gi});
+    return $policy;
+  }
+
 
 sub twig_entity($$$$$$)
   { my( $p, $name, $val, $sysid, $pubid, $ndata)= @_;
@@ -467,11 +621,11 @@ sub flush
                 print $fh $elt->start_tag;
                 $elt->flushed(1);
               }
-            $next_elt= $elt->first_child;
+            $next_elt= $elt->{first_child};
           }
         else
           { # an element before the last one or the last one,
-            $next_elt= $elt->next_sibling;  
+            $next_elt= $elt->{next_sibling};  
             $elt->flush( $fh);
             $elt->delete; 
             last if( $elt == $last_elt);
@@ -644,26 +798,73 @@ package XML::Twig::Elt;
 ######################################################################
 use Carp;
 
-sub PCDATA { '#PCDATA' }
+my $CDATA_START = "<![CDATA[";
+my $CDATA_END   = "]]>";
 
+#sub PCDATA { '#PCDATA' }
+
+# can be called as new XML::Twig::Elt( [[$gi, [@content]])
+# - gi is an optionnal gi given to the element
+# - @content is an optionnal list of text and elements that will
+#   be inserted under the element 
 sub new 
   { my $class= shift;
     my $self  = {};
     bless ($self, $class);
+
+    return $self unless @_;
+
+    # if a gi is passed then use it
+    my $gi= shift;
+    $self->set_gi( $gi);
+
+    # the rest of the arguments are the content of the element
+    $self->set_content( @_) if( @_);
+
     return $self;
   }
 
+# this function creates an XM:::Twig::Elt from a string
+# it is quite clumsy at the moment, as it just creates a
+# new twig then returns its root
+# there might also be memory leaks there
+# additional arguments are passed to new XML::Twig
+sub parse
+  { my $class= shift;
+    my $string= shift;
+    my %args= @_;
+    my $t= new XML::Twig(%args);
+    $t->parse( $string);
+    my $self= $t->root;
+    # clean-up the node 
+    delete $self->{twig};         # get rid of the twig data
+    delete $self->{twig_current}; # better get rid of this too
+    return $self;
+  }
+    
+
 sub set_gi 
   { my ($elt, $gi)= @_;
-    unless( $gi2index{$gi})
+    unless( defined $XML::Twig::gi2index{$gi})
       { # new gi, create entries in %gi2index and @index2gi
-        push  @index2gi, $gi;
-        $gi2index{$gi}= $#index2gi;
+        push  @XML::Twig::index2gi, $gi;
+        $XML::Twig::gi2index{$gi}= $#XML::Twig::index2gi;
       }
-    $elt->{gi}= $gi2index{$gi}; 
+    $elt->{gi}= $XML::Twig::gi2index{$gi}; 
   }
 
-sub gi { return $index2gi[$_[0]->{gi}]; }
+sub gi { return $XML::Twig::index2gi[$_[0]->{gi}]; }
+
+sub is_pcdata
+  { my $elt= shift;
+    return (exists $elt->{'pcdata'});
+  }
+
+sub is_cdata
+  { my $elt= shift;
+    return (exists $elt->{'cdata'});
+  }
+
 
 sub closed 
   { my $elt= shift;
@@ -674,14 +875,14 @@ sub closed
   }
 
 sub set_pcdata 
-  { return unless( $_[0]->gi eq PCDATA);
+  { return unless( $_[0]->gi eq '#PCDATA');
     return( $_[0]->{'pcdata'}= $_[1]); 
   }
 sub pcdata { return $_[0]->{pcdata}; }
 
 sub root 
   { my $elt= shift;
-    while( $elt->parent) { $elt= $elt->parent; }
+    while( $elt->{parent}) { $elt= $elt->{parent}; }
     return $elt;
   }
 
@@ -866,7 +1067,7 @@ sub level
   { my $elt= shift;
     my $level=0;
     my $name=shift || '';
-    while( $elt= $elt->parent) { $level++ if( !$name || ($name eq $elt->gi)); }
+    while( $elt= $elt->{'parent'}) { $level++ if( !$name || ($name eq $elt->gi)); }
     return $level;           
   }
 
@@ -877,7 +1078,7 @@ sub in_context
 
     while( $level && $elt->parent)
       { if( $elt->gi eq $gi) { return $elt; }
-        $elt= $elt->parent;
+        $elt= $elt->{'parent'};
         $level--;
       }
     return ;           
@@ -896,7 +1097,11 @@ sub cut
     my( $parent, $prev_sibling, $next_sibling, $last_elt);
 
     # you can't cut the root, sorry
-    unless( $parent= $elt->parent) { return; }
+    unless( $parent= $elt->{'parent'}) 
+      { croak "trying to cut the root of a twig"; }
+    # and of course, you cannot cut the current element
+    if( $elt->{twig_current})
+      { croak "trying to cut an element before it has been completely parsed"; }
 
     $parent->set_first_child( $elt->next_sibling) 
       if( $parent->first_child == $elt);
@@ -908,14 +1113,19 @@ sub cut
     if( $next_sibling= $elt->next_sibling)
       { $next_sibling->set_prev_sibling( $elt->prev_sibling); }
 
+
     $elt->set_parent( undef);
     $elt->set_prev_sibling( undef);
     $elt->set_next_sibling( undef);
+
   }
 
 
 sub erase
   { my $elt= shift;
+    #you cannot erase the current element
+    if( $elt->{twig_current})
+      { croak "trying to erase an element before it has been completely parsed"; }
     my @children= $elt->children;
     if( @children)
       { # elt has children, move them up
@@ -960,6 +1170,7 @@ sub erase
             $elt->parent->set_last_child( $elt->next_sibling);
           }
       }
+
     # elt is not referenced any more, so it will be DESTROYed
     # so we'd better break the links to its children
     undef $elt->{'first_child'};
@@ -1049,15 +1260,18 @@ sub paste
 # recursively copy an element and returns the copy (can be huge and long)
 sub copy
   { my $elt= shift;
-    my $copy= new XML::Twig::Elt;
-    $copy->set_gi( $elt->gi);
+    my $copy= new XML::Twig::Elt( $elt->gi);
     if( my $atts= $elt->atts)
       { my %atts= %{$atts}; # we want to do a real copy of the attributes
         $copy->set_atts( \%atts);
       }
 
-    if( $elt->gi eq PCDATA)
-      { $copy->set_pcdata( $elt->pcdata);
+    if( $elt->{'pcdata'})
+      { $copy->{'pcdata'}= $elt->{'pcdata'};
+        return $copy;
+      }
+    if( $elt->{'cdata'})
+      { $copy->{'cdata'}= $elt->{'cdata'};
         return $copy;
       }
     else
@@ -1095,13 +1309,15 @@ sub DESTROY
 
 sub start_tag
   { my $elt= shift;
-    my $gi= $elt->gi;
 
-    return if( $gi eq PCDATA);
+    return if( exists $elt->{'pcdata'});
+    return $CDATA_START if( exists $elt->{'cdata'});
+
+    my $gi= $elt->gi;
     my $att_string=""; 
 
     # get the attribute and their values
-    my $att= $elt->atts;
+    my $att= $elt->{'att'};
     if( $att)
       { foreach my $att_name (sort keys %{$att}) 
          { $att_string .= ' '.$att_name.'="'.$att->{$att_name}.'"'; }
@@ -1114,8 +1330,9 @@ sub start_tag
 
 sub end_tag
   { my $elt= shift;
+    return if( exists $elt->{'pcdata'} || $elt->{empty});
+    return $CDATA_END if( exists $elt->{'cdata'});
     my $gi= $elt->gi;
-    return if( $elt->gi eq PCDATA || $elt->{empty});
     return "</$gi>";
   }
 
@@ -1125,17 +1342,19 @@ sub print
 
     $fh ||= *STDOUT;
 
-    my $gi= $elt->gi;
 
-    if( $gi eq PCDATA) { print $fh $elt->pcdata; return; }
+    if( defined $elt->pcdata) 
+      { print $fh $elt->{'pcdata'}; return; }
+    if( defined $elt->{'cdata'}) 
+      { print $fh $CDATA_START, $elt->{'cdata'}, $CDATA_END; return; }
 
     print $fh $elt->start_tag;
 
     # print the children
-    my $child= $elt->first_child;
+    my $child= $elt->{'first_child'};
     while( $child)
       { $child->print( $fh);
-        $child= $child->next_sibling;
+        $child= $child->{'next_sibling'};
       }
     print $fh $elt->end_tag;
   }
@@ -1148,9 +1367,11 @@ sub flush
 
     $fh ||= *STDOUT;
 
-    my $gi= $elt->gi;
 
-    if( $gi eq PCDATA) { print $fh $elt->pcdata; return; }
+    if( defined $elt->{'pcdata'}) 
+      { print $fh $elt->{'pcdata'}; return; }
+    if( defined $elt->{'cdata'}) 
+      { print $fh $CDATA_START, $elt->{'cdata'}, $CDATA_END; return; }
 
     print $fh $elt->start_tag unless( $elt->flushed);
 
@@ -1170,19 +1391,19 @@ sub sprint
   { my $elt= shift;
     my $no_tag= shift || 0;
 
-    my $gi= $elt->gi;
-
-    if( $gi eq PCDATA) { return $elt->pcdata; }
+    if( exists $elt->{'pcdata'}) { return $elt->{'pcdata'}; }
+    if( exists $elt->{'cdata'})  
+      { return $CDATA_START . $elt->{'cdata'} . $CDATA_END; }
 
     my $string='';
 
     $string= $elt->start_tag unless( $no_tag);
 
     # sprint the children
-    my $child= $elt->first_child;
+    my $child= $elt->{'first_child'}||'';
     while( $child)
       { $string.= $child->sprint;
-        $child= $child->next_sibling;
+        $child= $child->{'next_sibling'};
       }
     $string .= $elt->end_tag unless( $no_tag);
     return $string;
@@ -1194,12 +1415,13 @@ sub text
   { my $elt= shift;
     my $string;
 
-    if( $elt->gi eq PCDATA) { return $elt->pcdata; }
+    if( exists $elt->{'pcdata'}) { return $elt->{'pcdata'} || ''; }
+    if( exists $elt->{'cdata'}) { return $elt->{'cdata'} || ''; }
 
-    my $child= $elt->first_child;
+    my $child= $elt->{'first_child'} ||'';
     while( $child)
       { $string.= defined($child->text) ? $child->text : '';
-        $child= $child->next_sibling;
+        $child= $child->{'next_sibling'};
       }
     return $string;
   }
@@ -1210,14 +1432,12 @@ sub set_text
   { my $elt= shift;
     my $string= shift;
 
-    if( $elt->gi eq PCDATA) { return $elt->set_pcdata( $string); }
+    if( $elt->gi eq '#PCDATA') { return $elt->set_pcdata( $string); }
 
     foreach my $child (@{[$elt->children]})
       { $child->cut; }
 
-    my $pcdata= new XML::Twig::Elt;
-    $pcdata->set_gi( PCDATA);
-    $pcdata->set_pcdata( $string);
+    my $pcdata= new XML::Twig::Elt( '#PCDATA', $string);
     $pcdata->paste( $elt);
 
     return;
@@ -1227,6 +1447,13 @@ sub set_text
 sub set_content
   { my $elt= shift;
 
+    # case where we really want to do a set_text, the element is '#PCDATA'
+    # and we only want to add text in it
+    if( ($elt->gi eq '#PCDATA') && ($#_ == 0) && !( ref $_[0]))
+      { $elt->set_pcdata( $_[0]);
+        return;
+      }
+
     foreach my $child (@{[$elt->children]})
       { $child->cut; }
 
@@ -1234,9 +1461,7 @@ sub set_content
       { if( ref $child)
           { $child->paste( 'last_child', $elt); }
         else
-          { my $pcdata= new XML::Twig::Elt;
-            $pcdata->set_gi( PCDATA);
-            $pcdata->set_pcdata( $child);
+          { my $pcdata= new XML::Twig::Elt( '#PCDATA', $child);
             $pcdata->paste( 'last_child', $elt);  
           }
       }
@@ -1249,8 +1474,7 @@ sub set_content
 # returns the new element
 sub insert
   { my ($elt, $gi)= @_;
-    my $new_elt= new XML::Twig::Elt;
-    $new_elt->set_gi( $gi);
+    my $new_elt= new XML::Twig::Elt( $gi);
     foreach my $child (@{[$elt->children]})
       { $child->cut;
         $child->paste( 'last_child', $new_elt);
@@ -1258,6 +1482,14 @@ sub insert
     $new_elt->paste( $elt);
     return $new_elt;
   }
+
+# move an element, same syntax as paste, except the element is first cut
+sub move
+  { my $elt= shift;
+    $elt->cut;
+    $elt->paste( @_);
+  }
+    
 
 
 __END__
@@ -1288,6 +1520,22 @@ The module offers a tree interface to the document, while allowing to output the
 
 What should you use it for: xml to xml or xml to html conversions of documents that are small enough to fit in memory, or that can be divided in chunks that can be processed separately.
 
+XML::Twig tries to make simple things easy so it tries its best to takes care 
+of a lot of the (usually) annoying (but sometimes necessary) features that 
+come with XML and XML::Parser: 
+
+=over 4
+
+=item Whitespaces
+
+Whitespaces that look non-significant are discarded, 
+
+=item Encoding
+
+You can specify that you want the output in the same encoding as the input
+(provided you have valid XML, which means you have to specify the encoding
+either in the document or when you create the Twig object)
+
 =head1 METHODS
 
 =head2 Twigs 
@@ -1312,15 +1560,18 @@ plus some XML::Twig specifics:
 
 This argument replaces the corresponding XML::Parser argument. It consists
 of a hash { gi => \&handler} 
-A gi (generic identifier I guess) is just a tag name by the way.
+A gi (generic identifier) is just a tag name by the way.
 When an element is CLOSED the corresponding handler is called, with 2 arguments,
 the twig and the C<L</Element>>. The twig includes the document tree taht has been 
 built so far, the element is the complete sub-tree for the element.
 Text is stored in elements which gi is #PCDATA (due to mixed content, text
 and sub-element in an element there is no way to store the text as just an
 attribute of the enclosing element).
+A special gi _all_ is used to call a function for each element. The special gi
+_default_ is used to call a handler for each element that does NOT have a 
+specific handler.
 
-=item LoadDTD
+=item - LoadDTD
 
 If this argument is set to a true value, parse or parsefile on the twig will load  
 the DTD information. This information can then be accessed through the twig, 
@@ -1328,22 +1579,28 @@ in a DTDHandler for example. This will load even an external DTD.
 
 See L<DTD Handling> for more information
 
-=item DTDHandler
+=item - DTDHandler
 
 Sets a handler that will be called once the doctype (and the DTD) have been loaded,
 with 2 arguments, the twig and the DTD.
 
--item StartTagHandlers
+-item - StartTagHandlers
 
 A hash { gi => \&handler}. Sets element handlers that are called when the element 
 is open (at the end of the XML::Parser Start handler). THe handlers are called with
 2 params: the twig and the element. The element is empty at that point, its attributes
 are created though.
 
-The main use for those handlers is probably to create temporary attributes that will
-be used when processing the element with the normal TwigHanlder.  
+A special gi _all_ is used to call a function for each tag, just as an 
+XML::Parser Start handler would be.
 
--item CharHandler
+The main use for those handlers is probably to create temporary attributes 
+that will be used when processing the element with the normal TwigHanlder. 
+
+You should also use it to change tags if you use flush. If you change the tag in a
+regular TwigHanlder then the start tag might already have been flushed. 
+
+-item - CharHandler
 
 A reference to a subroutine that will be called every time PCDATA.
 
@@ -1351,8 +1608,12 @@ A reference to a subroutine that will be called every time PCDATA.
 
 This is a (slightly?) evil option: if the XML document is not UTF-8 encoded and
 you want to keep it that way, then setting KeepEncoding will use the Expat
-original_string method for character, thus keeping the original encoding, as well
-as the original entities in the strings.
+original_string method for character, thus keeping the original encoding, as 
+well as the original entities in the strings.
+WARNING: attribute values will NOT keep their encoding (they will be converted
+to UTF8).
+WARNING: this option is NOT used when parsing with the non-blocking parser 
+(parse_start, parse_more, parse_done methods).
 
 =item - Id
 
@@ -1361,24 +1622,50 @@ an ID in the document. Elements whose ID is known can be accessed through
 the elt_id method. Id defaults to 'id'.
 See C<L</BUGS>>
 
+=item - DiscardSpaces
+
+If this optional argument is set to a true value then spaces are discarded
+when they look non-significant: strings containing only spaces are discarded.
+This argument is set to true by default.
+
+=item - KeepSpaces
+
+If this optional argument is set to a true value then all spaces in the
+document are kept, and stored as PCDATA.
+KeepSpaces and DiscardSpaces cannot be both set.
+
+=item - DiscardSpacesIn
+
+This argument sets KeepSpaces to true but will cause the twig builder to
+discard spaces in the elements listed.
+The syntax for using this argument is: 
+new XML::Twig( DiscardSpacesIn => [ 'elt1', 'elt2']);
+
+=item - KeepSpacesIn
+
+This argument sets DiscardSpaces to true but will cause the twig builder to
+keep spaces in the elements listed.
+The syntax for using this argument is: 
+new XML::Twig( KeepSpacesIn => [ 'elt1', 'elt2']);
+
 =back
 
-=item root
+=item - root
 
 Returns the root element of a twig
 
-=item entity_list
+=item - entity_list
 
 Returns the entity list of a twig
 
 
 
-=item change_gi      ($old_gi, $new_gi)
+=item - change_gi      ($old_gi, $new_gi)
 
 Performs a (very fast) global change. All elements old_gi are now new_gi.
 See C<L</BUGS>>
 
-=item flush            OPTIONAL_FILEHANDLE OPTIONNAL_OPTIONS
+=item - flush            OPTIONAL_FILEHANDLE OPTIONNAL_OPTIONS
 
 Flushes a twig up to (and including) the current element, then deletes
 all unnecessary elements from the tree that's kept in memory.
@@ -1393,9 +1680,9 @@ OPTIONNAL_OPTIONS
 
 =over 4
 
-= item Update_DTD
+= item - Update_DTD
 
-Use that option if you have updated the (internal) DTD and/or the enity list
+Use that option if you have updated the (internal) DTD and/or the entity list
 and you want the updated DTD to be output 
 
 Example $t->flush( Update_DTD => 1);
@@ -1407,7 +1694,7 @@ Example $t->flush( Update_DTD => 1);
 
 flush take an optional filehandle as an argument.
 
-=item print            OPTIONNAL_FILEHANDLE OPTIONNAL_OPTIONS
+=item - print            OPTIONNAL_FILEHANDLE OPTIONNAL_OPTIONS
 
 Prints the whole document associated with the twig. To be used only AFTER the
 parse.
@@ -1415,7 +1702,7 @@ parse.
 OPTIONNAL_OPTIONS: see L<flush>.
 
 
-=item print_prolog     OPTIONNAL_FILEHANDLE OPTIONNAL_OPTIONS
+=item - print_prolog     OPTIONNAL_FILEHANDLE OPTIONNAL_OPTIONS
 
 Prints the prolog (XML declaration + DTD + entity declarations) of a document.
 
@@ -1427,111 +1714,134 @@ OPTIONNAL_OPTIONS: see L<flush>.
 
 =over 4
 
-=item new 
+=item - new          ($gi, @content)
 
-Should be private.
+The gi is optionnal (but then you can't have a content ), the content
+can be just a string or a list of strings and element.
+ Examples: my $elt1= new XML::Twig::Elt();
+           my $elt2= new XML::Twig::Elt( 'para');  
+           my $elt3= new XML::Twig::Elt( 'para', 'this is a para');  
+           my $elt4= new XML::Twig::Elt( 'para', $elt3, 'another para'); 
 
-=item set_gi         ($gi)
+The strings are not parsed, the element is not attached to any twig.
+
+=item - parse         ($string, %args)
+
+Creates an element from an XML string. The string is actually
+parsed as a new twig, then the root of that twig is returned.
+The arguments in %args are passed to the twig.
+As always if the parse fails the parser will die, so use an
+eval if you want to trap syntax errors.
+
+=item - set_gi         ($gi)
 
 Sets the gi of an element
 
-=item gi                       
+=item - gi                       
 
 Returns the gi of the element
 
-=item closed                   
+=item - is_pcdata
+
+Returns 1 if the element is a #PCDATA one, returns 0 otherwise.
+
+=item - is_cdata
+
+Returns 1 if the element is a #CDATA one, returns 0 otherwise.
+
+=item - closed                   
 
 Returns true if the element has been closed. Might be usefull if you are
 somewhere in the tree, during the parse, and have no idea whether a parent
 element is completely loaded or not.
 
 
-=item set_pcdata     ($text)
+=item - set_pcdata     ($text)
 
 Sets the text of a #PCDATA element. Returns the text or undef if the element
 was not a #PCDATA.
 
-=item pcdata
+=item - pcdata
 
 Returns the text of a #PCDATA element or undef
 
-=item root 
+=item - root 
 
 Returns the root of the twig containing the element
 
-=item twig 
+=item - twig 
 
 Returns the twig containing the element. 
 
-=item parent        ($optional_gi)
+=item - parent        ($optional_gi)
 
 Returns the parent of the element, or the first ancestor whose gi is $gi.
 
-=item first_child   ($optional_gi)
+=item - first_child   ($optional_gi)
 
 Returns the first child of the element, or the first child whose gi is $gi. 
 (ie the first of the element children whose gi matches) .
 
-=item last_child    ($optional_gi)
+=item - last_child    ($optional_gi)
 
 Returns the last child of the element, or the last child whose gi is $gi. 
 (ie the last of the element children whose gi matches) .
 
-=item prev_sibling  ($optional_gi)
+=item - prev_sibling  ($optional_gi)
 
 Returns the previous sibling of the element, or the first one whose gi is $gi. 
 
-=item next_sibling  ($optional_gi)
+=item - next_sibling  ($optional_gi)
 
 Returns the next sibling of the element, or the first one whose gi is $gi. 
 
-=item atts
+=item - atts
 
 Returns a hash ref containing the element attributes
 
-=item set_atts      ({att1=>$att1_val, att2=> $att2_val... )
+=item - set_atts      ({att1=>$att1_val, att2=> $att2_val... )
 
 Sets the element attributes with the hash supplied as argument
 
-=item del_atts
+=item - del_atts
 
 Deletes all the element attributes.
 
-=item set_att      ($att, $att_value)
+=item - set_att      ($att, $att_value)
 
 Sets the attribute of the element to a value
 
-=item att          ($att)
+=item - att          ($att)
 
 Returns the attribute value
 
-=item del_att { delete $_[0]->{'att'}->{$_[1]}; }
+=item - del_att      ($att)
 
 Delete the attribute for the element
 
-=item set_id       ($id)
+=item - set_id       ($id)
 
 Sets the id attribute of the element to a value.
 See C<L</elt_id>> to change the id attribute name
 
-=item id
+=item - id
 
 Gets the id attribute vakue
 
-=item del_id       ($id)
+=item - del_id       ($id)
 
 Deletes the id attribute of the element and remove it from the id list
 for the document
 
-=item children     ($optional_gi)
+=item - children     ($optional_gi)
 
 Returns the list of children (optionally whose gi is $gi) of the element
 
-=item ancestors    ($optional_gi)
+=item - ancestors    ($optional_gi)
 
 Returns the list of ancestors (optionally whose gi is $gi) of the element
 
-=item next_elt     ($optional_gi)
+=item - next_elt     ($optional_gi)
 
 Returns the next elt (optionally whose gi is $gi) of the element. This is 
 defined as the next element which opens after the current element opens.
@@ -1539,31 +1849,31 @@ Which usually means the first child of the element.
 Counter-intuitive as it might look this allows you to loop through the
 whole document by starting from the root.
 
-=item prev_elt     ($optional_gi)
+=item - prev_elt     ($optional_gi)
 
 Returns the previous elt (optionally whose gi is $gi) of the element. This
 is the first element which open the current one. So it's usually either
 the last descendant of the previous sibling or simply the parent
 
-=item level       ($optionnal_gi)
+=item - level       ($optionnal_gi)
 
 Returns the depth of the element in the tree (root is 1)
 If the optionnal gi is given then only ancestors of the given type are counted 
 
-=item in           ($potential_parent)
+=item - in           ($potential_parent)
 
 Returns true if the element is in the potential_parent
 
-=item in_context   ($gi, $optional_level)
+=item - in_context   ($gi, $optional_level)
 
 Returns true if the element is included in an element whose gi is $gi,
 within $level levels.
 
-=item cut
+=item - cut
 
 Cuts the element from the tree.
 
-=item paste       ($optional_position, $ref)
+=item - paste       ($optional_position, $ref)
 
 Pastes a (previously cut) element.
 The optionnal position element can be
@@ -1589,55 +1899,62 @@ The element is pasted after the $ref element, as its next sibling
 
 =back
 
-=item erase
+=item - move       ($optional_position, $ref)
+
+Move an element in the tree
+This is just a cut then a paste, syntax is the same as paste
+
+=item - erase
 
 Erases the element: the element is deleted and all of its children are
 pasted in its place.
 
-=item delete
+=item - delete
 
 Cut the element and frees the memory
 
-=item DESTROY
+=item - DESTROY
 
 Frees the element from memory 
 
-=item start_tag
+=item - start_tag
 
-Returns the string for the start tag for the element, including the
-/> at the end of an empty element tag
+Returns the string for the start tag for the element, including 
+the /> at the end of an empty element tag
 
-=item end_tag
+=item - end_tag
 
 Returns the string for the end tag of an element, empty for an empty one.
 
-=item print         OPTIONNAL_FILEHANDLE
+=item - print         OPTIONNAL_FILEHANDLE
 
 Prints an entire element, including the tags, optionally to a FILEHANDLE     
 
-=item sprint  
+=item - sprint       ($elt, $optional_no_enclosing_tag)
 
 Returns the string for an entire element, including the tags. To be used 
 with caution!
+If the optional second argument is true then only the string inside the 
+element is returned (the start and end tag for $elt are not).
 
-=item text
+=item - text
 
 Returns a string consisting of all the PCDATA in an element, without the
 tagging
 
-=item set_text        ($string)
+=item - set_text        ($string)
 
 Sets the text for the element: if the element is a PCDATA, just set its
 text, otherwise cut all the children of the element and create a single
 PCDATA child for it, which holds the text
 
-=item set_content    (@list_of_elt_and_strings)
+=item - set_content    (@list_of_elt_and_strings)
 
 Sets the content for the element, from as list of strings and elements.
 Cuts all the element children, then pastes the list elements, creating a 
 PCDATA element for strings.
 
-=item insert         ($gi)
+=item - insert         ($gi)
 
 Inserts an element $gi as the only child of the element, all children of 
 the element are set as children of the new element, returns the new element
@@ -1654,9 +1971,9 @@ the element are set as children of the new element, returns the new element
 
 =item set_last_child    ( $last_child)
 
-=item set_prev_sibling  ( $set_prev_sibling)
+=item set_prev_sibling  ( $prev_sibling)
 
-=item set_next_sibling  ( $set_next_sibling)
+=item set_next_sibling  ( $next_sibling)
 
 =item flushed
 
@@ -1674,19 +1991,19 @@ and interesting, not to mention usefull, ways to do it.
 
 =over 4
 
-=item new
+=item - new
 
 Creates an entity list
 
-=item add         ($ent)
+=item - add         ($ent)
 
 Adds an entity to an entity list.
 
-=item delete     ($ent or $gi).
+=item - delete     ($ent or $gi).
 
 Deletes an entity (defined by its name or by the Entity object) from the list.
 
-=item print      (OPTIONAL_FILEHANDLE)
+=item - print      (OPTIONAL_FILEHANDLE)
 
 Prints the entity list
 
@@ -1696,15 +2013,15 @@ Prints the entity list
 
 =over 4
 
-=item new        ($name, $val, $sysid, $pubid, $ndata)
+=item - new        ($name, $val, $sysid, $pubid, $ndata)
 
 Same arguments has the Entity handler for XML::Parser
 
-=item print       (OPTIONNAL_FILEHANDLE)
+=item - print       (OPTIONNAL_FILEHANDLE)
 
 Prints an entity declaration
 
-=item text
+=item - text
 
 Returns the entity declaration text
 
@@ -1736,11 +2053,11 @@ print "\n";
 
 =over 4
 
-=item No DTD
+=item - No DTD
 
 No doctype,  no DTD information, no entitiy information, the world is simple...
 
-=item Internal DTD
+=item - Internal DTD
 
 The XML document includes an internal DTD, and maybe entity declarations
 
@@ -1749,19 +2066,18 @@ declarations can be accessed.
 
 The DTD and the entity declarations will be flush'ed (or print'ed) either asis
 (if they have not been modified) or as reconstructed (poorly, comments are lost, 
-order is not kept, due to it's content this DTD should not be viewed bu anyone) 
+order is not kept, due to it's content this DTD should not be viewed by anyone) 
 if they have been modified. You can also modify them directly by changing the 
-$twig->{twig_doctype}->{internal} field (straight from XML::Parser, see the Doctype 
-handler doc)
+$twig->{twig_doctype}->{internal} field (straight from XML::Parser, see the Doctype handler doc)
 
-=item External DTD
+=item - External DTD
 
 The XML document includes a reference to an external DTD, and maybe entity declarations.
 
 If you use the LoadDTD when creating the twig the DTD information and the entity 
-declarations can be accessed. The entity declarations will be flush'ed (or print'ed)
-either asis (if they have not been modified) or as reconstructed (badly, comments are
-lost, order is not kept).
+declarations can be accessed. The entity declarations will be flush'ed (or 
+print'ed) either asis (if they have not been modified) or as reconstructed (badly,
+comments are lost, order is not kept).
 
 You can change the doctype through the $twig->set_doctype method and print the dtd 
 through the $twig->dtd_text or $twig->dtd_print methods.
@@ -1833,8 +2149,8 @@ Next version...
 
 =head1 BENCHMARKS
 
-You can use the C<benchmark> file to do additional bechmarks.
-Please send me bechmark information for additional systems.
+You can use the C<benchmark> file to do additional benchmarks.
+Please send me benchmark information for additional systems.
 
 =head1 AUTHOR
 
@@ -1851,4 +2167,5 @@ L<XML::Parser>
 
 
 =cut
+
 

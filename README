@@ -26,16 +26,18 @@ INSTALLATION
 
 CHANGES
 
-    This is version 1.8.
-    KeepEncoding option added to process non-UTF-8 encoded data. 
-
-    Version 1.7.
-    DTD interface added. 
-    StartHandlers Added.
-    Various bugs fixed
-
-    Note: the DTD interface is in ALPHA mode (ie it may be changed in 
-    the future)
+    This is version 1.9.
+    Added space policy options (DiscardSpaces, KeepSpaces,
+                                DiscardSpacesIn, KeepSpacesIn).
+    Added options to new XML::Twig::Elt to set the gi and content
+    Added parse XML::Twig::Elt to create an element from a string
+    Added move XML::Twig::Elt function 
+    Added CDATA support (entities are no longer expanded in CDATA) 
+    Added is_pcdata function for the XML::Twig::Elt class
+    Added is_cdata function for the XML::Twig::Elt class
+    Added _all_ and _default_ handling
+    Some optimization (calls to XML::Twig::Elt replaced by hash access)
+    
 
 AUTHOR
 
@@ -43,7 +45,7 @@ AUTHOR
 
 COPYRIGHT
 
-       Copyright (c) 1999, Michel Rodriguez. All Rights Reserved.
+       Copyright (c) 1999-2000, Michel Rodriguez. All Rights Reserved.
      This module is free software. It may be used, redistributed
      and/or modified under the terms of the Perl Artistic License
           (see http://www.perl.com/perl/misc/Artistic.html)

@@ -1,10 +1,7 @@
 MANIFEST
 Makefile.PL
 README
-Twig.html
-Twig.man
 Twig.pm
-Twig.pod
 t/test1.t
 t/test2.t
 t/test2_1.exp
@@ -15,3 +12,4 @@ t/test2_2.exp
 t/test2_2.res
 t/test2_2.xml
 t/test2_3.res
+t/test3.t

@@ -50,7 +50,7 @@ my $doc='<?xml version="1.0" standalone="no"?>
 my $i=0;
 my $failed=0;
 
-my $TMAX=81; # don't forget to update!
+my $TMAX=92; # don't forget to update!
 
 print "1..$TMAX\n";
 
@@ -284,7 +284,48 @@ stest( (join ":", map { $_->id} $section1->children),
        'paraintro1:paraintro2:para1:para2:note1', 'erase (3)');
 
 
+# new elt test
+my $new_elt= new XML::Twig::Elt;
+stest( ref $new_elt, 'XML::Twig::Elt', "new"); 
+my $new_elt1= new XML::Twig::Elt( 'subclass');
+stest( ref $new_elt, 'XML::Twig::Elt', "new subclass"); 
 
+my $new_elt2= new XML::Twig::Elt;
+stest( ref $new_elt2, 'XML::Twig::Elt', "create no gi"); 
+
+my $new_elt3= new XML::Twig::Elt( 'elt3');
+$new_elt3->set_id( 'elt3');
+etest( $new_elt3, 'elt3', 'elt3', "create with gi"); 
+
+my $new_elt4= new XML::Twig::Elt( 'elt4', 'text of elt4');
+ttest( $new_elt4, 'text of elt4', "create with gi and text"); 
+
+my $new_elt5= new XML::Twig::Elt( 'elt5', 'text of elt5 ', $new_elt4);
+ttest( $new_elt5, 'text of elt5 text of elt4', "create with gi and content"); 
+
+my $new_elt6= new XML::Twig::Elt( PCDATA, 'text of elt6');
+ttest( $new_elt6, 'text of elt6', "create PCDATA"); 
+
+my $st1='<doc><![CDATA[<br><b>bold</b>]]></doc>';
+my $t1= new XML::Twig;
+$t1->parse( $st1); 
+sttest( $t1->root, $st1, "CDATA Section"); 
+
+
+my $st2='<doc>text <![CDATA[<br><b>bold</b>]]> more text</doc>';
+my $t2= new XML::Twig;
+$t2->parse( $st2); 
+sttest( $t2->root, $st2, "CDATA Section"); 
+
+my $st3='<doc><![CDATA[<br><b>bold</b>]]> text</doc>';
+my $t3= new XML::Twig;
+$t3->parse( $st3); 
+sttest( $t3->root, $st3, "CDATA Section"); 
+
+my $st4='<doc><el>text</el><![CDATA[<br><b>bold</b>]]><el>more text</el></doc>';
+my $t4= new XML::Twig;
+$t4->parse( $st4); 
+sttest( $t4->root, $st4, "CDATA Section"); 
 
 ##################################################################################
 # test functions
@@ -340,6 +381,28 @@ sub stest
          warn"          found     ", $result, "\n";
       }
   }
+
+
+# element sprint test
+sub sttest
+  { my ($elt, $text, $message)= @_;
+    $i++;
+    unless( $elt)
+      { print "not ok $i\n    -- $message\n";
+        warn "         -- no element returned ";
+        return;
+      }
+    if( $elt->sprint eq $text)
+      { print "ok $i\n"; 
+        return $elt;
+      }
+    print "not ok $i\n    -- $message\n";
+    warn "          expecting ", $text, "\n";
+    warn "          found     ", $elt->text, "\n";
+    return $elt;
+  }
+
+
 sub test
   { my ($result, $message)= @_;
     $i++;
