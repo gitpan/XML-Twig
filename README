@@ -1,3 +1,5 @@
+$Id: README,v 1.6 2002/09/17 19:17:30 mrodrigu Exp $
+
 NAME
 
     XML::Twig - Tree interface to XML documents allowing processing chunk
@@ -56,7 +58,6 @@ NOTES
 
 CHANGES
 
-    $Id: README,v 1.5 2002/09/17 15:32:05 mrodrigu Exp $
 
     See the Changes file    
 

@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.46 2002/09/17 15:12:29 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.47 2002/09/17 19:16:37 mrodrigu Exp $
 #
 # Copyright (c) 1999-2002 Michel Rodriguez
 # All rights reserved.
@@ -78,7 +78,7 @@ my $parser_version;
 
 BEGIN
 { 
-  $VERSION = '3.07';
+  $VERSION = '3.08';
 
   use XML::Parser;
   my $needVersion = '2.23';
@@ -3347,7 +3347,11 @@ BEGIN
     *child_is        = *child_matches;
 
   # try using weak references
-  import WeakRef if( eval 'require WeakRef');
+  # test whether we can use weak references
+  if( eval 'require Scalar::Util')
+    { import Scalar::Util qw(weaken); }
+  elsif( eval 'require WeakRef')
+    { import WeakRef; }
   }
 
  
