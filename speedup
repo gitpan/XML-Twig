@@ -1,0 +1,22 @@
+#!/bin/perl -p
+BEGIN { $FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|flushed";
+}
+
+s/(\$[a-z_]+)->del_(twig_current|flushed)/delete $1\->{'$2'}/g;
+s/(\$[a-z_]+)->set_(twig_current|flushed)/$1\->{'$2'}=1/g;
+
+s/(\$[a-z_]+)->set_($FIELD)\(([^)]*)\)/$1\->\{'$2'\}= $3/g;
+s/(\$[a-z_]+)->($FIELD)/$1\->\{'$2'\}/g;
+
+s/(\$[a-z_]+)->set_atts\(([^)]*)\)/$1\->\{'att'\}= $2/g;
+s/(\$[a-z_]+)->(atts)\(([^)]*)\)/$1\->\{'att'\}/g;
+
+s/(\$[a-z_]+)->append_(pcdata|cdata)\(([^)]*)\)/$1\->\{$2\}.= $3/g;
+
+s/(\$[a-z_]+)->gi/\$XML::Twig::index2gi\[$1\->{'gi'}\]/g;
+
+s/(\$[a-z_]+)->id/$1\->{'att'}->{\$ID}/g;
+s/(\$[a-z_]+)->att\(\s*([^)]+)\)/$1\->{'att'}->\{$2\}/g;
+
+s/(\$[a-z_]+)->is_pcdata/(exists $1\->{'pcdata'})/g; 
+s/(\$[a-z_]+)->is_cdata/(exists $1\->{'cdata'})/g; 

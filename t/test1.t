@@ -50,7 +50,7 @@ my $doc='<?xml version="1.0" standalone="no"?>
 my $i=0;
 my $failed=0;
 
-my $TMAX=92; # don't forget to update!
+my $TMAX=97; # don't forget to update!
 
 print "1..$TMAX\n";
 
@@ -65,8 +65,18 @@ test( $t, 'parse');
 # test the root
 my $root= etest( $t->root, 'doc', 'doc1', 'root');
 
+# print in a file
+open( TMP, '>tmp');   
+select TMP;
+$t->print();
+$root->print();
+select STDOUT;
+$t->print( \*TMP);
+$root->print( \*TMP);
+test( 'ok', "print");
+
 # test the element root and twig functions on the root
-test( $root->twig, 'root->twign');
+test( $root->twig, 'root->twig');
 etest( $root->root, 
       'doc', 'doc1', 'root->root');
 
@@ -169,7 +179,7 @@ stest( $title1->att( 'id'), 'title1', 'set_id');
 stest( stringify( %{$title1->atts}), 'id:title1:no:1', 'atts');
 
 $title1->del_atts;
-stest( stringify( %{$title1->atts}), '', 'del_atts');
+stest( $title1->att( 'id'), '', 'del_atts');
 $title1->set_atts( { 'no' => '1', 'id' => 'newtitleid'});
 stest( stringify( %{$title1->atts}), 'id:newtitleid:no:1', 'set_atts');
 stest( $title1->id, 'newtitleid', 'id');
@@ -285,7 +295,7 @@ stest( (join ":", map { $_->id} $section1->children),
 
 
 # new elt test
-my $new_elt= new XML::Twig::Elt;
+my $new_elt= new XML::Twig::Elt; 
 stest( ref $new_elt, 'XML::Twig::Elt', "new"); 
 my $new_elt1= new XML::Twig::Elt( 'subclass');
 stest( ref $new_elt, 'XML::Twig::Elt', "new subclass"); 
@@ -306,6 +316,7 @@ ttest( $new_elt5, 'text of elt5 text of elt4', "create with gi and content");
 my $new_elt6= new XML::Twig::Elt( PCDATA, 'text of elt6');
 ttest( $new_elt6, 'text of elt6', "create PCDATA"); 
 
+# test CDATA
 my $st1='<doc><![CDATA[<br><b>bold</b>]]></doc>';
 my $t1= new XML::Twig;
 $t1->parse( $st1); 
@@ -326,6 +337,29 @@ my $st4='<doc><el>text</el><![CDATA[<br><b>bold</b>]]><el>more text</el></doc>';
 my $t4= new XML::Twig;
 $t4->parse( $st4); 
 sttest( $t4->root, $st4, "CDATA Section"); 
+
+my $st5='<doc>text <![CDATA[ text ]]&lt; ]]><el>more text</el></doc>';
+my $t5= new XML::Twig;
+$t5->parse( $st5); 
+sttest( $t5->root, $st5, "CDATA Section with ]]&lt;"); 
+
+# test prefix
+my $st6='<doc><el1>text</el1><el2>more text</el2></doc>';
+my $t6= new XML::Twig;
+$t6->parse( $st6); 
+$doc= $t6->root;
+$doc->prefix( 'p1:');
+sttest( $t6->root,'<doc>p1:<el1>text</el1><el2>more text</el2></doc>', 
+        "prefix doc"); 
+my $el1= $doc->first_child( 'el1');
+$el1->prefix( 'p2:');
+sttest( $t6->root,'<doc>p1:<el1>p2:text</el1><el2>more text</el2></doc>',
+        "prefix el1"); 
+my $el2= $doc->first_child( 'el2');
+my $pcdata= $el2->first_child( PCDATA);
+$pcdata->prefix( 'p3:');
+sttest( $t6->root,'<doc>p1:<el1>p2:text</el1><el2>p3:more text</el2></doc>', 
+        "prefix pcdata"); 
 
 ##################################################################################
 # test functions
@@ -372,6 +406,8 @@ sub ttest
 # testing if the result is a  strings
 sub stest
   { my ($result, $expected, $message)= @_;
+   $result ||='';
+   $expected ||='';
     $i++;
     if( $result eq $expected)
       { print "ok $i\n"; }
@@ -398,7 +434,7 @@ sub sttest
       }
     print "not ok $i\n    -- $message\n";
     warn "          expecting ", $text, "\n";
-    warn "          found     ", $elt->text, "\n";
+    warn "          found     ", $elt->sprint, "\n";
     return $elt;
   }
 
@@ -415,4 +451,6 @@ sub test
 
 
 sub stringify
-  { return join ":", @_; }
+  { return '' unless @_; 
+    return join ":", @_; 
+  }

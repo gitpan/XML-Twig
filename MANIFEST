@@ -1,7 +1,9 @@
 MANIFEST
 Makefile.PL
 README
+Twig.pm.slow
 Twig.pm
+speedup
 t/test1.t
 t/test2.t
 t/test2_1.exp
@@ -13,3 +15,4 @@ t/test2_2.res
 t/test2_2.xml
 t/test2_3.res
 t/test3.t
+t/test4.t
