@@ -1,5 +1,6 @@
 #!/bin/perl -w
 use strict;
+#use diagnostics;
 
 use XML::Twig;
 

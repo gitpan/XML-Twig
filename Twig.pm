@@ -1,4 +1,4 @@
-# XML::Twig 3.03 Twig.pm.slow - 2002-03-26
+# XML::Twig 3.04 Twig.pm.slow - 2002-04-01
 #
 # Copyright (c) 1999-2002 Michel Rodriguez
 # All rights reserved.
@@ -72,7 +72,7 @@ my $parser_version;
 
 BEGIN
 { 
-  $VERSION = '3.03';
+  $VERSION = '3.04';
 
   use XML::Parser;
   my $needVersion = '2.23';
@@ -153,7 +153,7 @@ my %twig_handlers_roots=
         Char       => undef, Entity     => undef, XMLDecl    => \&twig_xmldecl, 
         Element    => undef, Attlist    => undef, CdataStart => undef, 
         CdataEnd   => undef, Proc       => undef, Comment    => undef, 
-	Default    => undef,
+	Default    =>  sub {}, # hack needed for XML::Parser 2.27
       );
 
 # handlers used when twig_roots and print_outside_roots are used and we are
@@ -211,7 +211,8 @@ my %twig_handlers_roots_print_original_2_27=
         # this can be a problem if the doctype includes non ascii characters
         XMLDecl    => \&twig_print, Doctype    => \&twig_print,
         # I have no idea why I should not be using this handler!
-        #Entity     => \&twig_entity, 
+        Entity     => \&twig_print, 
+        #Element    => undef, Attlist   => undef,
         CdataStart => \&twig_print_original, CdataEnd  => \&twig_print_original,
         Proc       => \&twig_print_original, Comment   => \&twig_print_original,
         Default    => \&twig_print_default, #  twig_print_original does not work
@@ -556,7 +557,7 @@ sub twig_stop_storing_internal_dtd
   { my $p= shift;
     # print STDERR "\ntwig_stop_storing_internal_dtd called\n";
      if( @saved_default_handler && defined $saved_default_handler[1])
-       { #print STDERR "restoring saved handlers for";
+       { #print STDERR "restoring saved handlers\n";
          $p->setHandlers( @saved_default_handler); }
      else
        { #print STDERR "resetting Default handler\n";
@@ -2245,7 +2246,8 @@ sub twig_print
 
 sub twig_print_default
   { my( $p, $string)= @_;
-    print $string;
+    #print $string;
+    print $p->recognized_string();
     # print STDERR "twig_print_default: /",  $string, "/\n";
   }
 

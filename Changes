@@ -1,6 +1,10 @@
 CHANGES
 
-    This is version 3.03 - 2001-03-26
+    This is version 3.04 - 2001-04-01
+
+    Changed in 3.04
+
+      Fixed handlers for XML::Parser 2.27 so the module can pass the tests
 
     Changed in 3.03
 
@@ -12,12 +16,13 @@ CHANGES
       methods: added operators (>, < ...)
 
       fixed [RT 168]: setTwigHandler failed when no handler was already set
-      turned %valid_option into a package global so AnyData can access it
       (thanks to Jerry)
+      
+      turned %valid_option into a package global so AnyData can access it
       
       fixed a bug in sprint that prevented it from working with filters
       fixed a bug in erase when erasing an empty element that was the
-      las child of its parent ([RT390], thanks to Julian Arnold)
+      last child of its parent ([RT390], thanks to Julian Arnold)
       
       copy now correctly copies the asis status of elements
 
