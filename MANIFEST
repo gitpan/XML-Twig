@@ -1,0 +1,7 @@
+MANIFEST
+Makefile.PL
+Makefile.old
+README
+Twig.pm
+Twig.pod
+t/test1.t
