@@ -1,9 +1,17 @@
 CHANGES
 
-    This is version 3.01 - 2001-01-09
+    This is version 3.02 - 2001-01-16
 
+    Changed in 3.02
 
-    Changed
+      Tweaked speedup to replace constructs that did not work in
+      perl 5.005003
+
+    Changed in 3.01
+    
+      Fixed the directory name in the tar file 
+
+    Changed in 3.00
 
       WARNING: THIS CHANGE IS NOT BACKWARD COMPATIBLE
 

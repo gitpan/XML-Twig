@@ -1,4 +1,4 @@
-# XML::Twig 3.00.37 Twig.pm.slow - 2002-01-09
+# XML::Twig 3.02 Twig.pm.slow - 2002-01-16
 #
 # Copyright (c) 1999-2002 Michel Rodriguez
 # All rights reserved.
@@ -23,6 +23,7 @@ use strict;
 use vars qw($VERSION @ISA);
 use Carp;
 
+#start-extract twig_global
 
 # constants: element types
 use constant (PCDATA  => '#PCDATA');
@@ -39,6 +40,8 @@ use constant (TEXT    => '#TEXT');
 use constant (ASIS    => '#ASIS');
 use constant (EMPTY   => '#EMPTY');
 
+#end-extract twig_global
+
 # used in parseurl to set the buffer size to the same size as in XML::Parser::Expat
 use constant (BUFSIZE => 32768);
 
@@ -51,18 +54,20 @@ my %base_ent;   # base entity character => replacement
 # flag, set to true if the WeakRef module is available
 use vars qw( $weakrefs);
 
+#start-extract twig_global
 my $REG_NAME       = q{(?:[#a-zA-Z][#\w:.-]*)};         # xml name
 my $REG_NAME_W     = q{(?:[#a-zA-Z][#\w:.-]*|\*)};      # name or wildcard (* or '')
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)}; # regexp
 my $REG_REGEXP_EXP = q{(?:(?:[^\\/]|\\.)*)};            # content of a regexp
 my $REG_REGEXP_MOD = q{(?:[eimso]*)};                   # regexp modifiers
 my $REG_STRING     = q{(?:"(?:[^\\"]|\\.)*"|'(?:[^\\']|\\.)*')};  # string (simple or double quoted)
+#end-extract twig_global
 
 my $parser_version;
 
 BEGIN
 { 
-  $VERSION = '3.01';
+  $VERSION = '3.02';
 
   use XML::Parser;
   my $needVersion = '2.23';
@@ -2016,7 +2021,7 @@ sub root
 #start-extract twig_document (used to generate XML::(DOM|GDOME)::Twig)
 sub first_elt
   { my( $t, $cond)= @_;
-    my $root= $_[0]->{twig_root};
+    my $root= $t->root;
     return $root if( $root->passes( $cond));
     return $root->next_elt( $cond); 
   }
@@ -2635,6 +2640,15 @@ BEGIN
     *all_children_pass = *all_children_are;
     *all_children_match= *all_children_are;
     *getElementsByTagName= *descendants;
+  
+    *first_child_is  = *first_child_matches;
+    *last_child_is   = *last_child_matches;
+    *next_sibling_is = *next_sibling_matches;
+    *prev_sibling_is = *prev_sibling_matches;
+    *next_elt_is     = *next_elt_matches;
+    *prev_elt_is     = *prev_elt_matches;
+    *parent_is       = *parent_matches;
+    *child_is        = *child_matches;
 
   # try using weak references
   import WeakRef if( eval 'require WeakRef');
@@ -3342,29 +3356,104 @@ sub in($$)
     return 0;           
   }
 
-# create the _text and _matches methods
-BEGIN
-  { foreach my $nav ( 'first_child', 'last_child', 
-                      'prev_sibling', 'next_sibling',
-                      'prev_elt', 'next_elt', 'parent')
-      { no strict 'refs';
-        my $text_method= $nav . "_text";
-        *{$text_method}= sub { my $elt= shift;
-                               my $dest=$elt->$nav(@_) or return '';
-                               return $dest->text;
-                             };
-        my $matches_method= $nav . "_matches";
-        *{$matches_method}= sub { my $elt= shift;
-                                  my $dest= $elt->$nav or return undef;
-                                  return $dest->passes( @_);
-                                };
-        $matches_method= $nav . "_is";
-        *{$matches_method}= sub { my $elt= shift;
-                                  my $dest= $elt->$nav or return undef;
-                                  return $dest->passes( @_);
-                                };
-      }
+# generated methods
+sub first_child_text  
+  { my $elt= shift;
+    my $dest=$elt->first_child(@_) or return '';
+    return $dest->text;
   }
+  
+sub first_child_matches
+  { my $elt= shift;
+    my $dest= $elt->{first_child} or return undef;
+    return $dest->passes( @_);
+  }
+  
+sub last_child_text  
+  { my $elt= shift;
+    my $dest=$elt->last_child(@_) or return '';
+    return $dest->text;
+  }
+  
+sub last_child_matches
+  { my $elt= shift;
+    my $dest= $elt->{last_child} or return undef;
+    return $dest->passes( @_);
+  }
+  
+sub child_text
+  { my $elt= shift;
+    my $dest=$elt->child(@_) or return '';
+    return $dest->text;
+  }
+  
+sub child_matches
+  { my $elt= shift;
+    my $nb= shift;
+    my $dest= $elt->child( $nb) or return undef;
+    return $dest->passes( @_);
+  }
+
+sub prev_sibling_text  
+  { my $elt= shift;
+    my $dest=$elt->prev_sibling(@_) or return '';
+    return $dest->text;
+  }
+  
+sub prev_sibling_matches
+  { my $elt= shift;
+    my $dest= $elt->{prev_sibling} or return undef;
+    return $dest->passes( @_);
+  }
+  
+sub next_sibling_text  
+  { my $elt= shift;
+    my $dest=$elt->next_sibling(@_) or return '';
+    return $dest->text;
+  }
+  
+sub next_sibling_matches
+  { my $elt= shift;
+    my $dest= $elt->{next_sibling} or return undef;
+    return $dest->passes( @_);
+  }
+  
+sub prev_elt_text  
+  { my $elt= shift;
+    my $dest=$elt->prev_elt(@_) or return '';
+    return $dest->text;
+  }
+  
+sub prev_elt_matches
+  { my $elt= shift;
+    my $dest= $elt->_prev_elt or return undef;
+    return $dest->passes( @_);
+  }
+  
+sub next_elt_text  
+  { my $elt= shift;
+    my $dest=$elt->next_elt(@_) or return '';
+    return $dest->text;
+  }
+  
+sub next_elt_matches
+  { my $elt= shift;
+    my $dest= $elt->_next_elt or return undef;
+    return $dest->passes( @_);
+  }
+  
+sub parent_text  
+  { my $elt= shift;
+    my $dest=$elt->parent(@_) or return '';
+    return $dest->text;
+  }
+  
+sub parent_matches
+  { my $elt= shift;
+    my $dest= $elt->{parent} or return undef;
+    return $dest->passes( @_);
+  }
+  
 
 # returns the depth level of the element
 # if 2 parameter are used then counts the 2cd element name in the
@@ -3485,11 +3574,6 @@ sub child
           { $elt= $elt->prev_sibling( @_) or return undef; }
       }
     return $elt;
-  }
-
-sub child_text
-  { my $elt= child( @_);
-    return $elt ? $elt->text : undef;
   }
 
 sub prev_siblings
@@ -3629,7 +3713,7 @@ sub install_xpath
   my %xpath; # xpath_expression => subroutine_code;  
   sub get_xpath
     { my( $elt, $xpath_exp, $offset)= @_;
-      my $sub= ($xpath{$xpath_exp} ||= XML::Twig::Elt::install_xpath( $xpath_exp));
+      my $sub= ($xpath{$xpath_exp} ||= install_xpath( $xpath_exp));
       return $sub->( $elt) unless( defined $offset); 
       my @res= $sub->( $elt);
       return $res[$offset];
@@ -4868,7 +4952,7 @@ __END__
 
 XML::Twig - A perl module for processing huge XML documents in tree mode.
 
-=head1 SYNOPSYS
+=head1 SYNOPSIS
 
 Small documents
 
@@ -5985,19 +6069,31 @@ Returns the text of the first child of the element, or the first child
 If there is no first_child then returns ''. This avoids getting the
 child, checking for its existence then getting the text for trivial cases.
 
-=item first_child_is   ($optional_cond)
-
-Returns the element if the first child of the element (if it exists) passes
-the $cond, '' otherwise
-
-  if( $elt->first_child_is( 'title')) ... 
-
-is equivalent to
-  if( $elt->{first_child} && $elt->{first_child}->passes( 'title')) 
+Similar methods are available for the other navigation methods: 
+C<last_child_text>, C<prev_sibling_text>, C<next_sibling_text>,
+C<prev_elt_text>, C<next_elt_text>, C<child_text>, C<parent_text>
 
 =item field         ($optional_cond)
 
 Same method as first_child_text with a different name
+
+=item first_child_matches   ($optional_cond)
+
+Returns the element if the first child of the element (if it exists) passes
+the $cond, C<undef> otherwise
+
+  if( $elt->first_child_matches( 'title')) ... 
+
+is equivalent to
+
+  if( $elt->{first_child} && $elt->{first_child}->passes( 'title')) 
+
+C<first_child_is> is an other name for this method
+
+Similar methods are available for the other navigation methods: 
+C<last_child_matches>, C<prev_sibling_matches>, C<next_sibling_matches>,
+C<prev_elt_matches>, C<next_elt_matches>, C<child_matches>, 
+C<parent_matches>
 
 =item prev_sibling  ($optional_cond)
 

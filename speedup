@@ -1,40 +1,45 @@
-#!/bin/perl -p
+#!/bin/perl
 use XML::Parser;
 
-BEGIN 
-  { $FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|ent|data|target|comment|flushed";
-    $FIELD2="parent|first_child|last_child|prev_sibling|next_sibling";
-    $SET_FIELD="first_child|next_sibling|pcdata|cdata|ent|data|target|comment|flushed";
-    # depending on the version of perl use either qr or ""
-    print STDERR "perl version is $] XML::Parser version is $XML::Parser::VERSION\n";
+
+$FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|ent|data|target|comment|flushed";
+$FIELD2="parent|first_child|last_child|prev_sibling|next_sibling";
+$SET_FIELD="first_child|next_sibling|pcdata|cdata|ent|data|target|comment|flushed";
+# depending on the version of perl use either qr or ""
+print STDERR "perl version is $] XML::Parser version is $XML::Parser::VERSION\n";
+
+while( <>)
+  {
     if( $] < 5.005) { s{qr/(.*?)/}{"$1"} };
+
+    s/(\$[a-z_]+(?:\[\d\])?)->del_(twig_current|flushed)/delete $1\->{'$2'}/g;
+    s/(\$[a-z_]+(?:\[\d\])?)->set_(twig_current|flushed)/$1\->{'$2'}=1/g;
+
+    s/(\$[a-z_]+(?:\[\d\])?)->set_($SET_FIELD)\(([^)]*)\)/$1\->\{$2\}= $3/g;
+    s/(\$[a-z_]+(?:\[\d\])?)->($FIELD)\b(?!\()/$1\->\{$2\}/g;
+    s/(\$[a-z_]+(?:\[\d\])?)->_($FIELD2)\b(?!\()/$1\->\{$2\}/g;
+
+    s/(\$[a-z_]+(?:\[\d\])?)->set_atts\(([^)]*)\)/$1\->\{'att'\}= $2/g;
+    s/(\$[a-z_]+(?:\[\d\])?)->(atts)\(([^)]*)\)/$1\->\{att\}/g;
+
+    s/(\$[a-z_]+(?:\[\d\])?)->append_(pcdata|cdata)\(([^)]*)\)/$1\->\{$2\}.= $3/g;
+
+    s/(\$[a-z][a-z_]*(?:\[\d\])?)->gi/\$XML::Twig::index2gi\[$1\->{'gi'}\]/g;
+
+    s/(\$[a-z_]+(?:\[\d\])?)->id/$1\->{'att'}->{\$ID}/g;
+    s/(\$[a-z_]+(?:\[\d\])?)->att\(\s*([^)]+)\)/$1\->{'att'}->\{$2\}/g;
+
+    s/(\$[a-z][a-z_]*(?:\[\d\])?)->is_pcdata/(exists $1\->{'pcdata'})/g; 
+    s/(\$[a-z][a-z_]*(?:\[\d\])?)->is_cdata/(exists $1\->{'cdata'})/g; 
+    s/(\$[a-z_]+(?:\[\d\])?)->is_pi/(exists $1\->{'target'})/g; 
+    s/(\$[a-z_]+(?:\[\d\])?)->is_comment/(exists $1\->{'comment'})/g; 
+    s/(\$[a-z_]+(?:\[\d\])?)->is_ent/(exists $1\->{'ent'})/g; 
+    s/(\$,a-z][a-z_]*(?:\[\d\])?)->is_text/((exists $1\->{'pcdata'}) || (exists $1\->{'cdata'}))/g; 
+
+    s/(\$[a-z_]+(?:\[\d\])?)->is_empty/($1\->{'empty'} || 0)/g;
+    s/(\$[a-z_]+(?:\[\d\])?)->set_empty(?!_)/$1\->{empty}= 1 unless( $1\->is_empty)/g;
+    s/(\$[a-z_]+(?:\[\d\])?)->set_not_empty/delete $1\->{empty} if( $1\->is_empty)/g;
+
+    print $_ ;
   }
-
-s/(\$[a-z_]+(?:\[\d\])?)->del_(twig_current|flushed)/delete $1\->{'$2'}/g;
-s/(\$[a-z_]+(?:\[\d\])?)->set_(twig_current|flushed)/$1\->{'$2'}=1/g;
-
-s/(\$[a-z_]+(?:\[\d\])?)->set_($SET_FIELD)\(([^)]*)\)/$1\->\{$2\}= $3/g;
-s/(\$[a-z_]+(?:\[\d\])?)->($FIELD)\b(?!\()/$1\->\{$2\}/g;
-s/(\$[a-z_]+(?:\[\d\])?)->_($FIELD2)\b(?!\()/$1\->\{$2\}/g;
-
-s/(\$[a-z_]+(?:\[\d\])?)->set_atts\(([^)]*)\)/$1\->\{'att'\}= $2/g;
-s/(\$[a-z_]+(?:\[\d\])?)->(atts)\(([^)]*)\)/$1\->\{att\}/g;
-
-s/(\$[a-z_]+(?:\[\d\])?)->append_(pcdata|cdata)\(([^)]*)\)/$1\->\{$2\}.= $3/g;
-
-s/(\$[a-z][a-z_]*(?:\[\d\])?)->gi/\$XML::Twig::index2gi\[$1\->{'gi'}\]/g;
-
-s/(\$[a-z_]+(?:\[\d\])?)->id/$1\->{'att'}->{\$ID}/g;
-s/(\$[a-z_]+(?:\[\d\])?)->att\(\s*([^)]+)\)/$1\->{'att'}->\{$2\}/g;
-
-s/(\$[a-z][a-z_]*(?:\[\d\])?)->is_pcdata/(exists $1\->{'pcdata'})/g; 
-s/(\$[a-z][a-z_]*(?:\[\d\])?)->is_cdata/(exists $1\->{'cdata'})/g; 
-s/(\$[a-z_]+(?:\[\d\])?)->is_pi/(exists $1\->{'target'})/g; 
-s/(\$[a-z_]+(?:\[\d\])?)->is_comment/(exists $1\->{'comment'})/g; 
-s/(\$[a-z_]+(?:\[\d\])?)->is_ent/(exists $1\->{'ent'})/g; 
-s/(\$,a-z][a-z_]*(?:\[\d\])?)->is_text/((exists $1\->{'pcdata'}) || (exists $1\->{'cdata'}))/g; 
-
-s/(\$[a-z_]+(?:\[\d\])?)->is_empty/($1\->{'empty'} || 0)/g;
-s/(\$[a-z_]+(?:\[\d\])?)->set_empty(?!_)/$1\->{empty}= 1 unless( $1\->is_empty)/g;
-s/(\$[a-z_]+(?:\[\d\])?)->set_not_empty/delete $1\->{empty} if( $1\->is_empty)/g;
 
