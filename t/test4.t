@@ -10,7 +10,7 @@ use XML::Twig;
 my $i=0;
 my $failed=0;
 
-my $TMAX=18; # do not forget to update!
+my $TMAX=19; # do not forget to update!
 
 print "1..$TMAX\n";
 
@@ -189,6 +189,20 @@ stest( $doc, $s, "&quot; in attribute");
 #$doc= $t->sprint;
 #stest( $doc, $s, "PI");
 
+
+my ($a, $ba, $rba);
+$t= XML::Twig->new( 
+      twig_handlers =>
+        {  a     => sub { $a++; 1; },
+          'b/a'  => sub { $ba++; 1;},
+          '/b/a' => sub { $rba++; 1;},
+        },
+                  );
+
+$t->parse( '<b><a/></b>');
+my $calls= ($a || '_') . ($ba || '_') . ($rba || '_');
+if( $calls eq '111') { print "ok 19\n"; }
+else                 { print "nok 19\n"; warn "\n$calls instead of 111\n"; }
 
 ##################################################################################
 # test functions

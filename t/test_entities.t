@@ -18,6 +18,8 @@ open( RESULT, ">$result_file") or die "cannot create $result_file: $!";
 
 my $t= XML::Twig->new( twig_roots => { elt2 => sub { $_->print}  },
                        twig_print_outside_roots => 1,
+                       #load_DTD => 1,
+                       error_context => 2,
 		     );
 select RESULT;
 $t->parse( $doc);
@@ -31,7 +33,9 @@ $result_file= "test_entities.res2";
 
 open( RESULT, ">$result_file") or die "cannot create $result_file: $!";
 
-$t= XML::Twig->new( twig_roots => { elt2 => sub { $_->print}  });
+$t= XML::Twig->new( twig_roots => { elt2 => sub { $_->print}  },
+                    error_context => 1,
+                  );
 select RESULT;
 $t->parse( $doc);
 close RESULT;
@@ -47,6 +51,7 @@ open( RESULT, ">$result_file") or die "cannot create $result_file: $!";
 
 $t= XML::Twig->new( twig_roots => { elt2 => 1 },
                     pretty_print => 'indented',
+                    error_context => 1,
 		  );
 $t->parse( $doc);
 $t->print( \*RESULT);
@@ -63,6 +68,7 @@ open( RESULT, ">$result_file") or die "cannot create $result_file: $!";
 $t= XML::Twig->new( twig_roots => { elt2 => sub { $_->print}  },
                     twig_print_outside_roots => 1,
                     keep_encoding => 1,
+                    error_context => 1,
                   );
 select RESULT;
 $t->parse( $doc);
@@ -78,6 +84,7 @@ open( RESULT, ">$result_file") or die "cannot create $result_file: $!";
 
 $t= XML::Twig->new( twig_roots => { elt2 => sub { $_->print}  },
 		    keep_encoding => 1,
+                    error_context => 1,
                   );
 select RESULT;
 $t->parse( $doc);
@@ -95,6 +102,7 @@ open( RESULT, ">$result_file") or die "cannot create $result_file: $!";
 $t= XML::Twig->new( twig_roots => { elt2 => 1 },
                     pretty_print => 'indented',
 		    keep_encoding => 1,
+                    error_context => 1,
 		  );
 $t->parse( $doc);
 $t->print( \*RESULT);
@@ -144,7 +152,7 @@ sub read_result
 __DATA__
 # doc 1
 <?xml version="1.0"?>
-<!DOCTYPE doc SYSTEM "dummy.dtd">
+<!DOCTYPE doc SYSTEM "t/dummy.dtd">
 <doc>
   <elt1>toto &ent1;</elt1>
   <elt2>tata &ent2;</elt2>
@@ -155,7 +163,7 @@ __DATA__
 
 # expected_res 1
 <?xml version="1.0"?>
-<!DOCTYPE doc SYSTEM "dummy.dtd">
+<!DOCTYPE doc SYSTEM "t/dummy.dtd">
 <doc>
   <elt1>toto &ent1;</elt1>
   <elt2>tata &ent2;</elt2>
@@ -169,14 +177,14 @@ __DATA__
 
 # expected_res 3
 <?xml version="1.0"?>
-<!DOCTYPE doc SYSTEM "dummy.dtd"><doc>
+<!DOCTYPE doc SYSTEM "t/dummy.dtd"><doc>
   <elt2>tata &ent2;</elt2>
   <elt2>tutu &ent4;</elt2>
 </doc>
 
 # expected_res 4
 <?xml version="1.0"?>
-<!DOCTYPE doc SYSTEM "dummy.dtd">
+<!DOCTYPE doc SYSTEM "t/dummy.dtd">
 <doc>
   <elt1>toto &ent1;</elt1>
   <elt2>tata &ent2;</elt2>
@@ -191,7 +199,7 @@ __DATA__
 
 # expected_res 6
 <?xml version="1.0"?>
-<!DOCTYPE doc SYSTEM "dummy.dtd"><doc>
+<!DOCTYPE doc SYSTEM "t/dummy.dtd"><doc>
   <elt2>tata &ent2;</elt2>
   <elt2>tutu &ent4;</elt2>
 </doc>

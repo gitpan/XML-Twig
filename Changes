@@ -1,6 +1,59 @@
 CHANGES
 
-      $Id: Changes,v 1.12 2002/07/01 16:18:17 mrodrigu Exp $
+      $Id: Changes,v 1.31 2002/09/17 15:13:19 mrodrigu Exp $
+
+      Added XML::Twig::Elt trimmed_text and related methods (trimmed_field,
+      first_child_trimmed_text, last_child_trimmed_text...)
+
+      Added XML::Twig::Elt replace_with method
+
+      Added XML::Twig::Elt cut_children method
+
+      Added XML::Twig contains_only method
+
+      Added *[att=~ /regexp/] condition type (suggested by Nikola Janceski)
+
+      Fixed a bug in the way handlers for gi, path and subpath were chained
+      (Thanks to Tommy Wareing)
+
+      Fixed a bug where entities caused an error on other handlers (Thanks
+      to Tommy Wareing)
+
+      Fixed a bug with string(sub_elt)=~ /regexp/ (thanks to Tommy Wareing)
+
+      Fixed a bug with output_filter used with expand_external_entities
+      (thanks to Tommy Wareing)
+
+      Fixed (yet another!) bug with whitespace handling (whitespace, then an
+      entity made the whitespace move after the entity) (spotted by the usual
+      Tommy Wareing)
+
+      Added an error message when pasting on an undef reference (suggestion
+      of Tommy Wareing)
+
+      Fixed a bug in in_context (found by Tommy Wareing)
+
+      Fixed a bug when loading the DTD (local undef $/ did not stay local,
+      bug found and patch sent by Steve Pomeroy and Henry Cipolla)
+
+      Fixed a bug in setting output filter
+
+      Fixed a bug in using a filehandle with twig_print_outside_roots
+
+      Added safe_encode_hex filter
+
+      fixed bug in set_indent, $INDENT not set properly (thanks
+      to Eric Jain)
+
+      fixed dependencies (no check with 5.8.0, added Scalar::Util
+      as a possible source for weaken)
+
+      Added no_prolog option to XML:Twig::new
+
+      Tested build on Windows (thanks to Cory Trese and Josh Hawkins)
+
+
+    Changed in 3.05
 
       Added _ALPHA_ SAX export methods: 
         XML::Twig toSAX1, toSAX2, flush_toSAX1, flush_toSAX2
