@@ -62,7 +62,7 @@ my $parser_version;
 
 BEGIN
 { 
-  $VERSION = '3.00.37';
+  $VERSION = '3.01';
 
   use XML::Parser;
   my $needVersion = '2.23';
