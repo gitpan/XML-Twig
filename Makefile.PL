@@ -1,8 +1,8 @@
-# $Id: Makefile.PL 11 2002-12-18 10:51:55Z mrodrigu $
+# $Id: Makefile.PL,v 1.4 2003/09/24 14:18:18 mrodrigu Exp $
+# tool installation part shamelessly lifted from YAML's Makefile.PL
 
 use ExtUtils::MakeMaker;
 
-# shamelessly lifted from YAML's Makefile.PL
 my @programs;
 
 for (split "\n", <<'QUERIES') {
@@ -27,5 +27,8 @@ WriteMakefile(
     dist         => { COMPRESS    => 'gzip -9f',
                       SUFFIX	     => 'gz',
                     },
-    'depend'     => { 'Twig.pm' => "Twig.pm.slow\n\t\$(PERL) speedup Twig.pm.slow > Twig.pm\n\t\$(PERL) check_optional_modules"},
+    'depend'     => { 'Twig.pm' => "FORCE\n\techo \"building Twig.pm\"\n\t\$(PERL) speedup Twig.pm.slow > Twig.pm\n\t\$(PERL) check_optional_modules",
+		                  'FORCE'   => '',
+									  },
 );
+

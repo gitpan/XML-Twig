@@ -1,6 +1,19 @@
-$Id: Changes 38 2003-02-19 16:09:35Z mrodrigu $
+$Id: Changes,v 1.2 2003/09/04 14:03:41 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.11
+
+      added --text_only option to xml_grep (outputs the text of the
+      result, without tags)
+
+      fixed bug where "Comments [was] always dropped after a twig 
+      object set 'comments' to 'drop'" (RT#3711), bug report and first
+      patch by Simon Flack
+
+      by popular demand, added option "keep_atts_order" that keeps the
+      original attribute order in the output. This option needs the
+      Tie::IxHash module to work.
 
 Changes in 3.10
 

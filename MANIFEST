@@ -35,4 +35,7 @@ t/test_entities.t
 t/test_pi_handler.t
 t/test_comment_handler.t
 t/test_pos.t
+t/test_variables.t
+t/test_drop_comments.t
 t/dummy.dtd
+META.yml                                Module meta-data (added by MakeMaker)

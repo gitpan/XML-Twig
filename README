@@ -1,64 +1,35 @@
-$Id: README 10 2002-12-18 10:50:50Z mrodrigu $
-
-NAME 
+NAME
 
     XML::Twig - Tree interface to XML documents allowing processing chunk
                 by chunk of huge documents.
 
 WARNING
 
-    XML::Twig and various versions of Perl, XML::Parser and expat:
-    XML::Twig is tested under the following environments:
-
-    Linux, perl 5.004_005, expat 1.95.2 and 1.95.5, XML::Parser 2.27 and 2.31
-    Linux, perl 5.005_03, expat 1.95.2 and 1.95.5, XML::Parser 2.27 and 2.31
-    Linux, perl 5.6.1, expat 1.95.2, 1.95.5 and 1.95.6, XML::Parser 2.27 and 2.31 
-    Linux, perl 5.8.0, expat 1.95.2, 1.95.5 and 1.95.6, XML::Parser 2.31
-
-    OS X (10.2), perl 5.8.0, expat 1.95.5, XML::Parser 2.31
-
-    Windows NT 4.0 ActivePerl 5.6.1 build 631
-    Windows 2000  ActivePerl 5.6.1 build 633
-    You need nmake to make the module on Windows (or you can just copy
-    Twig.pm to the appropriate directory)
-
-    XML::Twig does NOT work with expat 1.95.4 (upgrade to 1.95.5)
-    XML::Parser 2.27 does NOT work under perl 5.8.0
-               
-    Notes about specific versions:
-
-    You cannot use the output_encoding option with perl 5.004_005
-    Parsing utf-8 Asian characters with perl 5.8.0 seems not to work
-    (this is under investigation, and probably due to XML::Parser)
+  If you are upgrading from XML::Twig 2.02 please look at the Changes file
+  for important information about potential incompatibilities between the 2 
+  versions.
+                
 
 SUMMARY (see perldoc XML::Twig for full details)
+
 
     single-tree mode    
         my $t= XML::Twig->new();
         $t->parsefile( 'doc.xml');
-        # we do't need no stinkin' title in the first section
-        $t->first_elt( 'section')->cut_children( 'title');
         $t->print;
 
     chunk mode 
-        # move section titles to the end of the section
-        # only the current section is kept in memory
-        my $t= XML::Twig->new( twig_handlers => { section => \&flush});
+        my $t= XML::Twig->new( TwigHandlers => { section => \&flush});
         $t->parsefile( 'doc.xml');
-        $t->flush;                       # flush twig (after last section)
-    
-        sub flush 
-          { $_->first_child( 'title')    # section title
-              ->move( last_child => $_); # move to the end of the section
-            $_[0]->flush;                # print and free memory
-          }
+        $t->flush;
+        sub flush { $_[0]->flush; }
     
     sub-tree mode 
         # print all title's in the document
-        # the twig is not built for other elements
-        my $t= XML::Twig->new( twig_roots => { title => \&list});
+        my $t= XML::Twig->new( TwigRoots => { title => 1 },
+                               TwigHandlers => { title => \&list});
         $t->parsefile( 'doc.xml');
-        sub list { $_->print; print "\n"; }
+        sub list { print $_->print . "\n"; }
     
 INSTALLATION
 
@@ -70,11 +41,12 @@ INSTALLATION
 NOTES
 
    It is very much recommended to install Text::Iconv (for easy character
-   encoding conversions, at least for versions of Perl pre-5.8) and Scalar::Util
-   or WeakRef (to avoid memory leaks) with this version if you can.
+   encoding conversions, at least for versions of Perl pre-5.8) and WeakRef
+   (to avoid memory leaks) with this version if you can.
 
 CHANGES
 
+    $Id: README,v 1.1.1.2 2003/09/15 16:57:55 mrodrigu Exp $
 
     See the Changes file    
 

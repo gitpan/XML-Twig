@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.60 2002/11/01 17:12:52 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.6 2003/09/24 12:09:56 mrodrigu Exp $
 #
 # Copyright (c) 1999-2002 Michel Rodriguez
 # All rights reserved.
@@ -79,7 +79,7 @@ my $parser_version;
 
 BEGIN
 { 
-$VERSION = '3.10';
+$VERSION = '3.11';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -300,7 +300,7 @@ my $ID= 'id'; # default value, set by the Id argument
       DoNotChainHandlers    => 1,
       IgnoreElts            => 1,
       CharHandler           => 1, KeepEncoding          => 1,
-      ParseStartTag         => 1, 
+      ParseStartTag         => 1, KeepAttsOrder         => 1,
       LoadDTD               => 1, DTDHandler            => 1,
       DoNotOutputDTD        => 1, NoProlog              => 1,
       ExpandExternalEnts    => 1,
@@ -463,10 +463,12 @@ sub new
 
     $args{Comments}||= $COMMENTS_DEFAULT;
     if( $args{Comments} eq 'drop')
-      { delete $twig_handlers{Comment}; }
+      { $self->{twig_keep_comments}= 0; }
     elsif( $args{Comments} eq 'keep')
       { $self->{twig_keep_comments}= 1; }
-    elsif( $args{Comments} ne 'process')
+    elsif( $args{Comments} eq 'process')
+      { $self->{twig_process_comments}= 1; }
+    else
       { croak "wrong value for comments argument: $args{Comments}"; }
     delete $args{Comments};
 
@@ -501,6 +503,19 @@ sub new
     else
       { $self->set_output_filter( 0); }
 
+    if( exists $args{KeepAttsOrder})
+      { $self->{keep_atts_order}= $args{KeepAttsOrder};
+        if( eval 'require Tie::IxHash') 
+          { import Tie::IxHash; 
+            $self->set_keep_atts_order(  $self->{keep_atts_order}); 
+          }
+        else 
+          { carp "Tie::IxHash not available, option  keep_atts_order not allowed"; 
+          }
+      }
+    else
+      { $self->set_keep_atts_order( 0); }
+
     if( my $output_encoding= $args{OutputEncoding})
       { $self->set_output_encoding( $output_encoding);
         delete $args{OutputFilter};
@@ -530,7 +545,7 @@ sub new
       { $self->{xmlns_map}=  $args{XmlnsMap};
         delete $args{XmlnsMap};
       }
-     
+
     # set handlers
     if( $self->{twig_roots})
       { if( $self->{twig_default_print})
@@ -1168,15 +1183,16 @@ sub add_or_discard_stored_spaces
   }
 
 # the default twig handlers, which build the tree
-sub twig_start($$%)
+sub twig_start
   { twig_log( twig_start => @_) if( DEBUG);
-    my ($p, $gi, %att)  = @_;
+    my ($p, $gi, @att)= @_;
     my $t=$p->{twig};
+
     # print STDERR "[start tag " . $p->original_string() ."]";
+
     # empty the stored pcdata (space stored in case they are really part of 
     # a pcdata element) or stored it if the space policy dictades so
     # create a pcdata element with the spaces if need be
-
     add_or_discard_stored_spaces( $t);
     my $parent= $t->{twig_current};
 
@@ -1189,21 +1205,21 @@ sub twig_start($$%)
 
     # if we choose to keep the encoding then we need to parse the tag
     if( my $func = $t->{parse_start_tag})
-      { ($gi, %att)= &$func($p->original_string); }
+      { ($gi, @att)= &$func($p->original_string); }
     
     # filter the input data if need be  
     if( my $filter= $t->{twig_input_filter})
       { $gi= $filter->( $gi);
-        %att= map { $filter->($_), $filter->($att{$_})} keys %att; 
+        @att= map { $filter->($_) } @att; 
       }
 
     if( $t->{twig_map_xmlns})
-      { $att{'#original_gi'}= $gi;
+      { push @att, '#original_gi', $gi;
         $gi= $t->_replace_prefix( $gi);
       }
 
     my $elt= $t->{twig_elt_class}->new( $gi);
-    $elt->{'att'}=  \%att;
+    $elt->set_atts( @att);
  
     delete $parent->{'twig_current'} if( $parent);
     $t->{twig_current}= $elt;
@@ -1276,7 +1292,7 @@ sub twig_start($$%)
 # only works for 1-byte character sets
 sub parse_start_tag
   { my $string= shift;
-    my( $gi, %atts);
+    my( $gi, @atts);
 
     # get the gi (between < and the first space, / or > character)
     if( $string=~ s{^<\s*([^\s>/]*)[\s>/]*}{}s)
@@ -1284,8 +1300,8 @@ sub parse_start_tag
     else
       { croak "internal error when parsing start tag $string"; }
     while( $string=~ s{^([^\s=]*)\s*=\s*(["'])(.*?)\2\s*}{}s)
-      { $atts{$1}= $3; }
-    return $gi, %atts;
+      { push @atts, $1, $3; }
+    return $gi, @atts;
   }
 
 sub set_root
@@ -1730,6 +1746,7 @@ sub twig_comment
   { twig_log( twig_comment => @_) if( DEBUG);
     my( $p, $data)= @_;
     my $t=$p->{twig};
+    return unless( $t->{twig_process_comments} || $t->{twig_keep_comments});
     $data= $t->{twig_input_filter}->( $data) if( $t->{twig_input_filter});
 
     my $twig_current= $t->{twig_current};    # always defined
@@ -2575,6 +2592,12 @@ sub set_quote
 
 sub set_indent
   { return XML::Twig::Elt::set_indent( @_); }
+
+sub set_keep_atts_order
+  { shift; return XML::Twig::Elt::set_keep_atts_order( @_); }
+
+sub keep_atts_order
+  { return XML::Twig::Elt::keep_atts_order( @_); }
 
 # save and restore package globals (the ones in XML::Twig::Elt)
 sub save_global_state
@@ -3532,7 +3555,7 @@ sub new
     if( $atts)
       { # the attribute hash can be used to pass the asis status 
         if( defined $atts->{'#ASIS'}) { $self->set_asis; delete $atts->{'#ASIS'}; }
-        $self->{'att'}=  $atts if( keys %$atts);
+        $self->set_atts( $atts) if( keys %$atts);
       }
 
     return $self;
@@ -3739,7 +3762,10 @@ sub append_cdata
     return $_[0];
   }
 sub cdata { return $_[0]->{'cdata'}; }
-sub cdata_string { return CDATA_START . $_[0]->{cdata} . CDATA_END; }
+sub cdata_string
+  { my $cdata= defined $_[0]->{cdata} ? $_[0]->{cdata} : '';
+    return CDATA_START . $cdata . CDATA_END;
+  }
 
 #start-extract twig_node
 sub contains_only_text
@@ -4171,8 +4197,10 @@ sub next_sibling
 sub set_atts 
   { my $elt= shift;
     my %atts;
+    tie %atts, 'Tie::IxHash' if( keep_atts_order());
     if( UNIVERSAL::isa( $_[0], 'HASH'))
-      { %atts= %{$_[0]} }
+      { while( my( $att, $value)= each %{$_[0]}) { $atts{$att}= $value; } 
+      }
     else
       { %atts= @_; }
     $elt->{'att'}= \%atts;
@@ -4218,7 +4246,7 @@ sub set_id
     weaken(  $elt->twig->{twig_id_list}->{$id}) if( $XML::Twig::weakrefs);
   }
 
-sub id { return $_[0]->{'att'}->{$ID}; }
+sub id { return $_[0]->{att}->{$ID}; }
 
 # methods used to add ids to elements that don't have one
 BEGIN 
@@ -5220,11 +5248,15 @@ sub simplify
 
     # normalize option names
     my %options= @_;
+    %options= map { my ($key, $val)= ($_, $options{$_});
+                       $key=~ s{(\w)([A-Z])}{$1_\L$2}g;
+                       $key => $val
+                     } keys %options;
 
     # check options
     my @allowed_options= qw( keyattr forcearray noattr content_key
                              var var_regexp variables var_attr 
-                             erase forcecontent
+                             erase group_tags forcecontent
                    );
     my %allowed_options= map { $_ => 1 } @allowed_options;
     foreach my $option (keys %options)
@@ -5238,6 +5270,7 @@ sub simplify
         $options{forcearray}= \%forcearray_tags;
       }
 
+    $options{erase}||= $options{group_tags}; # for compat with XML::Simple
     if( UNIVERSAL::isa( $options{erase}, 'ARRAY'))
       { my %erase_tags= map { $_ => 1 } @{$options{erase}};
         $options{erase}= \%erase_tags;
@@ -5322,24 +5355,25 @@ sub _simplify
              ) 
       { if( defined ($key=  $child->{'att'}->{$att}))
           { $save_as_field=1 ;
-        $child->del_att( $att) unless( $att eq $options->{var});
-              }
+            $child->del_att( $att) unless( $att eq $options->{var});
+          }
       }
           
     unless( $save_as_field)
       { if( 
                 ($nb_children{$tag} > 1)
              or ($options->{forcearray} == 1)
-                 or ( UNIVERSAL::isa( $options->{forcearray}, 'HASH')
-              and $options->{forcearray}->{$tag}
-                    )
-               )
-           { $save_as_field=0; }
-         else
-           { $save_as_field=1; }
+             or (     UNIVERSAL::isa( $options->{forcearray}, 'HASH')
+                  and $options->{forcearray}->{$tag}
+                )
+          )
+          { $save_as_field=0; }
+        else
+          { $save_as_field=1; }
+
         if( $tag eq '#PCDATA') { $key= $options->{content_key}; }
         else                   { $key= $tag;                    }
-          }
+      }
        
 
     if( $save_as_field)
@@ -5382,11 +5416,11 @@ sub replace_vars_in_text
     $text=~ s{$options->{var_regexp}}
              { if( defined( my $value= $options->{var_values}->{$1}))
                  { $value }
-           else
+               else
                  { warn "unknown variable $&\n";
-               $&
-             }
-         }gex;
+                   $&
+                 }
+             }gex;
     return $text;
   }
 
@@ -5646,7 +5680,7 @@ sub copy
       { my @children= $elt->children;
         if( my $atts= $elt->atts)
           { my %atts= %{$atts}; # we want to do a real copy of the attributes
-            $copy->{'att'}=  \%atts;
+            $copy->set_atts( \%atts);
           }
         foreach my $child (@children)
           { my $child_copy= $child->copy;
@@ -5677,7 +5711,7 @@ sub DESTROY
     delete $elt->{'next_sibling'};
     # the id reference also needs to be destroyed
     $elt->del_id if( $ID && exists $elt->{att}->{$ID});
-    delete $elt->{'att'};         # $elt->{'att'}=  undef;
+    delete $elt->{'att'};         # $elt->set_atts( undef);
     $elt= undef;
   }
 
@@ -5696,6 +5730,7 @@ BEGIN {
   my $empty_tag_style= 0;
   my $keep_encoding= 0;
   my $expand_external_entities= 0;
+  my $keep_atts_order=0;
 
   my ($NSGMLS, $NICE, $INDENTED, $INDENTEDC, $RECORD1, $RECORD2)= (1..6);
 
@@ -5740,6 +5775,7 @@ BEGIN {
           keep_encoding            => $keep_encoding,
           expand_external_entities => $expand_external_entities,
           output_filter            => $output_filter,
+          keep_atts_order          => $keep_atts_order,
         };
     }
 
@@ -5753,6 +5789,7 @@ BEGIN {
       $keep_encoding            = $state->{keep_encoding};
       $expand_external_entities = $state->{expand_external_entities};
       $output_filter            = $state->{output_filter};
+      $keep_atts_order          = $state->{keep_atts_order};
     }
 
   # set the pretty_print style (in $pretty) and returns the old one
@@ -5848,6 +5885,16 @@ BEGIN {
       return $old_value;
     }
        
+  sub set_keep_atts_order
+    { my $new_value= defined $_[1] ? $_[1] : $_[0];
+      my $old_value= $keep_atts_order;
+      $keep_atts_order= $new_value;
+      return $old_value;
+    
+   }
+
+  sub keep_atts_order { return $keep_atts_order; } # so I can use elsewhere in the module
+
   # $elt is an element to print
   # $pretty is an optionnal value, if true a \n is printed after the <
   sub start_tag
@@ -5862,7 +5909,7 @@ BEGIN {
       # get the attribute and their values
       my $att= $elt->atts;
       if( $att)
-        { foreach my $att_name (sort keys %{$att}) 
+        { foreach my $att_name ( $keep_atts_order ?  keys %{$att} : sort keys %{$att}) 
            { # skip private attributes (they start with #)
              next if( substr( $att_name, 0,1) eq '#');
 
@@ -6548,7 +6595,7 @@ sub set_content
     if( ref $_[0] eq 'HASH')
       { my $atts= shift;
         $elt->del_atts; # usually useless but better safe than sorry
-        $elt->{'att'}=  $atts;
+        $elt->set_atts( $atts);
         return  $elt unless defined $_[0];
       }
 
@@ -6601,7 +6648,7 @@ sub insert
       { my $new_elt= XML::Twig::Elt->new( $gi);
         # add attributes if needed
         if( UNIVERSAL::isa( $args[0], 'HASH'))
-      { $new_elt->{'att'}=  shift @args; }
+      { $new_elt->set_atts( shift @args); }
     # paste the element
         $new_elt->paste( $elt);
         delete $elt->{empty} if( $elt->is_empty);
@@ -6676,7 +6723,7 @@ sub wrap_in
 
         # add the attributes if the next argument is a hash ref
     if( UNIVERSAL::isa( $_[0], 'HASH'))
-      { $new_elt->{'att'}=  shift @_; }
+      { $new_elt->set_atts( shift @_); }
 
         $elt= $new_elt;
       }
@@ -7007,26 +7054,27 @@ XML::Twig - A perl module for processing huge XML documents in tree mode.
 
 =head1 SYNOPSIS
 
-Small documents
+Small documents (loaded in memory as a tree):
 
   my $twig=XML::Twig->new();    # create the twig
   $twig->parsefile( 'doc.xml'); # build it
   my_process( $twig);           # use twig methods to process it 
   $twig->print;                 # output the twig
 
-Huge documents
+Huge documents (processed in combined stream/tree mode):
 
+  # at most one div will be loaded in memory
   my $twig=XML::Twig->new(   
     twig_handlers => 
       { title   => sub { $_->set_gi( 'h2') }, # change title tags to h2
         para    => sub { $_->set_gi( 'p')  }, # change para to p
-    hidden  => sub { $_->delete;       }, # remove hidden elements
-    list    => \&my_list_process,         # process list elements
-    div     => sub { $_[0]->flush;     }, # output and free memory
+        hidden  => sub { $_->delete;       }, # remove hidden elements
+        list    => \&my_list_process,         # process list elements
+        div     => sub { $_[0]->flush;     }, # output and free memory
       },
     pretty_print => 'indented',               # output will be nicely formatted
     empty_tags   => 'html',                   # outputs <empty_tag />
-                    );
+                         );
     $twig->flush;                             # flush the end of the document
 
 See L<XML::Twig 101|XML::Twig 101> for other ways to use the module, as a 
@@ -7060,32 +7108,33 @@ discarding them once they are processed.
 
 =head2 Loading an XML document and processing it
 
-        my $t= XML::Twig->new();
-        $t->parse( '<d><tit>title</tit><para>para1</para><para>p2</para></d>');
-        my $root= $t->root;
-    $root->set_gi( 'html');               # change doc to html
-    $title= $root->first_child( 'tit');   # get the title
-    $title->set_gi( 'h1');                # turn it into h1
-    my @para= $root->children( 'para');   # get the para children
-    foreach my $para (@para)
-      { $para->set_gi( 'p'); }            # turn them into p
-    $t->print;                            # output the document
+  my $t= XML::Twig->new();
+  $t->parse( '<d><title>title</title><para>p 1</para><para>p 2</para></d>');
+  my $root= $t->root;
+  $root->set_gi( 'html');               # change doc to html
+  $title= $root->first_child( 'title'); # get the title
+  $title->set_gi( 'h1');                # turn it into h1
+  my @para= $root->children( 'para');   # get the para children
+  foreach my $para (@para)
+    { $para->set_gi( 'p'); }            # turn them into p
+  $t->print;                            # output the document
 
 Other useful methods include:
 
-L<att|att>: C<< $elt->{'att'}->{'type'} >> return the C<type> attribute for an 
+L<att|att>: C<< $elt->{'att'}->{'foo'} >> return the C<foo> attribute for an 
 element,
 
-L<set_att|set_att> : C<< $elt->set_att( type => "important") >> sets the C<type> 
-attribute to the C<important> value,
+L<set_att|set_att> : C<< $elt->set_att( foo => "bar") >> sets the C<foo> 
+attribute to the C<bar> value,
 
 L<next_sibling|next_sibling>: C<< $elt->{next_sibling} >> return the next sibling
-in the document (in the example C<< $title->{next_sibling} >> is the first C<para>
-while C<< $elt->next_sibling( 'table') >> is the next C<table> sibling 
+in the document (in the example C<< $title->{next_sibling} >> is the first
+C<para>, you can also (and actually should) use 
+C<< $elt->next_sibling( 'para') >> to get it 
 
 The document can also be transformed through the use of the L<cut|cut>, 
 L<copy|copy>, L<paste|paste> and L<move|move> methods: 
-C<< $title->cut; $title->paste( 'after', $p); >> for example
+C<< $title->cut; $title->paste( after => $p); >> for example
 
 And much, much more, see L<Elt|"Elt">.
 
@@ -7105,43 +7154,47 @@ if you don't need to output it (if you are just extracting some data from
 the document for example). The handler will be called again once the next 
 relevant element has been parsed.
 
-        my $t= XML::Twig->new( twig_handlers => 
-                                { section => \&section,
-                              para   => sub { $_->set_gi( 'p');
-                    },
-                    );
-        $t->parsefile( 'doc.xml');
-        $t->flush; # don't forget to flush one last time in the end or anything
-               # after the last </section> tag will not be output 
+  my $t= XML::Twig->new( twig_handlers => 
+                          { section => \&section,
+                            para   => sub { $_->set_tag( 'p');
+                          },
+                       );
+  $t->parsefile( 'doc.xml');
+  $t->flush; # don't forget to flush one last time in the end or anything
+             # after the last </section> tag will not be output 
     
-    # the handler is called once a section is completely parsed, ie when 
-    # the end tag for section is found, it receives the twig itself and
-    # the element (including all its sub-elements) as arguments
-        sub section 
-      { my( $t, $section)= @_;      # arguments for all twig_handlers
-        $section->set_gi( 'div');   # change the gi, my favourite method...
-        # let's use the attribute nb as a prefix to the title
-        my $title= $section->first_child( 'title'); # find the title
-        my $nb= $title->{'att'}->{'nb'}; # get the attribute
-        $title->prefix( "$nb - ");  # easy isn't it?
-        $section->flush;            # outputs the section and frees memory
-      }
+  # the handler is called once a section is completely parsed, ie when 
+  # the end tag for section is found, it receives the twig itself and
+  # the element (including all its sub-elements) as arguments
+  sub section 
+    { my( $t, $section)= @_;      # arguments for all twig_handlers
+      $section->set_tag( 'div');  # change the tag name.4, my favourite method...
+      # let's use the attribute nb as a prefix to the title
+      my $title= $section->first_child( 'title'); # find the title
+      my $nb= $title->{'att'}->{'nb'}; # get the attribute
+      $title->prefix( "$nb - ");  # easy isn't it?
+      $section->flush;            # outputs the section and frees memory
+    }
 
-        my $t= XML::Twig->new( twig_handlers => 
-                            { 'section/title' => \&print_elt_text} );
-        $t->parsefile( 'doc.xml');
-        sub print_elt_text 
-          { my( $t, $elt)= @_;
-            print $elt->text; 
-          }
-
-        my $t= XML::Twig->new( twig_handlers => 
-                            { 'section[@level="1"]' => \&print_elt_text }
-                );
-        $t->parsefile( 'doc.xml');
-
+        
 There is of course more to it: you can trigger handlers on more elaborate 
 conditions than just the name of the element, C<section/title> for example.
+
+  my $t= XML::Twig->new( twig_handlers => 
+                           { 'section/title' => sub { $_->print } }
+                       )
+                  ->parsefile( 'doc.xml');
+
+Here C<< sub { $_->print } >> simply prints the current element (C<$_> is aliased
+to the element in the handler).
+
+You can also trigger a handler on a test on an attribute:
+
+  my $t= XML::Twig->new( twig_handlers => 
+                      { 'section[@level="1"]' => sub { $_->print } }
+                       );
+                  ->parsefile( 'doc.xml');
+
 You can also use C<L<twig_start_handlers|twig_start_handlers> > to process an 
 element as soon as the start tag is found. Besides C<L<prefix|prefix> > you
 can also use C<L<suffix|suffix> >, 
@@ -7151,19 +7204,19 @@ can also use C<L<suffix|suffix> >,
 The twig_roots mode builds only the required sub-trees from the document
 Anything outside of the twig roots will just be ignored:
 
-        my $t= XML::Twig->new( 
-             # the twig will include just the root and selected titles 
-                 twig_roots   => { 'section/title' => \&print_elt_text,
-                                   'annex/title'   => \&print_elt_text
-                 }
-                            );
-        $t->parsefile( 'doc.xml');
-    
-        sub print_elt_text 
-          { my( $t, $elt)= @_;
-            print $elt->text;    # print the text (including sub-element texts)
-        $t->purge;           # frees the memory
-          }
+  my $t= XML::Twig->new( 
+       # the twig will include just the root and selected titles 
+           twig_roots   => { 'section/title' => \&print_n_purge,
+                             'annex/title'   => \&print_n_purge
+           }
+                      );
+  $t->parsefile( 'doc.xml');
+  
+  sub print_n_purge 
+    { my( $t, $elt)= @_;
+      print $elt->text;    # print the text (including sub-element texts)
+      $t->purge;           # frees the memory
+    }
 
 You can use that mode when you want to process parts of a documents but are
 not interested in the rest and you don't want to pay the price, either in
@@ -7178,24 +7231,24 @@ of the document as is.
 
 This would convert prices in $ to prices in Euro in a document:
 
-        my $t= XML::Twig->new( 
-                 twig_roots   => { 'price' => \&convert, },    # process prices 
-         twig_print_outside_roots => 1,                # print the rest
-                            );
-        $t->parsefile( 'doc.xml');
-    
-        sub convert 
-          { my( $t, $price)= @_;
-        my $currency=  $price->{'att'}->{'currency'};        # get the currency
-        if( $currency eq 'USD')
-          { $usd_price= $price->text;                   # get the price
-            # %rate is just a conversion table 
-            my $euro_price= $usd_price * $rate{usd2euro};
-        $price->set_text( $euro_price);             # set the new price
-        $price->set_att( currency => 'EUR');        # don't forget this!
-          }
-            $price->print;                                  # output the price
-      }
+  my $t= XML::Twig->new( 
+           twig_roots   => { 'price' => \&convert, },   # process prices 
+           twig_print_outside_roots => 1,               # print the rest
+                      );
+  $t->parsefile( 'doc.xml');
+ 
+  sub convert 
+    { my( $t, $price)= @_;
+      my $currency=  $price->{'att'}->{'currency'};          # get the currency
+      if( $currency eq 'USD')
+        { $usd_price= $price->text;                     # get the price
+          # %rate is just a conversion table 
+          my $euro_price= $usd_price * $rate{usd2euro};
+          $price->set_text( $euro_price);               # set the new price
+          $price->set_att( currency => 'EUR');          # don't forget this!
+        }
+      $price->print;                                    # output the price
+    }
 
 
 =head1 Simplifying XML processing
@@ -7562,6 +7615,15 @@ A reference to a subroutine that will be called every time C<PCDATA> is found.
 The name of a class used to store elements. this class should inherit from
 XML::Twig::Elt (and by default it is XML::Twig::Elt). This option is used
 to subclass the element class and extend it with new methods.
+
+=item keep_atts_order
+
+Setting this option to a true value causes the attribute hash to be tied to
+a Tie::IxHash object.
+This means that Tie::IxHash needs to be installe for this option to be 
+available. It also means that the hash keeps its order, so you will get 
+the attributes in order. This allows outputing the attributes in the same 
+order as they were in the original document.
 
 =item keep_encoding
 
@@ -8589,7 +8651,7 @@ DATA::dumper or YAML to dump the data structure)
 
 =item content_key
                              
-=item variables %var_hash
+=item variables (%var_hash)
 
 %var_hash is a hash { name => value }
 
@@ -8597,7 +8659,7 @@ This option allows variables in the XML to be expanded when the file is read. (t
 
 A 'variable' is any text of the form ${name} (or $name) which occurs in an attribute value or in the text content of an element. If 'name' matches a key in the supplied hashref, ${name} will be replaced with the corresponding value from the hashref. If no matching key is found, the variable will not be replaced. 
 
-=item var => <attribute_name>
+=item var ($attribute_name)
 
 This option gives the name of an attribute that will be used to create 
 variables in the XML:
@@ -8612,12 +8674,12 @@ generated data structure
 
 By default variables are captured by the following regexp: /$(\w+)/
     
-=item var_regexp => <regexp>
+=item var_regexp (regexp)
 
 This option changes the regexp used to capture variables. The variable
 name should be in $1
 
-=item erase => [<tag1>, <tag2>...]
+=item erase ([<tag1>, <tag2>...])
 
 Option used to simplify the structure: elements listed will not be used.
 Their children will be, they will be considered children of the element

@@ -5,34 +5,40 @@ use Getopt::Long;
 use Pod::Usage;
 use XML::Twig;
 
-my $VERSION="0.3";
+my $VERSION="0.4";
 
 # options (all used globally in the script)
 my( $help, $man, @roots, @paths, $files, $count, $nb_results, $encoding,
-    $wrap, $descr, $group, $pretty_print, $version);
+    $wrap, $descr, $group, $pretty_print, $version, $text_only);
 
 # used to check if the wrapping tags need to be output
 my $results      = 0;
 my $file_results = 0;
 
-GetOptions( 'help'         => \$help,
-            'man'          => \$man,
-	    'version'      => \$version,
-            'root=s'       => \@roots,
-            'cond=s'       => \@paths,
-	    'files'        => \$files,
-	    'count'        => \$count,
-	    'nb_results=i' => \$nb_results,
-	    'encoding=s'   => \$encoding,
-	    'wrap:s'       => \$wrap,
-	    'descr:s'      => \$descr,
+# first process the case where the user provides only 
+# an xpath expression and a list of files
+ if( (@ARGV > 1) && ($ARGV[0] !~ m{^-}) )
+   { splice( @ARGV, 0, 0, '--group_by_file', 'file', '--pretty_print', 'indented', '--cond'); }
+
+GetOptions( 'help'            => \$help,
+            'man'             => \$man,
+	          'version'         => \$version,
+            'root=s'          => \@roots,
+            'cond=s'          => \@paths,
+	          'files'           => \$files,
+	          'count'           => \$count,
+	          'nb_results=i'    => \$nb_results,
+	          'encoding=s'      => \$encoding,
+	          'wrap:s'          => \$wrap,
+	          'descr:s'         => \$descr,
             'group_by_file:s' => \$group,
-	    'pretty_print:s'  => \$pretty_print,
+	          'pretty_print:s'  => \$pretty_print,
+			      'text_only'       => \$text_only,
 	  ) or pod2usage(2);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
-exit "$0 version $VERSION\n" if( $version);
+if( $version) { warn "$0 version $VERSION\n"; exit; }
 	
 unless( @roots or @paths or $files)  { pod2usage(1); exit; }
 if( ($files or $count) and !@paths)  { pod2usage(1); exit; }
@@ -72,7 +78,10 @@ else
                                 if( !@paths or $_->att( '#print'))
                                   { print result_start()        unless( $results); 
                                     print file_result_start()   unless( !$group or $file_results);
-                                    $root->print;
+                                    if( $text_only)
+																		  { print $root->text, "\n"; }
+																		else
+																		  { $root->print; }
                                     $nb_results--;
                                     unless( $nb_results) { $@= "XMLGREP: NB_RESULT_REACHED"; die; }
                                   }
@@ -153,6 +162,7 @@ else
 
 sub result_start
   { $results=1;
+		return if( $text_only);
     my $enc_decl= $encoding ? qq{encoding="$encoding" } : '';
     return   qq{<?xml version="1.0" $enc_decl?>\n}
            . qq{<$wrap $descr>\n};
@@ -160,6 +170,7 @@ sub result_start
 
 sub result_end
   { my $result;
+		return if( $text_only);
     if( !$group) { $result= "\n"; }
     $result .= qq{</$wrap>\n};
     return $result;
@@ -167,6 +178,7 @@ sub result_end
 
 sub file_result_start
   { $file_results=1;
+		return if( $text_only);
     my $result;
     $result= qq{<$group filename="$current_file">};
     if( !$pretty_print)
@@ -176,6 +188,7 @@ sub file_result_start
 
 sub file_result_end
   { $file_results=0;
+		return if( $text_only);
     return qq{\n</$group>\n};
   }
 
@@ -273,6 +286,10 @@ or 'C<record_c>' are probably what you are looking for)
 if the option is used but no style is given then 'C<indented>' is used
 
 short form for this arggument is B<-s>
+
+=item B<--text_only>
+
+Displays the text of the results, one by line.
 
 =back
 

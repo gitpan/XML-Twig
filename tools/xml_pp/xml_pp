@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: xml_pp,v 1.5 2002/06/13 15:43:11 mrodrigu Exp $
+# $Id: xml_pp,v 1.1.1.2 2003/09/15 16:57:56 mrodrigu Exp $
 use strict;
 
 use XML::Twig;

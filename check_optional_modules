@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: check_optional_modules 12 2002-12-18 10:52:37Z mrodrigu $
+# $Id: check_optional_modules,v 1.2 2003/09/24 13:35:07 mrodrigu Exp $
 
 use strict;
 
@@ -10,8 +10,8 @@ if( $] >=  5.0060)
 { unless( eval 'require Scalar::Util' or eval 'require WeakRef' )
       { warn "Neither Scalar::Util  nor WeakRef is  installed. ",
              "Installing  one of these modules  would  improve ",
-	     "XML::Twig memory management and eliminate memory ",
-	     "leaks when re-using twigs.\n";
+             "XML::Twig memory management and eliminate memory ",
+             "leaks when re-using twigs.\n";
       }
     else
       { warn "weaken is available\n"; }
@@ -30,3 +30,4 @@ unless( eval 'require Text::Iconv')
   }
 else
   { warn "Text::Iconv is installed\n"; }
+
