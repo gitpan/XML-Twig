@@ -1,6 +1,12 @@
+$Id: Changes,v 1.31 2002/09/17 15:13:19 mrodrigu Exp $
+
 CHANGES
 
-      $Id: Changes,v 1.31 2002/09/17 15:13:19 mrodrigu Exp $
+Changes in 3.07
+
+      Fixed the way weaken is imported from Scalar::Util
+
+Changes in 3.06
 
       Added XML::Twig::Elt trimmed_text and related methods (trimmed_field,
       first_child_trimmed_text, last_child_trimmed_text...)

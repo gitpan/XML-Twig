@@ -78,7 +78,7 @@ my $parser_version;
 
 BEGIN
 { 
-  $VERSION = '3.06';
+  $VERSION = '3.07';
 
   use XML::Parser;
   my $needVersion = '2.23';
@@ -89,13 +89,15 @@ BEGIN
 
   # test whether we can use weak references
   if( eval 'require Scalar::Util')
-    { import Scalar::Util::weaken;
+    { import Scalar::Util qw(weaken);
       $weakrefs= 1;
     }
-  if( eval 'require WeakRef')
+  elsif( eval 'require WeakRef')
     { import WeakRef;
       $weakrefs= 1;
-    } 
+    }
+  else
+    { $weakrefs= 0; } 
   # warn "weak references used\n" if( $weakrefs);
 
   import XML::Twig::Elt;
