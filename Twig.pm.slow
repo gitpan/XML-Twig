@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.157 2004/03/17 17:02:31 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.159 2004/04/04 09:03:51 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -77,7 +77,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.14';
+$VERSION = '3.15';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -5471,10 +5471,13 @@ sub simplify
     my @allowed_options= qw( keyattr forcearray noattr content_key
                              var var_regexp variables var_attr 
                              erase group_tags forcecontent
+                             normalise_space normalize_space
                    );
     my %allowed_options= map { $_ => 1 } @allowed_options;
     foreach my $option (keys %options)
       { warn "invalid option $option\n" unless( $allowed_options{$option}); }
+
+    $options{normalise_space} ||= $options{normalize_space} || 0;
     
     $options{content_key} ||= 'content';
     if( $options{content_key}=~ m{^-})
@@ -5558,12 +5561,14 @@ sub _simplify
     foreach my $child (@children)
       { if( $child->is_text)
           { # generate with a content key
+            my $text= $elt->_text_with_vars( $options);
+            $text= _normalize_space( $text) if( $options->{normalise_space} >= 2);
             if(    $options->{force_content}
                 || $nb_atts 
               )
-              { $data->{$options->{content_key}}= $elt->_text_with_vars( $options); }
+              { $data->{$options->{content_key}}= $text; }
             else
-              { $data= $elt->_text_with_vars( $options); }
+              { $data= $text; }
           }
         else
           { # element with sub elements
@@ -5596,6 +5601,7 @@ sub _simplify
             if( my $keyatt= $child->_key_attr( $options))
               { # element with key
                 my $key= $child->att( $keyatt);
+                $key= _normalize_space( $key) if( $options->{normalise_space} >= 1);
                 $data->{$child_gi}->{$key}= $child_data;
               }
             elsif(      $options->{forcearray}
@@ -5623,15 +5629,18 @@ sub _simplify
           )
           { next; }
 
+        my $att_text= _replace_vars_in_text( $atts{$att}, $options);
+        $att_text= _normalize_space( $att_text) if( $options->{normalise_space} >= 2);
+        
         if(    $options->{prefix_key_for_all}->{$att}
             || $options->{prefix_key_for_elt}->{"$gi#$att"}
           )
           { # prefix the att
-            $data->{"-$att"}= _replace_vars_in_text( $atts{$att}, $options);
+            $data->{"-$att"}= $att_text;
           } 
         else
           { # normal case
-            $data->{$att}= _replace_vars_in_text( $atts{$att}, $options); 
+            $data->{$att}= $att_text; 
           }
       }
     
@@ -5667,6 +5676,15 @@ sub _text_with_vars
   }
 
 
+sub _normalize_space
+  { my $text= shift;
+    $text=~ s{\s+}{ }sg;
+    $text=~ s{^\s}{};
+    $text=~ s{\s$}{};
+    return $text;
+  }
+
+
 sub att_nb
   { return 0 unless( my $atts= $_[0]->atts);
     return scalar keys %$atts;
@@ -5680,12 +5698,12 @@ sub has_no_atts
 sub _replace_vars_in_text
   { my( $text, $options)= @_;
 
-    $text=~ s{$options->{var_regexp}}
-             { if( defined( my $value= $options->{var_values}->{$1}))
+    $text=~ s{($options->{var_regexp})}
+             { if( defined( my $value= $options->{var_values}->{$2}))
                  { $value }
                else
-                 { warn "unknown variable $1\n";
-                   $&
+                 { warn "unknown variable $2\n";
+                   $1
                  }
              }gex;
     return $text;
@@ -5825,18 +5843,17 @@ sub mark
       foreach my $text_elt ($elt->descendants_or_self( '#TEXT'))
         { if( $is_string)
             { my $text= $text_elt->text;
-              $text=~ s{$regexp}{ _replace_var( $replace, 
-                       $1, $2, $3, $4, $5, $6, $7, $8, $9)}egx;
+              $text=~ s{$regexp}{ _replace_var( $replace, $1, $2, $3, $4, $5, $6, $7, $8, $9)}egx;
               $text_elt->set_text( $text);
            }
           else
             { my $replace_sub= ( $replace_sub{$replace} ||= _install_replace_sub( $replace)); 
               my $text= $text_elt->text;
               my $pos=0;  # used to skip text that was previously matched
-              while( my @var= ($text=~ m{$regexp}))
-                { my $match_start  = length( $`);
+              while( my( $pre_match_string, $match_string, @var)= ($text=~ m{(.*?)($regexp)}g))
+                { my $match_start  = length( $pre_match_string);
                   my $match        = $text_elt->split_at( $match_start + $pos);
-                  my $match_length = length( $&);
+                  my $match_length = length( $match_string);
                   my $post_match   = $match->split_at( $match_length);
                   $replace_sub->( $match, @var);
                   # merge previous text with current one
@@ -9252,28 +9269,38 @@ the element are duplicated.
 Paste a (previously C<cut> or newly generated) element. Die if the element
 already belongs to a tree.
 
+The element is pasted 
+
+Example:
+
+  my $t= XML::Twig->new->parse( 'doc.xml')
+  my $toc= $t->root->new( 'toc');
+  $toc->paste( $t->root); # $toc is pasted as first child of the root 
+  foreach my $title ($t->findnodes( '/doc/section/title'))
+    { my $title_toc= $title->copy;
+      # paste $title_toc as the last child of toc
+      $title_toc->paste( last_child => $toc) 
+    }
+
 Position options:
 
 =over 4
 
 =item first_child (default)
 
-The element is pasted as the first child of the element object this
-method is called on.
+The element is pasted as the first child of C<$ref>
 
 =item last_child
 
-The element is pasted as the last child of the element object this
-method is called on.
+The element is pasted as the last child of C<$ref>
 
 =item before
 
-The element is pasted before the element object, as its previous
-sibling.
+The element is pasted before C<$ref>, as its previous sibling.
 
 =item after
 
-The element is pasted after the element object, as its next sibling.
+The element is pasted after C<$ref>, as its next sibling.
 
 =item within
 

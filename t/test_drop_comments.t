@@ -34,6 +34,8 @@ XML_TEST
     #print $twig3->sprint, "\n", '-'x80, "\n"; # drops comments!!
     $twig3->dispose;
 }
+exit 0;
+
 
 ############################################################################
 # tools                                                                    #

@@ -1,4 +1,4 @@
-# $Id: xmlxpath_additional.t,v 1.11 2004/01/28 15:05:16 mrodrigu Exp $
+# $Id: xmlxpath_additional.t,v 1.12 2004/03/26 16:30:40 mrodrigu Exp $
 
 use strict;
 
@@ -138,6 +138,8 @@ is( $t->findvalue( '//*[@foo:att=2]'), '', '//*[@foo:att=2]');
   is( $ns->getData, 'uri', 'getData');
 }
 
+
+exit 0;
 
 ############################################################################
 # tools                                                                    #

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: test_variables.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: test_variables.t,v 1.6 2004/03/26 16:30:40 mrodrigu Exp $
 use strict;
 use XML::Twig;
 
@@ -30,6 +30,9 @@ if( $s->{elt2} eq 'elt using $v1') { print "ok 5\n" }
 else { print "not ok 5\n"; warn "test 5: /$s->{elt2}/ instead of 'elt using \$v1'\n"; }
 if( $s->{elt4} eq 'elt using elt2') { print "ok 6\n" }
 else { print "not ok 6\n"; warn "test 6: /$s->{elt4}/ instead of 'elt using elt2'\n"; }
+
+exit 0;
+
 __DATA__
 <doc>
   <elt1 var="v1">elt1</elt1>

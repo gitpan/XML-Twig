@@ -549,4 +549,6 @@ $exp_res= '<p att="val"></p>';
 if( $res eq $exp_res) { print "ok 80\n"; }
 else { print "not ok 80\n"; warn "returns $res instead of $exp_res\n"; }
 
+exit 0;
+
 

@@ -91,7 +91,7 @@ stest( $t->model( 'title'), '(#PCDATA)', 'title model');
 mtest( $t->model( 'section'), '\(intro\?,\s*title,\s*\(para|note\)+\)', 'section model');
 stest( $t->dtd->{att}->{section}->{id}->{type}, 'ID', 'section id type');
 stest( $t->dtd->{att}->{section}->{id}->{default}, '#IMPLIED', 'section id default');
-exit;
+exit 0;
 
 
 

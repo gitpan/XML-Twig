@@ -1,4 +1,4 @@
-# $Id: xmlxpath_14axisancestor.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_14axisancestor.t,v 1.6 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -22,6 +22,8 @@ ok($nodes[1]->getName, "BBB"); # test document order
 
 @nodes = $t->findnodes( '//FFF/ancestor::*');
 ok(@nodes, 5);
+
+exit 0;
 
 __DATA__
 <AAA>

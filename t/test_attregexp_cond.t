@@ -41,6 +41,8 @@ my $t= XML::Twig->new(
 	            );
 $t->parse( \*DATA);
 
+exit 0;
+
 __DATA__
 <doc id="doc" >
   <elt id="elt1" att="val" ok="ok">foo<elt id="elt2" att="no val" ok="nok"/></elt>

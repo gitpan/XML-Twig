@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_class_methods.t,v 1.4 2004/02/13 14:15:01 mrodrigu Exp $
+# $Id: test_class_methods.t,v 1.5 2004/03/26 16:30:40 mrodrigu Exp $
 
 # testing methods on class attribute:
 # class set_class add_to_class att_to_class add_att_to_class move_att_to_class
@@ -61,6 +61,8 @@ nok( $root->matches( '.val'), 'match on class (not good)');
 
 }
 
+
+exit 0;
 
 
 

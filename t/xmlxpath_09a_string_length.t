@@ -1,4 +1,4 @@
-# $Id: xmlxpath_09a_string_length.t,v 1.6 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_09a_string_length.t,v 1.7 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -33,4 +33,6 @@ ok($doc_two_chars == 3, 1);
 
 my $doc_two_para_chars = $t->find( 'string-length(/doc/para/text())');
 ok($doc_two_para_chars == 13, 1);
+
+exit 0;
 

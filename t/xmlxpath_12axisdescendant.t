@@ -1,4 +1,4 @@
-# $Id: xmlxpath_12axisdescendant.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_12axisdescendant.t,v 1.6 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -27,6 +27,8 @@ ok(@nodes, 6);
 
 @nodes = $t->findnodes( '//CCC/descendant::DDD');
 ok(@nodes, 3);
+
+exit 0;
 
 __DATA__
 <AAA>

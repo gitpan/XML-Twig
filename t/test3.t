@@ -102,6 +102,8 @@ $t_br_pcdata->parse( $doc_br_pcdata);
 $pcdata= $t_br_pcdata->root->first_child->pcdata;
 stest( $pcdata, $br_pcdata, "multi-line pcdata");
 
+exit 0;
+
 ##################################################################################
 # test functions
 ##################################################################################

@@ -32,6 +32,8 @@ sub test
       }
   }
 
+exit 0;
+
 __DATA__
 <!DOCTYPE e SYSTEM "dummy.dtd">
 <e> &c;b</e>

@@ -34,7 +34,7 @@ foreach my $elt ($t->descendants)
     $i++;
   }
        
-
+exit 0;
 
 
 __DATA__

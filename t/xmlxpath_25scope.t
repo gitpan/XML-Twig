@@ -1,4 +1,4 @@
-# $Id: xmlxpath_25scope.t,v 1.6 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_25scope.t,v 1.7 2004/03/26 16:30:40 mrodrigu Exp $
 
 use strict;
 
@@ -34,3 +34,5 @@ if ($@)
 else {
     ok(0);
 }
+
+exit 0;

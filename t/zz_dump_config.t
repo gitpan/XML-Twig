@@ -1,6 +1,6 @@
 #!/bin/perl
 
-# $Id: zz_dump_config.t,v 1.3 2004/03/15 16:37:10 mrodrigu Exp $
+# $Id: zz_dump_config.t,v 1.4 2004/03/26 16:30:40 mrodrigu Exp $
 
 my $ok; # global, true if the last call to version found the module, false otherwise
 use Config;
@@ -45,7 +45,7 @@ warn version( IO::Scalar);
 warn "\n\nPlease add this information to bug reports (you can run t/zz_dump_config.t to get it)\n\n";
 
 print "1..1\nok 1\n";
-exit;
+exit 0;
 
 sub version
   { my $module= shift;

@@ -114,6 +114,8 @@ close RESULT;
 check_result( $result_file, 6);
 
 
+exit 0;
+
 
 
 sub check_result

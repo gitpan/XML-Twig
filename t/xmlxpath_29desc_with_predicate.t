@@ -1,4 +1,4 @@
-# $Id: xmlxpath_29desc_with_predicate.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_29desc_with_predicate.t,v 1.6 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -18,6 +18,8 @@ ok( $t);
 my @bbb = $t->findnodes( '/descendant::BBB[1]');
 ok(@bbb, 1);
 ok($bbb[0]->string_value, "OK");
+
+exit 0;
 
 __DATA__
 <AAA>

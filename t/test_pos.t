@@ -53,6 +53,8 @@ sub test
       }  
   }
 
+exit 0;
+
 __DATA__
 #id	exp		expected
 doc	_		1

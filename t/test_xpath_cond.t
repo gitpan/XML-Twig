@@ -55,6 +55,8 @@ foreach my $exp ( @exp)
     $i++;
   }
 
+exit 0;
+
 __DATA__
 /elt			=> none
 //elt			=> elt-1 elt-2 elt-3

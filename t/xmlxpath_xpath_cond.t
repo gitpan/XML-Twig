@@ -1,5 +1,5 @@
 #!/bin/perl -w
-# $Id: xmlxpath_xpath_cond.t,v 1.6 2004/03/10 10:39:27 mrodrigu Exp $
+# $Id: xmlxpath_xpath_cond.t,v 1.7 2004/03/26 16:30:40 mrodrigu Exp $
 use strict;
 
 BEGIN 
@@ -95,6 +95,8 @@ else
     print STDERR "$exp:\nexpected: $expected_result\n\nreal     : $result\n";
   }
 $i++;
+
+exit 0;
 
 __DATA__
 /elt                  => none

@@ -42,9 +42,13 @@ my @options= ( { },
                { keyattr => {server => 'name' } },
                { keyattr => {server => '+name' } },
                { keyattr => {server => '-name' } },
+               { normalize_space => 1 },
+               { normalise_space => 2 },
              );
 
 plan( tests => @options * @doc);
+
+$SIG{__WARN__} = sub { };
 
 foreach my $doc (@doc)
   { foreach my $options (@options)
@@ -60,6 +64,8 @@ foreach my $doc (@doc)
         exit unless( $res);
       }
   } 
+
+exit 0;
 
 __DATA__
 <config doc="XML::Simple example" logdir="/var/log/foo/" debugfile="/tmp/foo.debug">
@@ -89,4 +95,12 @@ __DATA__
 </config>
 
 <doc doc="simple example with variables"><var var="var">foo</var><string>var is ${var}</string></doc>
+
+<doc att=" val  with spaces ">
+  <item name="n1">text with spaces </item>
+  <item name="n2 "> text with spaces</item>
+  <item name=" n3 ">text  with  spaces</item>
+  <item name="n  4 "> text  with spaces 
+  </item>
+</doc>
 

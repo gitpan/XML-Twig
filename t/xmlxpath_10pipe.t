@@ -1,4 +1,4 @@
-# $Id: xmlxpath_10pipe.t,v 1.4 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_10pipe.t,v 1.5 2004/03/26 16:30:40 mrodrigu Exp $
 BEGIN 
   { if( eval( 'require XML::XPath'))
       { import XML::XPath; require Test; import Test; plan( tests => 6); }
@@ -23,6 +23,8 @@ ok(@nodes, 2);
 
 @nodes = $t->findnodes( '/AAA/EEE | //DDD/CCC | /AAA | //BBB');
 ok(@nodes, 4);
+
+exit 0;
 
 __DATA__
 <AAA>

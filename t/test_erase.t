@@ -30,6 +30,8 @@ else
                  "real: \n$result\n";
   }
   
+exit 0;
+
 
 __DATA__
 <doc>

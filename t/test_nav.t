@@ -61,6 +61,8 @@ foreach my $cond ( keys %result)
     $i++;
   }
 
+exit 0;
+
 __DATA__
                            => elt-1
 elt                        => elt-1

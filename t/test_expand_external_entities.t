@@ -49,6 +49,8 @@ $t->parsefile( $xml_file);
 is( normalize_xml( $t->sprint), normalize_xml( $xml_no_dtd), "expanded document");
 }
 
+exit 0;
+
 
 ############################################################################
 # tools                                                                    #

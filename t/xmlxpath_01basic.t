@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: xmlxpath_01basic.t,v 1.4 2003/11/25 15:55:06 mrodrigu Exp $
+# $Id: xmlxpath_01basic.t,v 1.5 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -24,6 +24,8 @@ ok(@ccc, 3);
 
 my @bbb = $t->findnodes('/AAA/DDD/BBB');
 ok(@bbb, 2);
+
+exit 0;
 
 __DATA__
 <AAA>

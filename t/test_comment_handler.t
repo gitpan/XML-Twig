@@ -60,3 +60,5 @@ else
   { print "not ok 4\n";
     warn "expected: $expected\nfound   : $result\n";
   }
+exit 0;
+

@@ -1,4 +1,4 @@
-# $Id: xmlxpath_20axisa_or_s.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_20axisa_or_s.t,v 1.6 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -21,6 +21,8 @@ ok(@nodes, 4);
 
 @nodes = $t->findnodes( '//GGG/ancestor-or-self::*');
 ok(@nodes, 5);
+
+exit 0;
 
 __DATA__
 <AAA>

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_cdata.t,v 1.2 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: test_cdata.t,v 1.3 2004/03/26 16:30:40 mrodrigu Exp $
 
 use XML::Twig;
 
@@ -41,6 +41,8 @@ $result= $t->sprint;
 ($expected_result=<DATA>)=~ s{\n*$}{}s; 
 if( $result eq $expected_result) { print "ok 4\n"; }
 else { print "not ok 4\n"; warn "test keep_encoding / remove_cdata\n  expected: $expected_result\n  result  : $result"; }
+
+exit 0;
 
 __DATA__
 <doc>

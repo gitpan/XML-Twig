@@ -1,5 +1,5 @@
 #!/bin/perl -w
-# $Id: xmlxpath_test_with_handlers.t,v 1.4 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_test_with_handlers.t,v 1.5 2004/03/26 16:30:40 mrodrigu Exp $
 use strict;
 
 BEGIN 
@@ -54,6 +54,8 @@ my $t= XML::Twig::XPath->new( twig_handlers =>
                              );
 $t->parse( $doc);
  ok( ids( $t->findnodes( '//elt3/elt4[@att_int="3"] | //elt3') ), "elt3-1 - elt4-2 - elt3-2 - elt4-4"); # 7
+
+exit 0;
 
 sub ids
   { return join( " - ", map { $_->id } @_); }

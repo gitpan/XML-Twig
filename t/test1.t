@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test1.t,v 1.2 2003/11/28 12:17:05 mrodrigu Exp $
+# $Id: test1.t,v 1.3 2004/03/26 16:30:40 mrodrigu Exp $
 
 use strict;
 use Carp;
@@ -364,6 +364,8 @@ my $pcdata= $el2->first_child( PCDATA);
 $pcdata->prefix( 'p3:');
 sttest( $t6->root,'<doc>p1:<el1>p2:text</el1><el2>p3:more text</el2></doc>', 
         "prefix pcdata"); 
+
+exit 0;
 
 ##################################################################################
 # test functions

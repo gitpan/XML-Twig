@@ -22,7 +22,7 @@ select STDOUT;
 close RESULT;
 check_result( $result_file, 1);
 
-exit;
+exit 0;
 
 # Not yet implemented
 

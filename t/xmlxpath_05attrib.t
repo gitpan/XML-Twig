@@ -1,4 +1,4 @@
-# $Id: xmlxpath_05attrib.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_05attrib.t,v 1.6 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -26,6 +26,8 @@ ok(@attribs, 3);
 
 my @noattribs = $t->findnodes( '//BBB[not(@*)]');
 ok(@noattribs, 1);
+
+exit 0;
 
 __DATA__
 <AAA>

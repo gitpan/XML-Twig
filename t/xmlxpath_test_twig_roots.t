@@ -87,6 +87,8 @@ $t= XML::Twig::XPath->new( twig_roots => { elt => sub { $_->print( \*RESULT); } 
 test_twig( $t, 12);
 
 
+exit 0;
+
 sub test_twig
   { my( $t, $test_nb)= @_;
     my $doc= read_doc();

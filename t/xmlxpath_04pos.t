@@ -1,4 +1,4 @@
-# $Id: xmlxpath_04pos.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_04pos.t,v 1.6 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -20,6 +20,8 @@ ok($first, "first");
 
 my $last = $t->findvalue( '/AAA/BBB[last()]/@id');
 ok($last, "last");
+
+exit 0;
 
 __DATA__
 <AAA>

@@ -56,6 +56,8 @@ foreach my $exp ( @exp)
     $i++;
   }
 
+exit 0;
+
 __DATA__
 elt               => elt-1
 elt[@id="elt-4"]  => elt-4

@@ -1,4 +1,4 @@
-# $Id: xmlxpath_30lang.t,v 1.5 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: xmlxpath_30lang.t,v 1.6 2004/03/26 16:30:40 mrodrigu Exp $
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -19,6 +19,8 @@ ok(@en, 2);
 
 my @de = $t->findnodes( '//content[lang("de")]');
 ok(@de, 1);
+
+exit 0;
 
 __DATA__
 <page xml:lang="en">

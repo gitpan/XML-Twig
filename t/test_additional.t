@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_additional.t,v 1.117 2004/03/16 19:09:28 mrodrigu Exp $
+# $Id: test_additional.t,v 1.118 2004/03/26 16:30:40 mrodrigu Exp $
 
 # test designed to improve coverage of the module
 
@@ -2654,6 +2654,9 @@ my $expected_s2= q{<sub id="s2"><sub>text 1</sub><sub>text 2</sub></sub>};
   $expected_remap=~ s{xmlns=}{xmlns:ns_1=};
   is( $t->sprint, $expected_remap, "map_xmlns  with default ns");
 }
+
+exit 0;
+
 
 ############################################################################
 # tools                                                                    #

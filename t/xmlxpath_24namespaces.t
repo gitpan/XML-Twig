@@ -47,6 +47,8 @@ ok( @nodes, 2);
 
 ok( $t->findvalue('//attr:node/@attr:findme'), 'someval');
 
+exit 0;
+
 __DATA__
 <xml xmlns:foo="foobar.example.com"
     xmlns="flubber.example.com">

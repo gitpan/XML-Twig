@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict; 
 
-# $Id: test_unique_xpath.t,v 1.4 2004/01/23 23:16:45 mrodrigu Exp $
+# $Id: test_unique_xpath.t,v 1.5 2004/03/26 16:30:40 mrodrigu Exp $
 
 use XML::Twig;
 print "1..65\n";
@@ -49,6 +49,8 @@ foreach( 1..8)
         }
     }
 }
+
+exit 0;
 
 __DATA__
 <a>
