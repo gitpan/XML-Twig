@@ -3,15 +3,26 @@ NAME
     XML::Twig - Tree interface to XML documents allowing processing chunk
                 by chunk of huge documents.
 
-WARNING
-
-  If you are upgrading from XML::Twig 2.02 please look at the Changes file
-  for important information about potential incompatibilities between the 2 
-  versions.
                 
 
 SUMMARY (see perldoc XML::Twig for full details)
 
+XML::Twig is (yet another!) XML module. 
+
+Its strong points: can be used to process huge documents while still
+being in tree mode, not bound by DOM or SAX, so it offers a very 
+comprehensive set of methods, simple to use, masking some of the classic
+pitfalls of XML processing.
+
+What it doesn't offer: full SAX support (it can export SAX, but only
+reads XML), full XPath support (unless you use XML::Twig::XPath).
+
+Other drawbacks: it is a big module, and with over 500 methods available
+it can be a bit overwhelming. A good starting point is the tutorial at
+http://xmltwig.com/xmltwig/tutorial/index.html
+
+
+SYNOPSYS
 
     single-tree mode    
         my $t= XML::Twig->new();
@@ -19,17 +30,15 @@ SUMMARY (see perldoc XML::Twig for full details)
         $t->print;
 
     chunk mode 
-        my $t= XML::Twig->new( TwigHandlers => { section => \&flush});
+        my $t= XML::Twig->new( twig_handlers => { section => \&flush});
         $t->parsefile( 'doc.xml');
         $t->flush;
         sub flush { $_[0]->flush; }
     
     sub-tree mode 
         # print all title's in the document
-        my $t= XML::Twig->new( TwigRoots => { title => 1 },
-                               TwigHandlers => { title => \&list});
+        my $t= XML::Twig->new( twig_roots => { title => sub { $_->print, "\n" } });
         $t->parsefile( 'doc.xml');
-        sub list { print $_->print . "\n"; }
     
 INSTALLATION
 
@@ -42,7 +51,7 @@ DEPENDANCIES
 
     XML::Twig needs XML::Parser (and the expat library) installed
    
-    Modules that can enhanced XML::Twig are
+    Modules that can enhance XML::Twig are
 
     Scalar::Util or WeakRef 
       to avoid memory leaks
@@ -59,19 +68,19 @@ DEPENDANCIES
 
 CHANGES
 
-    $Id: README,v 1.3 2004/01/09 23:15:20 mrodrigu Exp $
+    $Id: README,v 1.5 2004/01/29 20:18:05 mrodrigu Exp $
 
     See the Changes file    
 
 AUTHOR
 
-    Michel Rodriguez (mirod@xmltwig.com)
+    Michel Rodriguez (mirod@cpan.org)
     The Twig page is at http://www.xmltwig.com/ 
     See the XML::Twig tutorial at http://www.xmltwig.com/xmltwig/tutorial/index.html
 
 COPYRIGHT
 
-       Copyright (c) 1999-2002, Michel Rodriguez. All Rights Reserved.
+       Copyright (c) 1999-2004, Michel Rodriguez. All Rights Reserved.
      This module is free software. It may be used, redistributed
      and/or modified under the terms of the Perl Artistic License
           (see http://www.perl.com/perl/misc/Artistic.html)

@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.92 2004/01/29 15:28:52 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.97 2004/01/31 09:05:34 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -75,16 +75,23 @@ my $REG_OP         = q{=|==|!=|>|<|>=|<=|eq|ne|lt|gt|le|ge}; # op
 #end-extract twig_global
 
 my $parser_version;
+my( $FB_HTMLCREF, $FB_XMLCREF);
+
 
 BEGIN
 { 
-$VERSION = '3.12';
+$VERSION = '3.13';
 
 use XML::Parser;
 my $needVersion = '2.23';
 $parser_version= $XML::Parser::VERSION;
 croak "need at least XML::Parser version $needVersion" unless $parser_version >= $needVersion;
 
+if( $] >= 5.008) 
+  { eval "use Encode qw( :fallback_all)";
+    $FB_XMLCREF  = 0x0400; # Encode::FB_XMLCREF;
+    $FB_HTMLCREF = 0x0200; #Encode::FB_HTMLCREF;
+  }
 
 # test whether we can use weak references
 # set local empty signal handler to trap error messages
@@ -3193,15 +3200,15 @@ sub latin1
   { local $SIG{__DIE__};
     if( eval 'require Encode')
       { import Encode; 
-        return encode_convert( 'latin1');
+        return encode_convert( 'ISO-8859-15');
       }
     elsif( eval 'require Text::Iconv;')
       { 
-        return iconv_convert( 'latin1');
+        return iconv_convert( 'ISO-8859-15');
       }
     elsif( eval 'require Unicode::Map8 && require Unicode::String;')
       { 
-        return unicode_convert( 'latin1'); 
+        return unicode_convert( 'ISO-8859-15'); 
       }
     else
       { return \&regexp2latin1; }
@@ -3243,19 +3250,28 @@ sub html_encode
 
 sub safe_encode
   {   my $str= shift;
-       $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
-            {XmlUtf8Decode($1)}egs; 
+      if( $] < 5.008)
+        { $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
+                   {XmlUtf8Decode($1)}egs; 
+        }
+      else
+        { $str= encode( ascii => $str, $FB_HTMLCREF); }
       return $str;
   }
 
 sub safe_encode_hex
   {   my $str= shift;
-       $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
-            {XmlUtf8Decode($1, 1)}egs; 
+      if( $] < 5.008)
+        { $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
+                   {XmlUtf8Decode($1, 1)}egs; 
+        }
+      else
+        { $str= encode( ascii => $str, $FB_XMLCREF); }
       return $str;
   }
 
 # this one shamelessly lifted from XML::DOM
+# does NOT work on 5.8.0
 sub XmlUtf8Decode
   { my ($str, $hex) = @_;
     my $len = length ($str);
@@ -3279,7 +3295,8 @@ sub XmlUtf8Decode
     else
     { croak "bad value [$str] for XmlUtf8Decode"; }
 
-    $hex ? sprintf ("&#x%x;", $n) : "&#$n;";
+    my $char= $hex ? sprintf ("&#x%x;", $n) : "&#$n;";
+    return $char;
 }
 
 
@@ -9589,7 +9606,7 @@ are not in the same twig then return C<undef>.
 Return the element context in a form similar to XPath's short
 form: 'C</root/gi1/../gi>'
 
-=item xpath ($gi)
+=item xpath
 
 Return a unique XPath expression that can be used to find the element
 again. 

@@ -1,10 +1,21 @@
-$Id: Changes,v 1.22 2004/01/29 09:11:15 mrodrigu Exp $
+$Id: Changes,v 1.25 2004/01/31 09:01:51 mrodrigu Exp $
 
 CHANGES
 
+Changes in 3.13
+
+      Maintenance release to get the tests to pass on various platforms
+
+      updated the README
+      fixed a problem with encoding conversions (using safe_encode and
+      safe_encode_hex) under perl 5.8.0, see RT ticket #5111
+      fixed tests to pass when trying to use an unsupported iconv filter    
+
 Changes in 3.12
 
-      added lots of tests (900), thanks to David Rigaudiere, Forrest 
+      New features and greatly increased test coverage
+
+      added lots of tests (>900), thanks to David Rigaudiere, Forrest 
       Cahoon, Sebastien Aperghis-Tramoni, Henrik Tougaard and Sam Tregar
       for testing this release on various OSs, Perl, XML::Parser and 
       expat versions.

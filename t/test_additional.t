@@ -26,12 +26,12 @@ my $t= XML::Twig->new->parse( q{
 
 # use CDATA
 my $cdata= $t->first_elt( CDATA)->text;
-is( $cdata, 'cdata 01', 'first_elt( CDATA)');
-is( $t->first_elt( CDATA)->cdata_string, '<![CDATA[cdata 01]]>', 'cdata_string');
-is( $t->root->cdata_string, '', 'cdata_string for non cdata element');
+is( $cdata, 'cdata 01', 'first_elt( CDATA)');  # test 1
+is( $t->first_elt( CDATA)->cdata_string, '<![CDATA[cdata 01]]>', 'cdata_string');  # test 2
+is( $t->root->cdata_string, '', 'cdata_string for non cdata element');  # test 3
 
 my $cdata2= $t->root->first_child( 'cdata[2]')->next_elt( CDATA)->text;
-is( $cdata2, 'cdata <02>', 'first_child( cdata[2])');
+is( $cdata2, 'cdata <02>', 'first_child( cdata[2])');  # test 4
 }
 
 # test warning for invalid options
@@ -42,21 +42,21 @@ my $warning="";
 $SIG{__WARN__} = sub { $warning.= join '', @_ };
 XML::Twig->new( dummy_opt => 1);
 $SIG{__WARN__}= $old_warning_handler;
-ok( $warning=~ m{^invalid option DummyOpt}, "expecting 'invalid option DummyOpt...', got '$warning'\n");
+ok( $warning=~ m{^invalid option DummyOpt}, "expecting 'invalid option DummyOpt...', got '$warning'\n");  # test 5
 
 # test no warming if more_options is used
 $warning="";
 $SIG{__WARN__} = sub { $warning.= join '', @_ };
 XML::Twig->new( more_options => 1, dummy_opt => 1);
 $SIG{__WARN__}= $old_warning_handler;
-nok( $warning, "expecting no warning, got '$warning'\n");
+nok( $warning, "expecting no warning, got '$warning'\n");  # test 6
 
 $warning="";
 $SIG{__WARN__} = sub { $warning.= join '', @_ };
 XML::Twig::add_options( 'dummy_opt');
 XML::Twig->new( dummy_opt => 1);
 $SIG{__WARN__}= $old_warning_handler;
-nok( $warning, "expecting no warning (2), got '$warning'\n");
+nok( $warning, "expecting no warning (2), got '$warning'\n");  # test 7
 }
 
 
@@ -67,7 +67,7 @@ my $t= XML::Twig->new( twig_handlers => { chain      => sub { $nb_calls++; 1;},
                                          'doc/chain' => sub { $nb_calls++; 1;},
                                         },
                      )->parse( '<doc><chain>chained</chain></doc>');
-is( $nb_calls, 2, "chained calls");
+is( $nb_calls, 2, "chained calls");  # test 8
 
 $nb_calls=0;
 $t= XML::Twig->new( twig_handlers => { chain      => sub { $nb_calls++; 1 },
@@ -75,14 +75,14 @@ $t= XML::Twig->new( twig_handlers => { chain      => sub { $nb_calls++; 1 },
                                         },
                      do_not_chain_handlers => 1,
                      )->parse( '<doc><chain>chained</chain></doc>');
-is( $nb_calls, 1, "not chained calls");
+is( $nb_calls, 1, "not chained calls");  # test 9
 
 $nb_calls=0;
 $t= XML::Twig->new( twig_handlers => { chain      => sub { $nb_calls++; 0; },
                                       'doc/chain' => sub { $nb_calls++; 0; },
                                         },
                      )->parse( '<doc><chain>chained</chain></doc>');
-is( $nb_calls, 1, "chained handlers returning 0");
+is( $nb_calls, 1, "chained handlers returning 0");  # test 10
 }
 
 # test ignore_elt
@@ -95,7 +95,7 @@ is( $nb_calls, 1, "chained handlers returning 0");
                            </doc>');
   my @t= $t->findnodes( '//t');
   my $nb_t= scalar @t;
-  is( $nb_t, 4, 'findnodes //t');
+  is( $nb_t, 4, 'findnodes //t');  # test 11
 }
 
 # test elt_class
@@ -108,7 +108,7 @@ use base 'XML::Twig::Elt';
 sub test { return 25 }
 
 package main;
-is( $t->root->test, 25, 'elt_class');
+is( $t->root->test, 25, 'elt_class');  # test 12
 } 
 
 # test char_handler
@@ -116,12 +116,12 @@ is( $t->root->test, 25, 'elt_class');
 my $t= XML::Twig->new( char_handler => sub { my $s= shift; $s=~ s/\w/./g; return $s; })
                  ->parse( '<doc><elt>foo</elt><elt att="bar">baz</elt></doc>');
 my $text= $t->root->text;
-is( $text, '......', 'silly char_handler');
+is( $text, '......', 'silly char_handler');  # test 13
 
 my $att= $t->root->last_child( 'elt')->att( 'att');
-is( $att, 'bar', 'last_child');
+is( $att, 'bar', 'last_child');  # test 14
 $att= $t->root->last_child( 'elt')->att( 'att'); # to use the cache
-is( $att, 'bar', 'last_child');
+is( $att, 'bar', 'last_child');  # test 15
 }
 
 # test various methods
@@ -130,24 +130,24 @@ is( $att, 'bar', 'last_child');
   $t->set_id_seed( 'toto_');
   $_->add_id foreach @new_children;
   my $id= $new_children[0]->att( 'id');
-  is( $id, 'toto_1', 'copy att');
+  is( $id, 'toto_1', 'copy att');  # test 16
   $new_children[1]->change_att_name( id => 'foo');
   my $foo=  $new_children[1]->att( 'foo');
-  is( $foo, 'toto_2', 'change_att_name');
+  is( $foo, 'toto_2', 'change_att_name');  # test 17
 
-  ok( $t->root->all_children_are( 'elt'), "all_children_are( 'elt')");
-  nok( $t->root->all_children_are( 'none'), "all_children_are( 'none')");
+  ok( $t->root->all_children_are( 'elt'), "all_children_are( 'elt')");  # test 18
+  nok( $t->root->all_children_are( 'none'), "all_children_are( 'none')");  # test 19
 
   my $count= $t->root->children_count( 'elt');
-  is( $count, 2, "children_count( 'elt')");
+  is( $count, 2, "children_count( 'elt')");  # test 20
   $count= $t->root->children_count( 'none');
-  is( $count, 0, "children_count( 'none')");
+  is( $count, 0, "children_count( 'none')");  # test 21
   $count= $t->root->children_count;
-  is( $count, 2, "children_count");
-  ok( $t->root->first_child_matches( 'elt'), "first_child_matches"); 
+  is( $count, 2, "children_count");  # test 22
+  ok( $t->root->first_child_matches( 'elt'), "first_child_matches");   # test 23
 
   $t->root->insert_new_elt( 'p');
-  nok( $t->root->all_children_are( 'elt'), "all_children_are( 'elt') (with p child)");
+  nok( $t->root->all_children_are( 'elt'), "all_children_are( 'elt') (with p child)");  # test 24
 
 }
 
@@ -156,58 +156,58 @@ is( $att, 'bar', 'last_child');
 my $t=XML::Twig->new->parse( '<doc><elt>text <![CDATA[some cdata]]> more text</elt></doc>');
 
 my $cdata= $t->root->next_elt( CDATA)->cdata;
-is( $cdata, 'some cdata', 'created CDATA element');
+is( $cdata, 'some cdata', 'created CDATA element');  # test 25
 
 $t->root->next_elt( CDATA)->append_cdata( ' appended<>');
 $t->root->next_elt( PCDATA)->append_pcdata( 'more ');
 $t->root->first_child( 'elt')->append_extra_data( '<!-- comment -->');
 
-is( $t->sprint, '<doc><!-- comment --><elt>text more <![CDATA[some cdata appended<>]]> more text</elt></doc>', "append_extra_data");
+is( $t->sprint, '<doc><!-- comment --><elt>text more <![CDATA[some cdata appended<>]]> more text</elt></doc>', "append_extra_data");  # test 26
 }
 
 # test att_names and att_to_field
 { 
 my $t= XML::Twig->new->parse( '<doc><elt att1="foo" att2="bar"/></doc>');
 my $elt= $t->root->first_child_matches( 'elt');
-ok( $elt, "first_child_matches");
+ok( $elt, "first_child_matches");  # test 27
 my $att_names= join ':', sort $elt->att_names;
-is( $att_names, 'att1:att2', "att_names");
+is( $att_names, 'att1:att2', "att_names");  # test 28
 $elt->att_to_field( 'att1');
 $elt->att_to_field( att2 => "new");
 my $elt_string= $elt->sprint;
-is( $elt_string, '<elt><new>bar</new><att1>foo</att1></elt>', "att_to_field")
+is( $elt_string, '<elt><new>bar</new><att1>foo</att1></elt>', "att_to_field")  # test 29
 }
 
 # test child_matches child_text child_trimmed_text children_text
 { 
 my $t= XML::Twig->new->parse( '<doc><elt> text </elt><elt2>  text  text</elt2></doc>');
 my $root= $t->root;
-ok( $root->child_matches( 1, 'elt2'), "child_matches");
+ok( $root->child_matches( 1, 'elt2'), "child_matches");  # test 30
 
 my $text= $root->child_text( 0);
-is( $text, ' text ', "child_text");
+is( $text, ' text ', "child_text");  # test 31
 
 $text= $root->child_trimmed_text( -1, 'elt2');
-is( $text, 'text text', "child_trimmed_text", 25 );
+is( $text, 'text text', "child_trimmed_text", 25 );  # test 32
 
 $text= join( '-', $root->children_text( qr/elt/));
-is( $text, ' text -  text  text', "children_text");
+is( $text, ' text -  text  text', "children_text");  # test 33
 }
 
 # test _ancestors _children _descendants 
 { my $t= XML::Twig->new->parse( '<doc><elt1/><elt2><elt3/></elt2></doc>');
-  is( tags( $t->root->_children), 'elt1:elt2', "_children");
-  is( tags( $t->root->_descendants), 'elt1:elt2:elt3', "_descendants");
-  is( $t->root->last_child_matches( 'elt3') ? "matches" : "no match",
+  is( tags( $t->root->_children), 'elt1:elt2', "_children");  # test 34
+  is( tags( $t->root->_descendants), 'elt1:elt2:elt3', "_descendants");  # test 35
+  is( $t->root->last_child_matches( 'elt3') ? "matches" : "no match",  # test 36
       "no match", "last_child_matches (no match)");
   my $elt3= $t->root->last_child_matches( 'elt2')->first_child;
-  is( $elt3->gi, 'elt3', "last_child_matches (match)");
-  is( tags( $elt3->_ancestors), 'elt2:doc', "_ancestors");
-  is( tags( $elt3->_ancestors(1)), 'elt3:elt2:doc', "_ancestors(1)");
+  is( $elt3->gi, 'elt3', "last_child_matches (match)");  # test 37
+  is( tags( $elt3->_ancestors), 'elt2:doc', "_ancestors");  # test 38
+  is( tags( $elt3->_ancestors(1)), 'elt3:elt2:doc', "_ancestors(1)");  # test 39
 
-  is( tags( $t->root->descendants( 'elt1')), 'elt1', 'descendants with gi');
-  is( tags( $t->root->descendants( qr/^elt/)), 'elt1:elt2:elt3', 'descendants with qr');
-  is( tags( $t->root->descendants( qr/^elt/)), 'elt1:elt2:elt3', 'descendants with qr (using cache)');
+  is( tags( $t->root->descendants( 'elt1')), 'elt1', 'descendants with gi');  # test 40
+  is( tags( $t->root->descendants( qr/^elt/)), 'elt1:elt2:elt3', 'descendants with qr');  # test 41
+  is( tags( $t->root->descendants( qr/^elt/)), 'elt1:elt2:elt3', 'descendants with qr (using cache)');  # test 42
 
 } 
 
@@ -216,8 +216,8 @@ is( $text, ' text -  text  text', "children_text");
 my $t= XML::Twig->new( comments => 'process')
                 ->parse( '<doc><elt>text <!-- foo --></elt></doc>');
 my $comment= $t->first_elt( '#COMMENT');
-is( $comment->comment, ' foo ', "comment");
-is( $comment->comment_string, '<!-- foo -->', "comment");
+is( $comment->comment, ' foo ', "comment");  # test 43
+is( $comment->comment_string, '<!-- foo -->', "comment");  # test 44
 }
 
 # test element creation
@@ -227,34 +227,34 @@ my $root= $t->root;
 my $elt= $root->insert_new_elt( first_child => 'elt');
 my $elt3= $elt->insert_new_elt( after => elt3 => "elt3 text");
 my $elt2= $elt3->insert_new_elt( before => elt2 => { att => "foo" }, "elt2 text");
-is( $t->sprint, '<doc><elt/><elt2 att="foo">elt2 text</elt2><elt3>elt3 text</elt3></doc>',
+is( $t->sprint, '<doc><elt/><elt2 att="foo">elt2 text</elt2><elt3>elt3 text</elt3></doc>',  # test 45
     "insert_new_elt");
 
 $root->cut_children;
-is( $t->sprint, '<doc></doc>', "cut_children");
+is( $t->sprint, '<doc></doc>', "cut_children");  # test 46
 $elt= $root->insert_new_elt( last_child => 'elt' => { '#ASIS' => 1 }, "<p>bar</p>");
-is( $elt->is_asis ? 'asis' : 'not asis', 'asis', "is_asis (initial, yes)");
-is( $t->sprint, '<doc><elt><p>bar</p></elt></doc>', "insert_new_elt (ASIS)");
+is( $elt->is_asis ? 'asis' : 'not asis', 'asis', "is_asis (initial, yes)");  # test 47
+is( $t->sprint, '<doc><elt><p>bar</p></elt></doc>', "insert_new_elt (ASIS)");  # test 48
 $elt->set_not_asis;
-is( $elt->is_asis ? 'asis' : 'not asis', 'not asis', "is_asis (unset, no)");
-is( $t->sprint, '<doc><elt>&lt;p>bar&lt;/p></elt></doc>', "set_not_asis");
+is( $elt->is_asis ? 'asis' : 'not asis', 'not asis', "is_asis (unset, no)");  # test 49
+is( $t->sprint, '<doc><elt>&lt;p>bar&lt;/p></elt></doc>', "set_not_asis");  # test 50
 $elt->set_asis;
-is( $elt->is_asis ? 'asis' : 'not asis', 'asis', "is_asis (set, yes)");
-is( $t->sprint, '<doc><elt><p>bar</p></elt></doc>', "set_asis");
+is( $elt->is_asis ? 'asis' : 'not asis', 'asis', "is_asis (set, yes)");  # test 51
+is( $t->sprint, '<doc><elt><p>bar</p></elt></doc>', "set_asis");  # test 52
 
 $root->cut_children;
 $root->insert_new_elt( first_child => '#CDATA' => "toto");
-is( $t->sprint, '<doc><![CDATA[toto]]></doc>', "create CDATA");
-is($root->last_child_matches( '#CDATA') ? "match" : "no match", "match", "last_child_matches (yes)");
-is($root->last_child_matches( "foo") ? "match" : "no match", "no match", "last_child_matches (no)");
+is( $t->sprint, '<doc><![CDATA[toto]]></doc>', "create CDATA");  # test 53
+is($root->last_child_matches( '#CDATA') ? "match" : "no match", "match", "last_child_matches (yes)");  # test 54
+is($root->last_child_matches( "foo") ? "match" : "no match", "no match", "last_child_matches (no)");  # test 55
 my $cdata= $root->last_child_matches( '#CDATA');
-ok( $cdata->is_cdata, "cdata is_cdata");
-nok( $cdata->is_comment, "cdata is_comment");
-nok( $cdata->is_pi, "cdata is_pi");
-nok( $cdata->is_empty, "cdata is_empty");
-nok( $cdata->is_ent, "cdata is_ent");
-ok( $cdata->is_first_child, "cdata is_first_child");
-ok( $cdata->is_last_child, "cdata is_last_child");
+ok( $cdata->is_cdata, "cdata is_cdata");  # test 56
+nok( $cdata->is_comment, "cdata is_comment");  # test 57
+nok( $cdata->is_pi, "cdata is_pi");  # test 58
+nok( $cdata->is_empty, "cdata is_empty");  # test 59
+nok( $cdata->is_ent, "cdata is_ent");  # test 60
+ok( $cdata->is_first_child, "cdata is_first_child");  # test 61
+ok( $cdata->is_last_child, "cdata is_last_child");  # test 62
 
 }
 
@@ -262,11 +262,11 @@ ok( $cdata->is_last_child, "cdata is_last_child");
 { my $t= XML::Twig->new->parse( '<doc><field1>val1</field1><field2>val2</field2></doc>');
   my $root= $t->root;
   $root->set_field( field2 => "new  val2 ");
-  is( $root->last_child_text( 'field2'), "new  val2 ", "set_field");
-  is( $root->last_child_trimmed_text( 'field2'), "new val2", "set_field (trimmed text)");
-  is( $root->last_child_text( 'field1'), "val1", "last_child_text");
+  is( $root->last_child_text( 'field2'), "new  val2 ", "set_field");  # test 63
+  is( $root->last_child_trimmed_text( 'field2'), "new val2", "set_field (trimmed text)");  # test 64
+  is( $root->last_child_text( 'field1'), "val1", "last_child_text");  # test 65
   $root->set_field( field3 => "val3");
-  is( $t->sprint, '<doc><field1>val1</field1><field2>new  val2 </field2><field3>val3</field3></doc>',
+  is( $t->sprint, '<doc><field1>val1</field1><field2>new  val2 </field2><field3>val3</field3></doc>',  # test 66
       "set_field (new field)");
 }
 
@@ -280,31 +280,31 @@ ok( $cdata->is_last_child, "cdata is_last_child");
                              );
   my $root= $t->root;
   my $elt1= $t->getElementById( 'elt_1');
-  is( $elt1->sprint, '<elt id="elt_1">elt 1</elt>', "getElementById");
+  is( $elt1->sprint, '<elt id="elt_1">elt 1</elt>', "getElementById");  # test 67
   my $sect= $elt1->getElementById( 'sect_1');
-  is( $sect->sprint, '<sect id="sect_1"><elt id="elt_3">elt 3</elt><elt id="elt_4">elt 4</elt></sect>', "getElementById (sect)");
-  ok( $elt1->next_elt_matches( '#PCDATA[text()="elt 1"]'), "next_elt_matches (elt1 => elt)");
-  ok( $elt1->prev_elt_matches( 'doc'), "prev_elt_matches (elt1 => doc)");
-  ok( $sect->next_elt_matches( 'elt[@id="elt_3"]'), "next_elt_matches (sect => elt_3)");
-  ok( $sect->prev_elt_matches( '#PCDATA[text()="elt 2"]'), "prev_elt_matches (sect => elt_2)");
-  is( $sect->next_elt_text( 'elt[@id="elt_5"]'), 'elt 5 ', "next_elt_text");
-  is( $sect->next_elt_trimmed_text( 'elt[@id="elt_5"]'), 'elt 5', "next_elt_trimmed_text");
-  nok( $sect->next_elt( $sect, 'elt[@id="elt_5"]'), "next_elt (outside the subtree)");
-  nok( $sect->next_elt_text( $sect, 'elt[@id="elt_5"]'), "next_elt_text (outside the subtree)");
-  is( $sect->first_child_trimmed_text, "elt 3", "first_child_trimmed_text");
-  is( $sect->first_child_trimmed_text( 'goofy'), "", "first_child_trimmed_text (no child)");
+  is( $sect->sprint, '<sect id="sect_1"><elt id="elt_3">elt 3</elt><elt id="elt_4">elt 4</elt></sect>', "getElementById (sect)");  # test 68
+  ok( $elt1->next_elt_matches( '#PCDATA[text()="elt 1"]'), "next_elt_matches (elt1 => elt)");  # test 69
+  ok( $elt1->prev_elt_matches( 'doc'), "prev_elt_matches (elt1 => doc)");  # test 70
+  ok( $sect->next_elt_matches( 'elt[@id="elt_3"]'), "next_elt_matches (sect => elt_3)");  # test 71
+  ok( $sect->prev_elt_matches( '#PCDATA[text()="elt 2"]'), "prev_elt_matches (sect => elt_2)");  # test 72
+  is( $sect->next_elt_text( 'elt[@id="elt_5"]'), 'elt 5 ', "next_elt_text");  # test 73
+  is( $sect->next_elt_trimmed_text( 'elt[@id="elt_5"]'), 'elt 5', "next_elt_trimmed_text");  # test 74
+  nok( $sect->next_elt( $sect, 'elt[@id="elt_5"]'), "next_elt (outside the subtree)");  # test 75
+  nok( $sect->next_elt_text( $sect, 'elt[@id="elt_5"]'), "next_elt_text (outside the subtree)");  # test 76
+  is( $sect->first_child_trimmed_text, "elt 3", "first_child_trimmed_text");  # test 77
+  is( $sect->first_child_trimmed_text( 'goofy'), "", "first_child_trimmed_text (no child)");  # test 78
 
   # test comparisons $elt1 < $sect < $elt3
   my $elt3= $t->elt_id( 'elt_3');
-  ok( $elt1->le( $sect), "\$elt1 le \$sect");
-  ok( $elt1->lt( $sect), "\$elt1 lt \$sect");
-  nok( $elt1->ge( $sect), "\$elt1 ge \$sect");
-  nok( $elt1->gt( $sect), "\$elt1 gt \$sect");
+  ok( $elt1->le( $sect), "\$elt1 le \$sect");  # test 79
+  ok( $elt1->lt( $sect), "\$elt1 lt \$sect");  # test 80
+  nok( $elt1->ge( $sect), "\$elt1 ge \$sect");  # test 81
+  nok( $elt1->gt( $sect), "\$elt1 gt \$sect");  # test 82
 
-  nok( $elt3->le( $sect), "\$elt3 le \$sect");
-  nok( $elt3->lt( $sect), "\$elt3 lt \$sect");
-  ok( $elt3->ge( $sect), "\$elt3 ge \$sect");
-  ok( $elt3->gt( $sect), "\$elt3 gt \$sect");
+  nok( $elt3->le( $sect), "\$elt3 le \$sect");  # test 83
+  nok( $elt3->lt( $sect), "\$elt3 lt \$sect");  # test 84
+  ok( $elt3->ge( $sect), "\$elt3 ge \$sect");  # test 85
+  ok( $elt3->gt( $sect), "\$elt3 gt \$sect");  # test 86
 }
 
 # test keep_attribute_order
@@ -314,26 +314,26 @@ ok( $cdata->is_last_child, "cdata is_last_child");
     { import Tie::IxHash;
       my $t= XML::Twig->new( keep_atts_order => 1)
                     ->parse( '<doc att_z="foo" att_a="bar"/>');
-      is( $t->sprint, '<doc att_z="foo" att_a="bar"/>', "keep_atts_order");
-      ok( $t->keep_atts_order, "keep_atts_order");
+      is( $t->sprint, '<doc att_z="foo" att_a="bar"/>', "keep_atts_order");  # test 87
+      ok( $t->keep_atts_order, "keep_atts_order");  # test 88
       $t= XML::Twig->new->parse( '<doc att_z="foo" att_a="bar"/>');
-      is( $t->sprint, '<doc att_a="bar" att_z="foo"/>', "do not keep_atts_order");
-      nok( $t->keep_atts_order, "keep_atts_order not used");
+      is( $t->sprint, '<doc att_a="bar" att_z="foo"/>', "do not keep_atts_order");  # test 89
+      nok( $t->keep_atts_order, "keep_atts_order not used");  # test 90
 
       $t->set_keep_atts_order(1);
       my $elt1= $t->root->new( 'elt');
       $elt1->set_att( a1 => 'v1');
       $elt1->set_att( a2 => 'v2');
-      is( $elt1->sprint, '<elt a1="v1" a2="v2"/>', 'keep_atts_order with new elt');
+      is( $elt1->sprint, '<elt a1="v1" a2="v2"/>', 'keep_atts_order with new elt');  # test 91
       my $elt2= $t->root->new( 'elt');
       $elt2->set_att( a2 => 'v2');
       $elt2->set_att( a1 => 'v1');
-      is( $elt2->sprint, '<elt a2="v2" a1="v1"/>', 'keep_atts_order with new elt (reverse order)');
+      is( $elt2->sprint, '<elt a2="v2" a1="v1"/>', 'keep_atts_order with new elt (reverse order)');  # test 92
       $t->set_keep_atts_order(0);
       my $elt3= $t->root->new( 'elt');
       $elt3->set_att( a2 => 'v2');
       $elt3->set_att( a1 => 'v1');
-      is( $elt3->sprint, '<elt a1="v1" a2="v2"/>', 'no keep_atts_order with new elt (reverse order)');
+      is( $elt3->sprint, '<elt a1="v1" a2="v2"/>', 'no keep_atts_order with new elt (reverse order)');  # test 93
     }
 }
 
@@ -342,20 +342,20 @@ ok( $cdata->is_last_child, "cdata is_last_child");
 my $t= XML::Twig->new->parse( '<doc><elt/><elt/><elt2/></doc>');
 $t->set_id_seed( 'id_');;
 $t->root->wrap_children( '<elt>+', wrap => { foo => "bar"});
-is( $t->sprint, '<doc><wrap foo="bar"><elt id="id_1"/><elt id="id_2"/></wrap><elt2 id="id_3"/></doc>', "wrap_children");
+is( $t->sprint, '<doc><wrap foo="bar"><elt id="id_1"/><elt id="id_2"/></wrap><elt2 id="id_3"/></doc>', "wrap_children");  # test 94
 $t->root->strip_att( 'id');
-is( $t->sprint, '<doc><wrap foo="bar"><elt/><elt/></wrap><elt2/></doc>', "wrap_children");
-is( $t->root->xml_string, '<wrap foo="bar"><elt/><elt/></wrap><elt2/>', "xml_string");
+is( $t->sprint, '<doc><wrap foo="bar"><elt/><elt/></wrap><elt2/></doc>', "wrap_children");  # test 95
+is( $t->root->xml_string, '<wrap foo="bar"><elt/><elt/></wrap><elt2/>', "xml_string");  # test 96
 }
 
 # test set_output_encoding xml_text
 { 
 my $t= XML::Twig->new->parse( '<doc><elt>elt 1</elt><elt> elt 2</elt></doc>');
-is( $t->root->xml_text, 'elt 1 elt 2', "xml_text");
-is( $t->root->xml_string, '<elt>elt 1</elt><elt> elt 2</elt>', "xml_text");
+is( $t->root->xml_text, 'elt 1 elt 2', "xml_text");  # test 97
+is( $t->root->xml_string, '<elt>elt 1</elt><elt> elt 2</elt>', "xml_text");  # test 98
 $t->set_output_filter( sub { return '.' x length $_[0] });
-is( $t->root->xml_text, '...........', "xml_text (encoded)");
-is( $t->root->xml_string, '.................................', "xml_text (encoded)");
+is( $t->root->xml_text, '...........', "xml_text (encoded)");  # test 99
+is( $t->root->xml_string, '.................................', "xml_text (encoded)");  # test 100
  
 }
 
@@ -373,151 +373,151 @@ my $elt2= $t->root->child( 1);
 my $elt3= $t->root->first_child( sub { $_[0]->children_count( 'elt3') == 1 });
 my $elt4= $t->root->last_child;
 
-nok( $t->root->child( 6), 'child(6)');
-nok( $t->root->child( -6), 'child(-6)');
-nok( $t->root->child( 1, 'foo'), 'child(1, foo)');
-nok( $t->root->child( -1, 'foo'), 'child(-1, foo)');
-nok( $elt4->child( 1), 'child(1) on empty elt on empty elt');
-nok( $elt4->child( 1, 'foo'), 'child(1, foo) on empty elt');
-nok( $elt4->child( -1), 'child(-1) on empty elt');
-nok( $elt4->child( -1, 'foo'), 'child(-1, foo) on empty elt');
+nok( $t->root->child( 6), 'child(6)');  # test 101
+nok( $t->root->child( -6), 'child(-6)');  # test 102
+nok( $t->root->child( 1, 'foo'), 'child(1, foo)');  # test 103
+nok( $t->root->child( -1, 'foo'), 'child(-1, foo)');  # test 104
+nok( $elt4->child( 1), 'child(1) on empty elt on empty elt');  # test 105
+nok( $elt4->child( 1, 'foo'), 'child(1, foo) on empty elt');  # test 106
+nok( $elt4->child( -1), 'child(-1) on empty elt');  # test 107
+nok( $elt4->child( -1, 'foo'), 'child(-1, foo) on empty elt');  # test 108
 
-ok( $elt1->is_first_child, "\$elt1->is_first_child");
-nok( $elt2->is_first_child, "\$elt2->is_first_child is false");
-nok( $elt3->is_first_child, "\$elt3->is_first_child is false");
+ok( $elt1->is_first_child, "\$elt1->is_first_child");  # test 109
+nok( $elt2->is_first_child, "\$elt2->is_first_child is false");  # test 110
+nok( $elt3->is_first_child, "\$elt3->is_first_child is false");  # test 111
 
-nok( $elt1->is_last_child, "\$elt1->is_last_child");
-nok( $elt2->is_last_child, "\$elt2->is_last_child");
-ok( $elt4->is_last_child, "\$elt3->is_last_child is false");
+nok( $elt1->is_last_child, "\$elt1->is_last_child");  # test 112
+nok( $elt2->is_last_child, "\$elt2->is_last_child");  # test 113
+ok( $elt4->is_last_child, "\$elt3->is_last_child is false");  # test 114
 
-ok( $elt1->contains_a_single( 'elt2'), "\$elt1->contains_a_single( 'elt2')");
-nok( $elt1->contains_a_single( 'elt'), "\$elt1->contains_a_single( 'elt')");
-nok( $elt2->contains_a_single( 'elt2'), "\$elt2->contains_a_single( 'elt2')");
-nok( $elt3->contains_a_single( 'elt2'), "\$elt3->contains_a_single( 'elt2')");
-nok( $elt4->contains_a_single( 'elt2'), "\$elt4->contains_a_single( 'elt2')");
+ok( $elt1->contains_a_single( 'elt2'), "\$elt1->contains_a_single( 'elt2')");  # test 115
+nok( $elt1->contains_a_single( 'elt'), "\$elt1->contains_a_single( 'elt')");  # test 116
+nok( $elt2->contains_a_single( 'elt2'), "\$elt2->contains_a_single( 'elt2')");  # test 117
+nok( $elt3->contains_a_single( 'elt2'), "\$elt3->contains_a_single( 'elt2')");  # test 118
+nok( $elt4->contains_a_single( 'elt2'), "\$elt4->contains_a_single( 'elt2')");  # test 119
 
-ok( scalar $elt1->contains_only( 'elt2'), "\$elt1->contains_only( 'elt2')");
-nok( $elt1->contains_only( 'elt'), "\$elt1->contains_only( 'elt') is false");
-ok( scalar $elt2->contains_only( 'elt2'), "\$elt2->contains_only( 'elt2')");
-nok( $elt3->contains_only( 'elt2'), "\$elt3->contains_only( 'elt2') is false");
-ok( $elt4->contains_only( 'elt2'), "\$elt4->contains_only( 'elt2')");
+ok( scalar $elt1->contains_only( 'elt2'), "\$elt1->contains_only( 'elt2')");  # test 120
+nok( $elt1->contains_only( 'elt'), "\$elt1->contains_only( 'elt') is false");  # test 121
+ok( scalar $elt2->contains_only( 'elt2'), "\$elt2->contains_only( 'elt2')");  # test 122
+nok( $elt3->contains_only( 'elt2'), "\$elt3->contains_only( 'elt2') is false");  # test 123
+ok( $elt4->contains_only( 'elt2'), "\$elt4->contains_only( 'elt2')");  # test 124
 
-is( $elt1->next_sibling_text, $elt2->text, "next_sibling_text");
-is( $elt1->next_sibling_text, $elt2->text, "next_sibling_text using the cache");
-is( $elt1->parent_text, $t->root->text, "parent_text");
-is( $elt1->parent_text('doc'), $t->root->text, "parent_text");
-is( $elt1->first_child->parent_text('doc'), $t->root->text, "parent_text");
-ok( $elt2->parent_matches( 'doc'), "elt->parent_matches( 'doc')");
-nok( $elt2->parent_matches( 'elt'), "elt->parent_matches( 'elt') is false");
+is( $elt1->next_sibling_text, $elt2->text, "next_sibling_text");  # test 125
+is( $elt1->next_sibling_text, $elt2->text, "next_sibling_text using the cache");  # test 126
+is( $elt1->parent_text, $t->root->text, "parent_text");  # test 127
+is( $elt1->parent_text('doc'), $t->root->text, "parent_text");  # test 128
+is( $elt1->first_child->parent_text('doc'), $t->root->text, "parent_text");  # test 129
+ok( $elt2->parent_matches( 'doc'), "elt->parent_matches( 'doc')");  # test 130
+nok( $elt2->parent_matches( 'elt'), "elt->parent_matches( 'elt') is false");  # test 131
 
-nok( $t->root->parent, 'root parent');
-nok( $t->root->parent_matches( 'doc'), 'root parent( doc)');
-nok( $t->root->parent_matches( 'foo'), 'root parent( foo)');
+nok( $t->root->parent, 'root parent');  # test 132
+nok( $t->root->parent_matches( 'doc'), 'root parent( doc)');  # test 133
+nok( $t->root->parent_matches( 'foo'), 'root parent( foo)');  # test 134
 
-is( $elt2->level, 1, "level");
-is( $elt2->level( 'elt'), 0, "level( elt)");
-is( $elt2->level( 'doc'), 1, "level( doc)");
-is( $elt2->level( 'foo'), 0, "level( foo)");
+is( $elt2->level, 1, "level");  # test 135
+is( $elt2->level( 'elt'), 0, "level( elt)");  # test 136
+is( $elt2->level( 'doc'), 1, "level( doc)");  # test 137
+is( $elt2->level( 'foo'), 0, "level( foo)");  # test 138
 
-nok( $elt2->first_child_text( 'foo'), "first_child_text on empty elt( 'foo')");
-nok( $elt2->first_child_trimmed_text( 'foo'), "first_child_trimmed_text on empty elt( 'foo')");
+nok( $elt2->first_child_text( 'foo'), "first_child_text on empty elt( 'foo')");  # test 139
+nok( $elt2->first_child_trimmed_text( 'foo'), "first_child_trimmed_text on empty elt( 'foo')");  # test 140
 
-nok( $elt4->next_sibling, 'next_sibling on last');
-nok( $elt4->first_child, 'first_child on empty');
-nok( $elt4->last_child, 'last_child on empty');
-nok( $elt4->next_sibling_text, 'next_sibling_text on last');
-nok( $elt4->first_child_text, 'first_child_text on empty');
-nok( $elt4->last_child_text, 'last_child_text on empty');
-nok( $elt4->next_sibling_trimmed_text, 'next_sibling_trimmed_text on last');
-nok( $elt4->first_child_trimmed_text, 'first_child_trimmed_text on empty');
-nok( $elt4->last_child_trimmed_text, 'last_child_trimmed_text on empty');
+nok( $elt4->next_sibling, 'next_sibling on last');  # test 141
+nok( $elt4->first_child, 'first_child on empty');  # test 142
+nok( $elt4->last_child, 'last_child on empty');  # test 143
+nok( $elt4->next_sibling_text, 'next_sibling_text on last');  # test 144
+nok( $elt4->first_child_text, 'first_child_text on empty');  # test 145
+nok( $elt4->last_child_text, 'last_child_text on empty');  # test 146
+nok( $elt4->next_sibling_trimmed_text, 'next_sibling_trimmed_text on last');  # test 147
+nok( $elt4->first_child_trimmed_text, 'first_child_trimmed_text on empty');  # test 148
+nok( $elt4->last_child_trimmed_text, 'last_child_trimmed_text on empty');  # test 149
 
-nok( $elt1->prev_sibling, 'prev_sibling on last');
-nok( $elt1->prev_sibling_text, 'prev_sibling_text on last');
-nok( $elt1->prev_sibling_trimmed_text, 'prev_sibling_trimmed_text on last');
+nok( $elt1->prev_sibling, 'prev_sibling on last');  # test 150
+nok( $elt1->prev_sibling_text, 'prev_sibling_text on last');  # test 151
+nok( $elt1->prev_sibling_trimmed_text, 'prev_sibling_trimmed_text on last');  # test 152
 }
  
 # test next_n_elt del_id delete empty_tag_style
 {
 my $t= XML::Twig->new->parse( '<doc><elt id="id1"/></doc>');
 my $elt= $t->root->next_n_elt( 1);
-is( $elt->gi, 'elt', "next_n_elt");
-is( $t->elt_id( 'id1')->gi, 'elt', "elt_id");
+is( $elt->gi, 'elt', "next_n_elt");  # test 153
+is( $t->elt_id( 'id1')->gi, 'elt', "elt_id");  # test 154
 $elt->del_id;
-is( $t->sprint, '<doc><elt/></doc>', "del_id");
-nok( $t->elt_id( 'id1'), "no elt_id( 'id1')");
+is( $t->sprint, '<doc><elt/></doc>', "del_id");  # test 155
+nok( $t->elt_id( 'id1'), "no elt_id( 'id1')");  # test 156
 $elt->set_id( 'id2');
-is( $t->sprint, '<doc><elt id="id2"/></doc>', "set_id");
-is( $t->elt_id( 'id2')->gi, "elt", "elt_id after set_id");
+is( $t->sprint, '<doc><elt id="id2"/></doc>', "set_id");  # test 157
+is( $t->elt_id( 'id2')->gi, "elt", "elt_id after set_id");  # test 158
 $elt->delete;
-is( $t->sprint, '<doc></doc>', "delete");
+is( $t->sprint, '<doc></doc>', "delete");  # test 159
 $t->root->insert_new_elt( first_child => '#COMMENT' => "a comment");
-is( $t->sprint, '<doc><!--a comment--></doc>', "add comment");
+is( $t->sprint, '<doc><!--a comment--></doc>', "add comment");  # test 160
 
 $elt= $t->root->insert_new_elt( last_child => elt => { '#EMPTY' => 1 });
-is( $t->sprint, '<doc><!--a comment--><elt/></doc>', "empty element");
-ok( $elt->is_empty, "\$elt is empty");
+is( $t->sprint, '<doc><!--a comment--><elt/></doc>', "empty element");  # test 161
+ok( $elt->is_empty, "\$elt is empty");  # test 162
 $elt->set_not_empty;
-is( $t->sprint, '<doc><!--a comment--><elt></elt></doc>', "non empty element");
-nok( $elt->is_empty, "\$elt is not empty");
+is( $t->sprint, '<doc><!--a comment--><elt></elt></doc>', "non empty element");  # test 163
+nok( $elt->is_empty, "\$elt is not empty");  # test 164
 $elt->set_empty;
-ok( $elt->is_empty, "\$elt is empty");
-is( $t->sprint, '<doc><!--a comment--><elt/></doc>', "empty element again");
+ok( $elt->is_empty, "\$elt is empty");  # test 165
+is( $t->sprint, '<doc><!--a comment--><elt/></doc>', "empty element again");  # test 166
 $t->set_empty_tag_style( 'html');
-is( $t->sprint, '<doc><!--a comment--><elt /></doc>', "empty element (html style)");
+is( $t->sprint, '<doc><!--a comment--><elt /></doc>', "empty element (html style)");  # test 167
 $t->set_empty_tag_style( 'expand');
-is( $t->sprint, '<doc><!--a comment--><elt></elt></doc>', "empty element (expand style)");
+is( $t->sprint, '<doc><!--a comment--><elt></elt></doc>', "empty element (expand style)");  # test 168
 $t->set_empty_tag_style( 'normal');
-is( $t->sprint, '<doc><!--a comment--><elt/></doc>', "empty element (normal style)");
+is( $t->sprint, '<doc><!--a comment--><elt/></doc>', "empty element (normal style)");  # test 169
 
 $elt->set_content( "toto");
-nok( $elt->is_empty, "\$elt is not empty");
-is( $t->sprint, '<doc><!--a comment--><elt>toto</elt></doc>', "element with content");
+nok( $elt->is_empty, "\$elt is not empty");  # test 170
+is( $t->sprint, '<doc><!--a comment--><elt>toto</elt></doc>', "element with content");  # test 171
 
-nok( $elt->prev_sibling_matches( '#PI'), "prev_sibling_matches nok");
+nok( $elt->prev_sibling_matches( '#PI'), "prev_sibling_matches nok");  # test 172
 my $comment= $elt->prev_sibling_matches( '#COMMENT');
-ok( $comment, "prev_sibling_matches ok");
+ok( $comment, "prev_sibling_matches ok");  # test 173
 $comment= $elt->prev_sibling;
-is( $comment->gi, '#COMMENT', 'prev_sibling');
+is( $comment->gi, '#COMMENT', 'prev_sibling');  # test 174
 $comment= $elt->prev_sibling;
-is( $comment->gi, '#COMMENT', 'prev_sibling using the cached cond');
+is( $comment->gi, '#COMMENT', 'prev_sibling using the cached cond');  # test 175
 $comment= $elt->prev_sibling( '#COMMENT');
-is( $comment->gi, '#COMMENT', 'prev_sibling');
+is( $comment->gi, '#COMMENT', 'prev_sibling');  # test 176
 $comment= $elt->prev_sibling( '#COMMENT');
-is( $comment->gi, '#COMMENT', 'prev_sibling using the cached cond');
+is( $comment->gi, '#COMMENT', 'prev_sibling using the cached cond');  # test 177
 
 $comment->set_comment( "another comment");
-is( $t->sprint, '<doc><!--another comment--><elt>toto</elt></doc>', "element with content");
+is( $t->sprint, '<doc><!--another comment--><elt>toto</elt></doc>', "element with content");  # test 178
 
 $t->root->field_to_att( 'elt');
-is( $t->sprint, '<doc elt="toto"><!--another comment--></doc>', "field_to_att");
+is( $t->sprint, '<doc elt="toto"><!--another comment--></doc>', "field_to_att");  # test 179
 
 $t->root->del_att( 'elt');
 $t->root->first_child( '#COMMENT')->delete;
-is( $t->sprint, '<doc></doc>', "back to a very simple doc");
+is( $t->sprint, '<doc></doc>', "back to a very simple doc");  # test 180
 
 $t->root->insert( elt => { att => "v2" });
 $t->root->first_child->set_content( "val 3");
 $t->root->insert_new_elt( first_child => elt => { att => "v1" }, "val 2");
 $t->root->insert_new_elt( last_child => elt => { att => "v3" }, "val 1");
-is( $t->sprint, '<doc><elt att="v1">val 2</elt><elt att="v2">val 3</elt><elt att="v3">val 1</elt></doc>',
+is( $t->sprint, '<doc><elt att="v1">val 2</elt><elt att="v2">val 3</elt><elt att="v3">val 1</elt></doc>',  # test 181
     "insert 3 elements");
 $t->root->sort_children_on_value;
-is( $t->sprint, '<doc><elt att="v3">val 1</elt><elt att="v1">val 2</elt><elt att="v2">val 3</elt></doc>',
+is( $t->sprint, '<doc><elt att="v3">val 1</elt><elt att="v1">val 2</elt><elt att="v2">val 3</elt></doc>',  # test 182
     "sort_children_on_value");
 $t->root->sort_children_on_att( "att",  order => "reverse" );
-is( $t->sprint, '<doc><elt att="v3">val 1</elt><elt att="v2">val 3</elt><elt att="v1">val 2</elt></doc>',
+is( $t->sprint, '<doc><elt att="v3">val 1</elt><elt att="v2">val 3</elt><elt att="v1">val 2</elt></doc>',  # test 183
     "sort_children_on_att (reverse)");
 
 $t->root->set_text( "fini fini");
-is( $t->sprint, '<doc>fini fini</doc>');
+is( $t->sprint, '<doc>fini fini</doc>');  # test 184
 my $p= $t->root->insert( 'p');
 my $new_p= $p->split_at( 4);
-is( $t->sprint, '<doc><p>fini</p><p> fini</p></doc>', "split_at");
+is( $t->sprint, '<doc><p>fini</p><p> fini</p></doc>', "split_at");  # test 185
 $p->split( qr/(i)/, 'b' );
-is( $p->sprint, '<p>f<b>i</b>n<b>i</b></p>', "split");
+is( $p->sprint, '<p>f<b>i</b>n<b>i</b></p>', "split");  # test 186
 $new_p->split( qr/(i)/, b => { foo => "bar" } );
-is( $new_p->sprint, '<p> f<b foo="bar">i</b>n<b foo="bar">i</b></p>', "split (with att)");
+is( $new_p->sprint, '<p> f<b foo="bar">i</b>n<b foo="bar">i</b></p>', "split (with att)");  # test 187
 }
 
 # test start_tag_handlers
@@ -540,9 +540,9 @@ sub sth2
  
 $t->parse( '<doc><elt id="id1"><elt2><elt id="id2"></elt></elt2><elt id="id3"></elt></elt></doc>');
 
-is( shift @results, "handler 1: id1", "handler 1");
-is( shift @results, "handler 2: id2", "handler 2");
-is( shift @results, "handler 1: id3", "handler 1 again");
+is( shift @results, "handler 1: id1", "handler 1");  # test 188
+is( shift @results, "handler 2: id2", "handler 2");  # test 189
+is( shift @results, "handler 1: id3", "handler 1 again");  # test 190
 }
 
 {
@@ -550,35 +550,35 @@ my $t= XML::Twig->new( pi =>'process')->parse( '<doc><?t1 data1?><elt/></doc>');
 my $pi= $t->root->first_child( '#PI');
 $pi->set_target( 't2');
 $pi->set_data( 'data2');
-is( $pi->sprint, '<?t2 data2?>', "pi");
+is( $pi->sprint, '<?t2 data2?>', "pi");  # test 191
 my $elt= $pi->next_sibling;
 $elt->set_extra_data( '<!-- comment -->');
-is( $elt->sprint, "<!-- comment --><elt/>", "elt with comment");
+is( $elt->sprint, "<!-- comment --><elt/>", "elt with comment");  # test 192
 }
 
 {
 my $t= XML::Twig->new->parse( '<doc><elt>  elt  1 </elt> <elt>  elt   2 </elt></doc>');
 my $elt1= $t->root->first_child;
 my $elt2= $t->root->last_child;
-is( $elt2->prev_sibling_text, '  elt  1 ', "prev_sibling_text");
-is( $elt2->prev_sibling_trimmed_text, 'elt 1', "prev_sibling_trimmed_text");
-is( $elt1->next_sibling_trimmed_text, 'elt 2', "next_sibling_trimmed_text");
-ok( $elt1->next_sibling_matches( 'elt'), "next_sibling_matches ok");
-nok( $elt2->next_sibling_matches( 'elt'), "next_sibling_matches nok");
+is( $elt2->prev_sibling_text, '  elt  1 ', "prev_sibling_text");  # test 193
+is( $elt2->prev_sibling_trimmed_text, 'elt 1', "prev_sibling_trimmed_text");  # test 194
+is( $elt1->next_sibling_trimmed_text, 'elt 2', "next_sibling_trimmed_text");  # test 195
+ok( $elt1->next_sibling_matches( 'elt'), "next_sibling_matches ok");  # test 196
+nok( $elt2->next_sibling_matches( 'elt'), "next_sibling_matches nok");  # test 197
 
-is( $elt2->prev_elt_text( 'elt'), "  elt  1 ", "prev_elt_text");
-is( $elt2->prev_elt_trimmed_text( 'elt'), "elt 1", "prev_elt_trimmed_text");
+is( $elt2->prev_elt_text( 'elt'), "  elt  1 ", "prev_elt_text");  # test 198
+is( $elt2->prev_elt_trimmed_text( 'elt'), "elt 1", "prev_elt_trimmed_text");  # test 199
 
-is( $elt2->parent_trimmed_text, "elt 1 elt 2", "parent_trimmed_text");
+is( $elt2->parent_trimmed_text, "elt 1 elt 2", "parent_trimmed_text");  # test 200
 
-is( $elt1->sibling( 1)->trimmed_text, "elt 2", "sibling(1)");
-is( $elt2->sibling( -1)->trimmed_text, "elt 1", "sibling(-1)");
+is( $elt1->sibling( 1)->trimmed_text, "elt 2", "sibling(1)");  # test 201
+is( $elt2->sibling( -1)->trimmed_text, "elt 1", "sibling(-1)");  # test 202
 
-is( $elt1->sibling_text( 1), "  elt   2 ", "sibling(1)");
-is( $elt2->sibling_text( -1), "  elt  1 ", "sibling(-1)");
+is( $elt1->sibling_text( 1), "  elt   2 ", "sibling(1)");  # test 203
+is( $elt2->sibling_text( -1), "  elt  1 ", "sibling(-1)");  # test 204
 
-is( scalar $elt1->next_siblings, 1, "next_siblings");
-is( scalar $elt1->next_siblings( 'elt2'), 0, "next_siblings (none)");
+is( scalar $elt1->next_siblings, 1, "next_siblings");  # test 205
+is( scalar $elt1->next_siblings( 'elt2'), 0, "next_siblings (none)");  # test 206
 
 }
 
@@ -587,20 +587,20 @@ my $t= XML::Twig->new->parse( '<doc><elt1/><elt2/></doc>');
 my $elt1= $t->first_elt( 'elt1');
 my $elt2= $t->first_elt( 'elt2');
 $elt2->move( before => $elt1);
-is( $t->sprint, '<doc><elt2/><elt1/></doc>', "cut");
+is( $t->sprint, '<doc><elt2/><elt1/></doc>', "cut");  # test 207
 $elt2->cut;
-is( $t->sprint, '<doc><elt1/></doc>', "cut");
+is( $t->sprint, '<doc><elt1/></doc>', "cut");  # test 208
 $elt2->replace( $elt1);
-is( $t->sprint, '<doc><elt2/></doc>', "replace");
+is( $t->sprint, '<doc><elt2/></doc>', "replace");  # test 209
 $elt2->set_content( "toto");
 $elt2->suffix( ":foo");
-is( $elt2->xml_string, "toto:foo", "suffix");
+is( $elt2->xml_string, "toto:foo", "suffix");  # test 210
 $elt2->replace_with( $elt1);
-is( $t->sprint, '<doc><elt1/></doc>', "replace_with");
+is( $t->sprint, '<doc><elt1/></doc>', "replace_with");  # test 211
 $elt1->set_content( "tto");
 my $o= XML::Twig::Elt->new( b => "o");
 $o->paste_within( $elt1, 1);
-is( $t->sprint, '<doc><elt1>t<b>o</b>to</elt1></doc>', "replace_with");
+is( $t->sprint, '<doc><elt1>t<b>o</b>to</elt1></doc>', "replace_with");  # test 212
 
 }
 
@@ -611,53 +611,49 @@ my $t= XML::Twig->new( twig_handlers => { elt => \&test_inherited })
 
 sub test_inherited
   { my( $t, $elt)= @_;
-    is( $t->depth, 2, "depth");
-    ok( $t->in_element( 'sect'), "in_element");
-    nok( $t->in_element( 'elt'), "in_element (false)");
-    ok( $t->within_element( 'sect'), "within_element");
-    ok( $t->within_element( 'doc'), "within_element");
-    nok( $t->within_element( 'elt'), "within_element (false)");
-    is( join( '/', $t->context), "doc/sect", "context");
-    is( $t->current_line, 1, "current_line");
-    is( $t->current_byte, 20, "current_byte");
-    is( $t->original_string, "</elt>", "original_string");
-    is( $t->recognized_string, "</elt>", "recognized_string");
-    is( $t->current_element, "sect", "current_element");
+    is( $t->depth, 2, "depth");  # test 213
+    ok( $t->in_element( 'sect'), "in_element");  # test 214
+    nok( $t->in_element( 'elt'), "in_element (false)");  # test 215
+    ok( $t->within_element( 'sect'), "within_element");  # test 216
+    ok( $t->within_element( 'doc'), "within_element");  # test 217
+    nok( $t->within_element( 'elt'), "within_element (false)");  # test 218
+    is( join( '/', $t->context), "doc/sect", "context");  # test 219
+    is( $t->current_line, 1, "current_line");  # test 220
+    is( $t->current_byte, 20, "current_byte");  # test 221
+    is( $t->original_string, "</elt>", "original_string");  # test 222
+    is( $t->recognized_string, "</elt>", "recognized_string");  # test 223
+    is( $t->current_element, "sect", "current_element");  # test 224
     if( $XML::Parser::VERSION>2.27)
-      { is( $t->element_index, 3, "element_index"); }
+      { is( $t->element_index, 3, "element_index"); }  # test 225
     else
-      { is( $t->element_index, 2, "element_index"); }
+      { is( $t->element_index, 2, "element_index"); }  # test 226
     $t->base( "foo");
-    is( $t->base, "foo", "base");
-    ok( $t->position_in_context( 1), "position_in_context");
+    is( $t->base, "foo", "base");  # test 227
+    ok( $t->position_in_context( 1), "position_in_context");  # test 228
 
     my $xml= '<elt>toto</elt>';
     my $expected= '&lt;elt>toto&lt;/elt>';
     my $broken= '&lt;elt>toto</elt>';
     my $xml_escape= $t->xml_escape( $xml);
     if( $xml_escape eq $expected)
-      { ok( 1, "xml_escape"); }
+      { ok( 1, "xml_escape"); }  # test 229
     elsif( $xml_escape eq $broken)
-      { warn "your version of expat/XML::Parser has a broken xml_escape method\n",
-             "xml_escape( '$xml') should be '$expected' but is '$broken' instead\n";
-        ok( 1);
+      { warn "your version of expat/XML::Parser has a broken xml_escape method\n";
+        ok( 1, "xml_escape");  # test 230
       }
     else
-      { is( $xml_escape, $expected, "xml_escape"); }
+      { is( $xml_escape, $expected, "xml_escape"); }  # test 231
                
     $xml= '<elt>toto</elt>';
     $expected= '&lt;elt>t&#x6F;t&#x6F;&lt;/elt>';
     $broken= '&lt;elt>t&#x6F;t&#x6F;</elt>';
     $xml_escape= $t->xml_escape( $xml, 'o');
     if( $xml_escape eq $expected)
-      { ok( 1, "xml_escape"); }
+      { ok( 1, "xml_escape"); }  # test 232
     elsif( $xml_escape eq $broken)
-      { warn "your version of expat/XML::Parser has a broken xml_escape method\n",
-             "xml_escape( '$xml', 'o') should be '$expected' but is '$broken' instead\n";
-        ok( 1);
-      }
+      { ok( 1, "xml_escape"); }  # test 233
     else
-      { is( $xml_escape, $expected, "xml_escape"); }
+      { is( $xml_escape, $expected, "xml_escape"); }  # test 234
   }
 }
 
@@ -665,7 +661,7 @@ sub test_inherited
 my $t= XML::Twig->new( start_tag_handlers => { i => sub { $_[0]->ignore }, }, 
                        twig_handlers      => { s => sub { $_[0]->finish }, } )
                 ->parse( '<doc><elt>foo</elt><i><elt>toto</elt></i><elt2/><s>toto</s><elt>bar</elt></doc>');
-is( $t->sprint, "<doc><elt>foo</elt><elt2/><s>toto</s></doc>", "ignore + finish");
+is( $t->sprint, "<doc><elt>foo</elt><elt2/><s>toto</s></doc>", "ignore + finish");  # test 235
 }
 
 # test xml declaration and entity related methods
@@ -677,47 +673,47 @@ my $t= XML::Twig->new->parse( '<?xml version="1.0" encoding="ISO-8859-1" standal
 <!ENTITY ent3 SYSTEM "ent3.png" NDATA PNG> ]>
 <doc><elt>&ent1;</elt><elt>&ent2;</elt><elt img="ent3"/></doc>');
 
-is( $t->xml_version, "1.0", "xml_version");
-is( $t->encoding, "ISO-8859-1", "encoding");
-nok( $t->standalone, "standalone (no)");
-is( $t->xmldecl, qq{<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>\n}, "xmldecl");
+is( $t->xml_version, "1.0", "xml_version");  # test 236
+is( $t->encoding, "ISO-8859-1", "encoding");  # test 237
+nok( $t->standalone, "standalone (no)");  # test 238
+is( $t->xmldecl, qq{<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>\n}, "xmldecl");  # test 239
 
 $t->set_xml_version( "1.1");
-is( $t->xml_version, "1.1", "set_xml_version");
+is( $t->xml_version, "1.1", "set_xml_version");  # test 240
 $t->set_encoding( "UTF-8");
-is( $t->encoding, "UTF-8", "set_encoding");
+is( $t->encoding, "UTF-8", "set_encoding");  # test 241
 $t->set_standalone( 1);
-ok( $t->standalone||'', "set_standalone");
-is( $t->xmldecl, qq{<?xml version="1.1" encoding="UTF-8" standalone="yes"?>\n}, "xmldecl");
+ok( $t->standalone||'', "set_standalone");  # test 242
+is( $t->xmldecl, qq{<?xml version="1.1" encoding="UTF-8" standalone="yes"?>\n}, "xmldecl");  # test 243
 
-is( join( ':', sort $t->entity_names), "ent1:ent2:ent3", "entity_names");
+is( join( ':', sort $t->entity_names), "ent1:ent2:ent3", "entity_names");  # test 244
 
 my $ent1= $t->entity( 'ent1');
-is( $ent1->name, "ent1", "entity name");
-is( $ent1->val, "toto", "entity val");
-nok( $ent1->sysid, "entity sysid (none)");
-nok( $ent1->pubid, "entity pubid (none)");
-nok( $ent1->ndata, "entity ndata (none)");
+is( $ent1->name, "ent1", "entity name");  # test 245
+is( $ent1->val, "toto", "entity val");  # test 246
+nok( $ent1->sysid, "entity sysid (none)");  # test 247
+nok( $ent1->pubid, "entity pubid (none)");  # test 248
+nok( $ent1->ndata, "entity ndata (none)");  # test 249
 
 my $ent3= $t->entity( 'ent3');
-is( $ent3->name, "ent3", "entity name");
-nok( $ent3->val, "entity val (none)");
-is( $ent3->sysid, "ent3.png", "entity sysid");
-nok( $ent3->pubid, "entity pubid (none)");
-is( $ent3->ndata, "PNG", "entity ndata");
+is( $ent3->name, "ent3", "entity name");  # test 250
+nok( $ent3->val, "entity val (none)");  # test 251
+is( $ent3->sysid, "ent3.png", "entity sysid");  # test 252
+nok( $ent3->pubid, "entity pubid (none)");  # test 253
+is( $ent3->ndata, "PNG", "entity ndata");  # test 254
 
 my $doctype= qq{<!DOCTYPE doc SYSTEM "dummy.dtd" [\n<!ENTITY ent1 "toto">\n<!ENTITY ent2 "<p>tata</p>">\n<!ENTITY ent3 SYSTEM "ent3.png" NDATA PNG> \n]>};
-is( $t->doctype, $doctype, "doctype");
+is( $t->doctype, $doctype, "doctype");  # test 255
 
 my $ent4= $t->entity_list->add_new_ent( ent4 =>  "ent 4");
-is( $ent4->text, qq{<!ENTITY ent4 "ent 4">}, "add_new_ent");
+is( $ent4->text, qq{<!ENTITY ent4 "ent 4">}, "add_new_ent");  # test 256
 
 my $ent5= $t->entity_list->add_new_ent( ent5 =>  "", "ent5.png", "", "PNG" );
-is( $ent5->text, qq{<!ENTITY ent5 SYSTEM "ent5.png" NDATA PNG>}, "add_new_ent (ndata)");
+is( $ent5->text, qq{<!ENTITY ent5 SYSTEM "ent5.png" NDATA PNG>}, "add_new_ent (ndata)");  # test 257
 
-is( join( ':', sort $t->entity_names), "ent1:ent2:ent3:ent4:ent5", "entity_names");
+is( join( ':', sort $t->entity_names), "ent1:ent2:ent3:ent4:ent5", "entity_names");  # test 258
 
-is( $t->doctype, $doctype, "doctype");
+is( $t->doctype, $doctype, "doctype");  # test 259
 
 my $prolog=qq{<?xml version="1.1" encoding="UTF-8" standalone="yes"?>
 <!DOCTYPE doc SYSTEM "dummy.dtd"[
@@ -727,30 +723,30 @@ my $prolog=qq{<?xml version="1.1" encoding="UTF-8" standalone="yes"?>
 <!ENTITY ent4 "ent 4">
 <!ENTITY ent5 SYSTEM "ent5.png" NDATA PNG>]>};
 
-is( $t->prolog( UpdateDTD => 1), $prolog, "prolog, updated DTD");
+is( $t->prolog( UpdateDTD => 1), $prolog, "prolog, updated DTD");  # test 260
 
 $t->entity_list->delete( 'ent3');
-is( join( ':', sort $t->entity_names), "ent1:ent2:ent4:ent5", "entity_names");
+is( join( ':', sort $t->entity_names), "ent1:ent2:ent4:ent5", "entity_names");  # test 261
 $t->entity_list->delete( ($t->entity_list->list)[0]);
-is( join( ':', sort $t->entity_names), "ent2:ent4:ent5", "entity_names");
+is( join( ':', sort $t->entity_names), "ent2:ent4:ent5", "entity_names");  # test 262
 
 }
 
 {
 my $t= XML::Twig->new( comments => 'process', pi =>'process')
                 ->parse( '<doc><!--comment--><?target pi?>text<![CDATA[cdata]]></doc>');
-is( $t->root->first_child( '#COMMENT')->get_type, "#COMMENT", "get_type #COMMENT");
-is( $t->root->first_child( '#PI')->get_type, "#PI", "get_type #PI");
-is( $t->root->first_child( '#CDATA')->get_type, "#CDATA", "get_type #CDATA");
-is( $t->root->first_child( '#PCDATA')->get_type, "#PCDATA", "get_type #PCDATA");
-is( $t->root->get_type, "#ELT", "get_type #ELT");
+is( $t->root->first_child( '#COMMENT')->get_type, "#COMMENT", "get_type #COMMENT");  # test 263
+is( $t->root->first_child( '#PI')->get_type, "#PI", "get_type #PI");  # test 264
+is( $t->root->first_child( '#CDATA')->get_type, "#CDATA", "get_type #CDATA");  # test 265
+is( $t->root->first_child( '#PCDATA')->get_type, "#PCDATA", "get_type #PCDATA");  # test 266
+is( $t->root->get_type, "#ELT", "get_type #ELT");  # test 267
 my $cdata= $t->root->first_child( '#CDATA');
 $cdata->set_cdata( "new cdata");
-is( $cdata->sprint, "<![CDATA[new cdata]]>", "set_cdata");
+is( $cdata->sprint, "<![CDATA[new cdata]]>", "set_cdata");  # test 268
 my $copy= $t->root->copy;
-is( $copy->sprint, $t->root->sprint, 'copy of an element with extra data');
+is( $copy->sprint, $t->root->sprint, 'copy of an element with extra data');  # test 269
 
-is( $t->sprint( pretty_print => 'indented'),
+is( $t->sprint( pretty_print => 'indented'),  # test 270
     qq{<doc><!--comment--><?target pi?>text<![CDATA[new cdata]]></doc>\n},
     'indented elt');
 
@@ -760,43 +756,43 @@ is( $t->sprint( pretty_print => 'indented'),
 { 
 my $t= XML::Twig->new->parse( '<!DOCTYPE doc SYSTEM "dummy.dtd"><doc> text &ent; more</doc>');
 my $ent= $t->first_elt( '#ENT');
-is( $ent->get_type, "#ENT", "get_type");
-is( $ent->ent, '&ent;', "ent");
-is( $ent->ent_name, 'ent', "ent_name");
+is( $ent->get_type, "#ENT", "get_type");  # test 271
+is( $ent->ent, '&ent;', "ent");  # test 272
+is( $ent->ent_name, 'ent', "ent_name");  # test 273
 $ent->set_ent( '&new_ent;');
-is( $ent->ent, '&new_ent;', "new_ent ent");
-is( $ent->ent_name, 'new_ent', "new_ent ent_name");
+is( $ent->ent, '&new_ent;', "new_ent ent");  # test 274
+is( $ent->ent_name, 'new_ent', "new_ent ent_name");  # test 275
 }
 
 { 
 my $t= XML::Twig->new->parse( '<doc>text xx more text xx end</doc>');
 $t->root->mark( ' (xx) ', b => { att => "y" });
-is( $t->sprint, '<doc>text<b att="y">xx</b>more text<b att="y">xx</b>end</doc>',
+is( $t->sprint, '<doc>text<b att="y">xx</b>more text<b att="y">xx</b>end</doc>',  # test 276
     "mark");
 }
 
 {
 my $t= XML::Twig->new->parse( '<doc att="foo"/>');
-is( $t->sprint, '<doc att="foo"/>');
+is( $t->sprint, '<doc att="foo"/>');  # test 277
 $t->save_global_state;
 $t->set_quote( 'single');
-is( $t->sprint, "<doc att='foo'/>");
+is( $t->sprint, "<doc att='foo'/>");  # test 278
 $t->restore_global_state;
-is( $t->sprint, '<doc att="foo"/>');
+is( $t->sprint, '<doc att="foo"/>');  # test 279
 }
 
 {
 my $t= XML::Twig->new->parse( '<doc><elt>text <b>bold text</b> more text and text </elt><elt> even more text</elt></doc>');
 $t->subs_text( 'text', 'stuff');
-is( $t->sprint, "<doc><elt>stuff <b>bold stuff</b> more stuff and stuff </elt><elt> even more stuff</elt></doc>", "subs_text");
+is( $t->sprint, "<doc><elt>stuff <b>bold stuff</b> more stuff and stuff </elt><elt> even more stuff</elt></doc>", "subs_text");  # test 280
 $t->subs_text( qr{stuf+}, 'text');
-is( $t->sprint, "<doc><elt>text <b>bold text</b> more text and text </elt><elt> even more text</elt></doc>", "subs_text");
+is( $t->sprint, "<doc><elt>text <b>bold text</b> more text and text </elt><elt> even more text</elt></doc>", "subs_text");  # test 281
 my $elt= $t->root->first_child;
 my $bold= $elt->first_child( 'b');
 $bold->erase;
-is( $t->sprint, "<doc><elt>text bold text more text and text </elt><elt> even more text</elt></doc>", "erase");
+is( $t->sprint, "<doc><elt>text bold text more text and text </elt><elt> even more text</elt></doc>", "erase");  # test 282
 $elt->first_child->merge_text( $elt->child( 1));
-is( $elt->first_child_text, "text bold text", "merge_text");
+is( $elt->first_child_text, "text bold text", "merge_text");  # test 283
 }
 
 # more tests on subs_text
@@ -805,7 +801,7 @@ my $doc='<doc><p>link to http://www.xmltwig.com but do not link to http://bad.co
 my $expected='<doc><p>see <a href="http://www.xmltwig.com">www.xmltwig.com</a> but do not link to http://bad.com, though link to toto and see <a href="http://www.xml.com">www.xml.com</a></p><p>now http://www.nolink.com and do not link to this and do not link to http://www.bad.com and do not link to http://www.bad2.com and see <a href="http://link.com">link.com</a> also</p></doc>';
 my $t= XML::Twig->new->parse( $doc);
 my $got= $t->subs_text( qr{(?<!do not )link to (http://([^\s,]*))}, 'see &elt( a =>{ href => $1 }, $2)');
-is( $got->sprint, $expected, 'complex substitution with subs_text');
+is( $got->sprint, $expected, 'complex substitution with subs_text');  # test 284
 }
 
 { 
@@ -813,11 +809,11 @@ my $doc='<doc>text <p>and  more text</p></doc>';
 (my $expected= $doc)=~ s{ }{&nbsp;}g;
 my $t= XML::Twig->new->parse( $doc);
 my $got= $t->subs_text( qr{ }, '&ent( "&nbsp;")');
-is( $got->sprint, $expected, 'creating entities with subs_text');
+is( $got->sprint, $expected, 'creating entities with subs_text');  # test 285
 $t= XML::Twig->new->parse( $doc);
 my $ent="&nbsp;";
 $got= $t->subs_text( qr{ }, "&ent( '$ent')");
-is( $got->sprint, $expected, 'creating entities from a variable with subs_text');
+is( $got->sprint, $expected, 'creating entities from a variable with subs_text');  # test 286
 }
 
 {
@@ -841,15 +837,15 @@ my $expected=
 ';
 $t->set_pretty_print( 'record_c');
 $t->set_indent( ' ');
-is( $t->sprint, $expected, "sort_children_on_field");
+is( $t->sprint, $expected, "sort_children_on_field");  # test 287
 $t->set_indent( '  ');
 }
 
 { 
 my $t= XML::Twig->new( empty_tags => 'expand', pretty_print => 'none')->parse( '<doc><elt/></doc>');
-is( $t->sprint, "<doc><elt></elt></doc>", "empty_tags expand");
-is( $t->sprint( empty_tags => 'normal'), "<doc><elt/></doc>", "empty_tags normal");
-is( $t->sprint( pretty_print => 'indented', empty_tags => 'normal'), "<doc>\n  <elt/>\n</doc>\n", "empty_tags expand");
+is( $t->sprint, "<doc><elt></elt></doc>", "empty_tags expand");  # test 288
+is( $t->sprint( empty_tags => 'normal'), "<doc><elt/></doc>", "empty_tags normal");  # test 289
+is( $t->sprint( pretty_print => 'indented', empty_tags => 'normal'), "<doc>\n  <elt/>\n</doc>\n", "empty_tags expand");  # test 290
 $t->set_pretty_print( 'none');
 $t->set_empty_tag_style( 'normal');
 }
@@ -858,24 +854,24 @@ $t->set_empty_tag_style( 'normal');
 my $t= XML::Twig->new->parse( '<doc xmlns="uri_def" xmlns:ns1="uri1"><elt/><ns1:elt/></doc>');
 my $elt1= $t->root->first_child( 'elt');
 my $elt2= $t->root->first_child( 'ns1:elt');
-is( $elt1->namespace, "uri_def", "default namespace");
-is( $elt2->namespace, "uri1", "namespace");
-is( $elt1->expand_ns_prefix, "uri_def", "expand_ns_prefix default");
-is( $elt1->expand_ns_prefix( 'ns1'), "uri1", "expand_ns_prefix not default");
-is( join( ' - ', $elt1->current_ns_prefixes), '#default', "current_ns_prefixes");
-is( join( ' - ', $elt2->current_ns_prefixes), '#default - ns1', "current_ns_prefixes");
+is( $elt1->namespace, "uri_def", "default namespace");  # test 291
+is( $elt2->namespace, "uri1", "namespace");  # test 292
+is( $elt1->expand_ns_prefix, "uri_def", "expand_ns_prefix default");  # test 293
+is( $elt1->expand_ns_prefix( 'ns1'), "uri1", "expand_ns_prefix not default");  # test 294
+is( join( ' - ', $elt1->current_ns_prefixes), '#default', "current_ns_prefixes");  # test 295
+is( join( ' - ', $elt2->current_ns_prefixes), '#default - ns1', "current_ns_prefixes");  # test 296
 }
 
 {
 my $t=XML::Twig->new( ignore_elts => { i => 1 });
 $t->parse( '<doc><elt1/><i><elt2/></i><elt3><i/><elt4/></elt3></doc>');
-is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler");
+is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler");  # test 297
 }
 {
 my $t=XML::Twig->new;
 $t->setIgnoreEltsHandler( i => 'discard');
 $t->parse( '<doc><elt1/><i><elt2/></i><elt3><i/><elt4/></elt3></doc>');
-is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler");
+is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler");  # test 298
 }
 
 # test setEndTagHandler
@@ -885,15 +881,15 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
                  <sect id="sect2"><title id="title2">title 2</title><p id="p2"/></sect>
             </doc>};
   $t->parse( $doc);
-  is( $called, "", "no end_tag_handler");
+  is( $called, "", "no end_tag_handler");  # test 299
   $called= '';
   $t->setEndTagHandler( sect => sub { $called.= ":" if( $called); $called .= $_[1]});
   $t->parse( $doc);
-  is( $called, "sect:sect", "end_tag_handler");
+  is( $called, "sect:sect", "end_tag_handler");  # test 300
   $called= '';
   $t->setEndTagHandler( sect => sub { return });
   $t->parse( $doc);
-  is( $called, "", "empty end_tag_handler");
+  is( $called, "", "empty end_tag_handler");  # test 301
 }
 
 # test replace_prefix
@@ -911,8 +907,8 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
                        );
   $t->parse( q{<doc xmlns:toto="uri1" xmlns:foo="uri2" xmlns:no="uri3"><toto:bar id="ok1"/><foo:bar id="nok1" />
                  <toto:bar id="ok2"/><foo:bar id="nok2" /><no:bar id="no1" /> <bar id="no2"/></doc>});
-  is( $called, "ok1:ok2", "map_xmlns");
-  is( $not_called, "", "map_xmlns (no hit)");
+  is( $called, "ok1:ok2", "map_xmlns");  # test 302
+  is( $not_called, "", "map_xmlns (no hit)");  # test 303
 }
 
 # test parser
@@ -920,13 +916,13 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
     { doc => sub { is( ref( $_[0]->parser), 'XML::Parser::Expat', "parser"); } },
                        )
                   ->parse( "<doc />");
-  is( ref( $t->parser), '', "parser (empty, after the parse)");
+  is( ref( $t->parser), '', "parser (empty, after the parse)");  # test 304
   $t->set_doctype( doc => "doc.dtd");
-  is( $t->sprint, qq{<!DOCTYPE doc SYSTEM "doc.dtd"><doc/>}, "set_doctype");
+  is( $t->sprint, qq{<!DOCTYPE doc SYSTEM "doc.dtd"><doc/>}, "set_doctype");  # test 305
   $t->set_doctype( doc => "doc.dtd", "-//public id/");
-  is( $t->sprint, qq{<!DOCTYPE doc PUBLIC "-//public id/" "doc.dtd"><doc/>}, "set_doctype");
+  is( $t->sprint, qq{<!DOCTYPE doc PUBLIC "-//public id/" "doc.dtd"><doc/>}, "set_doctype");  # test 306
   $t->set_doctype( doc => "doc.dtd", undef, qq{[<!ENTITY toto "foo">]});
-  is( $t->sprint, qq{<!DOCTYPE doc SYSTEM "doc.dtd"\n[<!ENTITY toto "foo">]><doc/>}, "set_doctype");
+  is( $t->sprint, qq{<!DOCTYPE doc SYSTEM "doc.dtd"\n[<!ENTITY toto "foo">]><doc/>}, "set_doctype");  # test 307
 #set_doctype ($name, $system, $public, $internal)
 }
 
@@ -938,28 +934,28 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
       my $doc= q{<doc><sect><p>p1</p><p>p2</p><flush/></sect></doc>};
       my $t= XML::Twig->new( twig_handlers => { flush => sub { $_[0]->flush( $fh) } } )
                       ->parse( $doc);
-      is( $out, q{<doc><sect><p>p1</p><p>p2</p><flush/>}, "flush");
+      is( $out, q{<doc><sect><p>p1</p><p>p2</p><flush/>}, "flush");  # test 308
       close $fh;
 
       $out="";
       open( $fh, ">", \$out);
       $t= XML::Twig->new( twig_handlers => { flush => sub { $_[0]->flush_up_to( $_->prev_sibling, $fh) } } )
                       ->parse( $doc);
-      is( $out, q{<doc><sect><p>p1</p><p>p2</p>}, "flush_up_to");
+      is( $out, q{<doc><sect><p>p1</p><p>p2</p>}, "flush_up_to");  # test 309
 
       $t= XML::Twig->new( twig_handlers => { purge => sub { $_[0]->purge_up_to( $_->prev_sibling->prev_sibling, $fh) } } )
                       ->parse( q{<doc><sect2/><sect><p>p1</p><p><sp>sp 1</sp></p><purge/></sect></doc>});
-      is( $t->sprint, q{<doc><sect><p><sp>sp 1</sp></p><purge/></sect></doc>}, "purge_up_to");
+      is( $t->sprint, q{<doc><sect><p><sp>sp 1</sp></p><purge/></sect></doc>}, "purge_up_to");  # test 310
     }
 }
       
 # test next_n_elt for a twig
 { my $t= XML::Twig->new->parse( q{<doc><e1><e2>e 2</e2><e3>e 3</e3></e1></doc>});
-  is( $t->next_n_elt( 1)->gi, "doc", "next_n_elt(1)");
-  is( $t->next_n_elt( 3)->gi, "e2", "next_n_elt(3)");
-  is( $t->next_n_elt( 1, "e3")->gi, "e3", "next_n_elt(1, e3)");
-  nok( $t->next_n_elt( 2, "e3"), "next_n_elt(2, e3)");
-  is( join(':', map { $_->gi } $t->_children), 'doc', "$t->_children");
+  is( $t->next_n_elt( 1)->gi, "doc", "next_n_elt(1)");  # test 311
+  is( $t->next_n_elt( 3)->gi, "e2", "next_n_elt(3)");  # test 312
+  is( $t->next_n_elt( 1, "e3")->gi, "e3", "next_n_elt(1, e3)");  # test 313
+  nok( $t->next_n_elt( 2, "e3"), "next_n_elt(2, e3)");  # test 314
+  is( join(':', map { $_->gi } $t->_children), 'doc', "$t->_children");  # test 315
 }
 
 # test dtd_print
@@ -971,7 +967,7 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
         open( my $fh, ">", \$out);
         my $t= XML::Twig->new()->parse( q{<!DOCTYPE doc [<!ELEMENT doc (#PCDATA)*>]><doc>toto</doc>});
         $t->dtd_print( $fh);
-        is( $out, "<!DOCTYPE doc [\n<!ELEMENT doc (#PCDATA)*>\n\n]>\n", "dtd_print");
+        is( $out, "<!DOCTYPE doc [\n<!ELEMENT doc (#PCDATA)*>\n\n]>\n", "dtd_print");  # test 316
         close $fh;
       }
       { my $out="";
@@ -979,7 +975,7 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
         my $t= XML::Twig->new( twig_handlers => { stop => sub { print $fh "[X]"; $_->set_text( '[Y]'); $_[0]->flush( $fh); $_[0]->finish_print( $fh); } })
                         ->parse( q{<doc>before<stop/>finish</doc>});
         select STDOUT;
-        is( $out, q{[X]<doc>before<stop>[Y]</stop>finish</doc>}, "finish_print");
+        is( $out, q{[X]<doc>before<stop>[Y]</stop>finish</doc>}, "finish_print");  # test 317
       }
     }
 }
@@ -987,13 +983,13 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
 # test set_input_filter
 { my $t=XML::Twig->new( input_filter => \&rot13)
                  ->parse( q{<doc att="foo">text</doc>});
-  is( $t->sprint, q{<qbp ngg="sbb">grkg</qbp>}, "input filter");
+  is( $t->sprint, q{<qbp ngg="sbb">grkg</qbp>}, "input filter");  # test 318
   $t=XML::Twig->new;
   $t->parse( q{<doc att="foo">text</doc>});
-  is( $t->sprint, q{<doc att="foo">text</doc>}, "input filter (none)");
+  is( $t->sprint, q{<doc att="foo">text</doc>}, "input filter (none)");  # test 319
   $t->set_input_filter( \&rot13);
   $t->parse( q{<qbp ngg="sbb">grkg</qbp>});
-  is( $t->sprint, q{<doc att="foo">text</doc>}, "set_input_filter");
+  is( $t->sprint, q{<doc att="foo">text</doc>}, "set_input_filter");  # test 320
 }
 
 sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
@@ -1001,19 +997,19 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
 # test global_state methods
 { my $doc= q{<doc att="foo"><p>p 1</p><p>p 2</p></doc>};
   my $t=XML::Twig->new->parse( $doc);
-  is( $t->sprint, $doc, "initial state");
+  is( $t->sprint, $doc, "initial state");  # test 321
   my $state= $t->global_state;
   $t->set_pretty_print( 'indented');
   $t->set_indent( 8);
-  nok( $t->sprint eq $doc, "changed state");
+  nok( $t->sprint eq $doc, "changed state");  # test 322
   $t->set_global_state( $state);
-  is( $t->sprint, $doc, "re-set initial state");
+  is( $t->sprint, $doc, "re-set initial state");  # test 323
   $t->save_global_state;
   $t->set_pretty_print( 'nice');
   $t->set_quote( 'single');
-  nok( $t->sprint eq $doc, "changed state");
+  nok( $t->sprint eq $doc, "changed state");  # test 324
   $t->restore_global_state( $state);
-  is( $t->sprint, $doc, "restored initial state");
+  is( $t->sprint, $doc, "restored initial state");  # test 325
 }
 
 # test encoding functions
@@ -1036,17 +1032,17 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
 
       my $t= XML::Twig->new( output_encoding => "ISO-8859-1")->parse( $doc_utf8);
       $t->save_global_state;
-      is( $t->output_encoding, 'ISO-8859-1', "output_encoding (ISO-8859-1)");
-      is( $t->sprint, $doc_latin1, "output_encoding ISO-8859-1");
+      is( $t->output_encoding, 'ISO-8859-1', "output_encoding (ISO-8859-1)");  # test 326
+      is( $t->sprint, $doc_latin1, "output_encoding ISO-8859-1");  # test 327
       $t->set_output_encoding( "UTF-8");
-      is( $t->output_encoding, 'UTF-8', "output_encoding (UTF-8)");
-      is( $t->sprint, $doc_utf8, "output_encoding UTF-8");
+      is( $t->output_encoding, 'UTF-8', "output_encoding (UTF-8)");  # test 328
+      is( $t->sprint, $doc_utf8, "output_encoding UTF-8");  # test 329
       $t->set_output_text_filter( 'safe');
-      is( $t->sprint, $doc_safe, 'safe');
+      is( $t->sprint, $doc_safe, 'safe');  # test 330
       $t->set_output_text_filter( 'safe_hex');
-      is( $t->sprint, $doc_safe_hex, 'safe_hex');
+      is( $t->sprint, $doc_safe_hex, 'safe_hex');  # test 331
       $t->set_output_text_filter( );
-      
+      $t->set_output_encoding( "UTF-8");
       $t->restore_global_state;
 
       eval "require HTML::Entities";
@@ -1060,17 +1056,17 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
           my $original_output_text_filter= $t->output_text_filter;
           $t->set_output_text_filter( "html");
           my $html_output_text_filter= $t->output_text_filter;
-          is( $t->sprint, $doc_html, "output_text_filter html");
+          is( $t->sprint, $doc_html, "output_text_filter html");  # test 332
           $t->set_output_text_filter( $original_output_text_filter);
-          is( $t->sprint, $doc_utf8, "no output_text_filter ");
+          is( $t->sprint, $doc_utf8, "no output_text_filter ");  # test 333
 
           my $original_output_filter= $t->output_filter;
           $t->set_output_filter( "html");
-          is( $t->sprint, $doc_escaped, "output_filter html");
+          is( $t->sprint, $doc_escaped, "output_filter html");  # test 334
 
           $t->restore_global_state;
           $t->set_output_encoding( "UTF-8");
-          is( $t->sprint, $doc_utf8, "no output_text_filter ");
+          is( $t->sprint, $doc_utf8, "no output_text_filter ");  # test 335
         }
 
       $t->restore_global_state;
@@ -1080,13 +1076,22 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
       if( $@) 
         { skip( 3, "need Text::Iconv for those tests"); }
       else
-        { $t->set_output_filter( $t->iconv_convert( 'latin1') );
-          $t->set_encoding( "ISO-8859-1");
-          is( $t->encoding, "ISO-8859-1", "set_encoding"); 
-          is( $t->sprint, $doc_latin1, "output_filter latin-1 (using Text::Iconv)");
-          $t->restore_global_state;
-          $t->set_output_encoding( "UTF-8");
-          is( $t->sprint, $doc_utf8, "no output_filter ");
+        { my $encoding= 'ISO-8859-1';
+          if( eval( '$t->iconv_convert( "$encoding");'))
+            { $t->set_output_filter( $t->iconv_convert( $encoding) );
+              $t->set_encoding( $encoding);
+              is( $t->encoding, $encoding, "set_encoding");   # test 336
+              is( $t->sprint, $doc_latin1, "output_filter ISO-8859-1 (using Text::Iconv)");  # test 337
+              $t->restore_global_state;
+              $t->set_output_encoding( "UTF-8");
+              is( $t->sprint, $doc_utf8, "no output_filter ");  # test 338
+            }
+          else
+            { if( $@=~ m{^Unsupported encoding: $encoding})
+                { skip( 3, "your version of iconv does not support $encoding"); }
+              else
+                { skip( 3, "odd error creating filter with iconv: $@"); }
+            }
         }
 
       $t->restore_global_state;
@@ -1098,22 +1103,22 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
       else
         { $t->set_output_filter( $t->unicode_convert( 'latin1') );
           $t->set_encoding( "ISO-8859-1");
-          is( $t->encoding, "ISO-8859-1", "set_encoding"); 
-          is( $t->sprint, $doc_latin1, "output_filter latin-1 (using Unicode::*)");
+          is( $t->encoding, "ISO-8859-1", "set_encoding");   # test 339
+          is( $t->sprint, $doc_latin1, "output_filter latin-1 (using Unicode::*)");  # test 340
           $t->restore_global_state;
           $t->set_output_encoding( "UTF-8");
-          is( $t->sprint, $doc_utf8, "no output_filter ");
+          is( $t->sprint, $doc_utf8, "no output_filter ");  # test 341
           $t->restore_global_state;
           $t->set_output_encoding();
         }
 
       $t->set_output_filter( $t->regexp2latin1 );
       $t->set_encoding( "ISO-8859-1");
-      is( $t->encoding, "ISO-8859-1", "set_encoding"); 
-      is( $t->sprint, $doc_latin1, "output_filter latin-1 (using regexp2latin1)");
+      is( $t->encoding, "ISO-8859-1", "set_encoding");   # test 342
+      is( $t->sprint, $doc_latin1, "output_filter latin-1 (using regexp2latin1)");  # test 343
       $t->restore_global_state;
       $t->set_output_encoding( "UTF-8");
-      is( $t->sprint, $doc_utf8, "no output_filter ");
+      is( $t->sprint, $doc_utf8, "no output_filter ");  # test 344
       $t->restore_global_state;
       $t->set_output_encoding();
 
@@ -1141,10 +1146,10 @@ sub xml_escape
       my $doc= $xmldecl.$body;
       my $t= XML::Twig->new->parse( $doc);
       my $writer = XML::Handler::YAWriter->new( AsString => 1);
-      is( normalize_xml( $t->toSAX1( $writer)), $doc, 'toSAX1');
+      is( normalize_xml( $t->toSAX1( $writer)), $doc, 'toSAX1');  # test 345
       $writer->start_document;
       $t->root->toSAX1( $writer);
-      is( normalize_xml( $writer->end_document), $doc, 'root toSAX1');
+      is( normalize_xml( $writer->end_document), $doc, 'root toSAX1');  # test 346
 
       my $doc_flush="<doc><p>p 1</p><add/><p/><p>text<flush/> more text</p></doc>";
       my $doc_flushed=qq{<?xml version="1.0" encoding="UTF-8"?><doc><p>p 1</p><add/><g>a</g><p/><p>text<flush/> more text</p></doc>};
@@ -1162,7 +1167,7 @@ sub xml_escape
                       ->parse( $doc_flush);
       my $output=  $t->flush_toSAX1( $writer) || '';
       $SIG{__WARN__}= $old_warning_handler;
-      is( normalize_xml( $output), $doc_flushed, 'root toSAX1');
+      is( normalize_xml( $output), $doc_flushed, 'root toSAX1');  # test 347
 
     }
 }
@@ -1180,10 +1185,10 @@ sub xml_escape
       my $output='';
       my $writer = XML::SAX::Writer->new( Output => \$output);
       $t->toSAX2( $writer);
-      is( normalize_xml( $output), $doc, 'toSAX2');
+      is( normalize_xml( $output), $doc, 'toSAX2');  # test 348
       $output='';
       $t->root->toSAX2( $writer);
-      is( normalize_xml( $output), $body, 'flush_toSAX2');
+      is( normalize_xml( $output), $body, 'flush_toSAX2');  # test 349
 
       my $doc_flush="<doc><p>p 1</p><add/><p/><p>text<flush/> more text</p></doc>";
       my $doc_flushed=qq{<doc><p>p 1</p><add/><g>a</g><p/><p>text<flush/> more text</p></doc>};
@@ -1198,7 +1203,7 @@ sub xml_escape
                            )
                       ->parse( $doc_flush);
       $t->flush_toSAX2( $writer);
-      is( normalize_xml( $output), $doc_flushed, 'flush_toSAX2');
+      is( normalize_xml( $output), $doc_flushed, 'flush_toSAX2');  # test 350
     }
 }
 
@@ -1212,19 +1217,19 @@ sub normalize_xml
 
 # test flushed an twig_current status (not a very good test, but the methods are not used in practice)
 { my $t= XML::Twig->new->parse( '<doc />');
-  nok( $t->root->flushed, "root is not flushed");
+  nok( $t->root->flushed, "root is not flushed");  # test 351
   $t->root->set_flushed;
-  ok( $t->root->flushed, "root is flushed");
+  ok( $t->root->flushed, "root is flushed");  # test 352
   $t->root->del_flushed;
-  nok( $t->root->flushed, "root is not flushed");
+  nok( $t->root->flushed, "root is not flushed");  # test 353
 
-  nok( $t->root->{twig_current}, "root is not twig current");
+  nok( $t->root->{twig_current}, "root is not twig current");  # test 354
   $t->root->set_twig_current;
-  ok( $t->root->{twig_current}, "root is twig current");
+  ok( $t->root->{twig_current}, "root is twig current");  # test 355
   $t->root->del_twig_current;
-  nok( $t->root->{twig_current}, "root is not twig current");
+  nok( $t->root->{twig_current}, "root is not twig current");  # test 356
 
-  ok( $t->root->closed, "root is closed");
+  ok( $t->root->closed, "root is closed");  # test 357
 
 }
 
@@ -1236,7 +1241,7 @@ sub normalize_xml
                        )
                   ->parse( '<doc><p>yes 1</p><ignore><p>no 1</p></ignore><p>yes 2</p><ignore/>
                             <p><p>no 2</p><ignore_parent/></p></doc>');
-  is( $t->sprint, '<doc><p>yes 1</p><p>yes 2</p></doc>', "ignore");
+  is( $t->sprint, '<doc><p>yes 1</p><p>yes 2</p></doc>', "ignore");  # test 358
 }
 
 # test subs_text with replacement
@@ -1246,11 +1251,11 @@ sub normalize_xml
   (my $rep3= $rep2)=~ s{ }{&nbsp;}g;
   my $t= XML::Twig->new->parse( $doc);
   $t->root->subs_text( qr/(r)ep/,  'new$1');
-  is( $t->sprint, $rep1, "subs_text");
+  is( $t->sprint, $rep1, "subs_text");  # test 359
   $t->root->subs_text( qr/(new)r/,  '&elt( b => $1)');
-  is( $t->sprint, $rep2, "subs_text (with elt)");
+  is( $t->sprint, $rep2, "subs_text (with elt)");  # test 360
   $t->root->subs_text( qr/ /,  '&ent( "&nbsp;")');
-  is( $t->sprint, $rep3, "subs_text (with ent)");
+  is( $t->sprint, $rep3, "subs_text (with ent)");  # test 361
   
 }
 
@@ -1273,7 +1278,7 @@ package main;
       XML::Twig::twig_print_original_default( test_handlers->new);
       select $stdout;
       close $fh;
-      is( $out, 'original_string', 'twig_print_original_default');
+      is( $out, 'original_string', 'twig_print_original_default');  # test 362
 
       $out='';
       open( $fh, ">", \$out);
@@ -1281,7 +1286,7 @@ package main;
       XML::Twig::twig_print_default( test_handlers->new);
       select $stdout;
       close $fh;
-      is( $out, 'recognized_string', 'twig_print_default');
+      is( $out, 'recognized_string', 'twig_print_default');  # test 363
 
       $out='';
       open( $fh, ">", \$out);
@@ -1289,7 +1294,7 @@ package main;
       XML::Twig::twig_print_end_original( test_handlers->new);
       select $stdout;
       close $fh;
-      is( $out, 'original_string', 'twig_print_end_original');
+      is( $out, 'original_string', 'twig_print_end_original');  # test 364
 
       $out='';
       open( $fh, ">", \$out);
@@ -1297,7 +1302,7 @@ package main;
       XML::Twig::twig_print_end( test_handlers->new);
       select $stdout;
       close $fh;
-      is( $out, 'recognized_string', 'twig_print_end');
+      is( $out, 'recognized_string', 'twig_print_end');  # test 365
     }
   XML::Twig::twig_print_entity; # does nothing!
 
@@ -1311,9 +1316,9 @@ package main;
   my $doc= "<!DOCTYPE doc [$ent_text]><doc/>";
 
   my $t= XML::Twig->new->parse( $doc);
-  is( normalize_xml( $t->entity_list->text), $ent_text, 'entity_list');
+  is( normalize_xml( $t->entity_list->text), $ent_text, 'entity_list');  # test 366
   my @entities= $t->entity_list->list;
-  is( scalar @entities, scalar keys %ents, 'entity_list');
+  is( scalar @entities, scalar keys %ents, 'entity_list');  # test 367
 
   if( $perl < 5.008)  
     { skip( (scalar( keys %ents) + 1), "need perl 5.8 or above to perform these tests (you have $perl)"); }
@@ -1326,7 +1331,7 @@ package main;
           $ent->print;
           close $fh;
           select $stdout;
-          is( normalize_xml( $out), $ent_text{$ent->name}, "print $ent->{name}");
+          is( normalize_xml( $out), $ent_text{$ent->name}, "print $ent->{name}");  # test 368
         }
       my $out='';
       open( my $fh, ">", \$out);
@@ -1334,7 +1339,7 @@ package main;
       $t->entity_list->print;
       close $fh;
       select $stdout;
-      is( normalize_xml( $out), $ent_text, 'print entity_list');
+      is( normalize_xml( $out), $ent_text, 'print entity_list');  # test 369
 
     }
            
@@ -1343,8 +1348,8 @@ package main;
   $ent_text = string_ent_text( %ents);
   $t->entity_list->delete( 'pile');
   @entities= $t->entity_list->list;
-  is( scalar @entities, scalar keys %ents, '1 entity deleted');
-  is( $t->entity_list->text, $ent_text, 'entity_list (one entity deleted)');
+  is( scalar @entities, scalar keys %ents, '1 entity deleted');  # test 370
+  is( $t->entity_list->text, $ent_text, 'entity_list (one entity deleted)');  # test 371
 
 }
 
@@ -1376,9 +1381,9 @@ sub string_ent_text
                       ->parse( '<doc>text<e>e <p>text</p></e>more text <p>foo</p></doc>');
       print 'should be in $out3';
       select $stdout;
-      is( $out1, 'Xmore text <p>foo</p></doc>', 'finish_print');
-      is( $out2, '<e>e <p>text</p></e>', 'print to fh');
-      is( $out3, 'should be in $out3', 'restoring initial fh');
+      is( $out1, 'Xmore text <p>foo</p></doc>', 'finish_print');  # test 372
+      is( $out2, '<e>e <p>text</p></e>', 'print to fh');  # test 373
+      is( $out3, 'should be in $out3', 'restoring initial fh');  # test 374
    
     }
 }
@@ -1400,7 +1405,7 @@ package main;
   my $t= XML::Twig->new->parse( q{<doc xmlns="uri1"><p xmlns:p1="uri2"><p1:e>text</p1:e></p>
                                   <p xmlns:p1="uri3"><p1:e>text</p1:e></p></doc>});
   my $out= $t->toSAX2( $h);
-  is( $out, 'start - map  to uri1 - start doc - map p1 to uri2 - start p - start p1:e - end p1:e - end p - end map p1 - map p1 to uri3 - start p - start p1:e - end p1:e - end p - end map p1 - end doc - end map  ', 'prefix mapping');
+  is( $out, 'start - map  to uri1 - start doc - map p1 to uri2 - start p - start p1:e - end p1:e - end p - end map p1 - map p1 to uri3 - start p - start p1:e - end p1:e - end p - end map p1 - end doc - end map  ', 'prefix mapping');  # test 375
 }
 
 # test parsing with keep_encoding (to check no spurious warnings are produced)
@@ -1409,8 +1414,8 @@ package main;
   my $doc= '<doc><p att1="v1" att2="v2">text</p><p>more text &gt; &#xe9; </p></doc>';
   my $t= XML::Twig->new( keep_encoding => 1)->parse( $doc);
   $SIG{__WARN__}= $old_warning_handler;
-  is( $warnings, '', 'keep_encoding with elements with no attributes');
-  is( $t->sprint, $doc, 'twig output');
+  is( $warnings, '', 'keep_encoding with elements with no attributes');  # test 376
+  is( $t->sprint, $doc, 'twig output');  # test 377
 }
 
 # test end_tag_handlers with ignore
@@ -1423,7 +1428,7 @@ my $t= XML::Twig->new( twig_roots         => { p => 1 },
                                              },
                      )
                 ->parse( '<doc><p>text <x>text <n/> </x> more <x/> text</p><n/></doc>');
-is( $out, 'snese', 'end_tag_handlers without ignore');
+is( $out, 'snese', 'end_tag_handlers without ignore');  # test 378
 
 $out='';
 $t= XML::Twig->new( twig_roots         => { p => 1 },
@@ -1432,7 +1437,7 @@ $t= XML::Twig->new( twig_roots         => { p => 1 },
                        twig_handlers      => { n => sub { $out .="n"; },            },
                      )
                 ->parse( '<doc><p>text <x>text <n/> </x> more <x/> text</p><n/></doc>');
-is( $out, 'sese', 'end_tag_handlers with ignore');
+is( $out, 'sese', 'end_tag_handlers with ignore');  # test 379
 
 eval ' XML::Twig->new( start_tag_handlers => { x => sub { $out .= "s"; $_->ignore } },
                        end_tag_handlers   => { x => sub { $out .="e"; },            },
@@ -1448,7 +1453,7 @@ $t= XML::Twig->new(    force_end_tag_handlers_usage => 1,
                        twig_handlers      => { n => sub { $out .="n"; },            },
                      )
                 ->parse( '<doc><p>text <x>text <n/> </x> more <x/> text</p><n/></doc>');
-is( $out, 'sesen', 'end_tag_handlers with ignore and force_end_tag_handlers_usage');
+is( $out, 'sesen', 'end_tag_handlers with ignore and force_end_tag_handlers_usage');  # test 380
 
 }
 
@@ -1496,7 +1501,7 @@ matches( $warning, '^invalid option', "warning for extra option");
   foreach my $elt (sort keys %expected)
     { my $expected= join( ' - ', sort @{$expected{$elt}});
       my $got= $got{$elt} ? join( ' - ', sort @{$got{$elt}}) : '';
-      is( $got, $expected, "handlers on $elt");
+      is( $got, $expected, "handlers on $elt");  # test 381
     }
 
   my %handlers2;
@@ -1511,7 +1516,7 @@ matches( $warning, '^invalid option', "warning for extra option");
   foreach my $elt (sort keys %expected)
     { my $expected= join( ' - ', map { "$_:2" } sort @{$expected{$elt}});
       my $got= $got2{$elt} ? join( ' - ', sort @{$got2{$elt}}) : '';
-      is( $got, $expected, "handlers on $elt (2)");
+      is( $got, $expected, "handlers on $elt (2)");  # test 382
     }
   
 }
@@ -1519,7 +1524,7 @@ matches( $warning, '^invalid option', "warning for extra option");
 { my $t= XML::Twig->new->parse( '<doc><elt1/><elt2/><elt3/></doc>');
   $t->change_gi( elt1 => 'elt2');
   $t->change_gi( elt3 => 'elt4');
-  is( $t->sprint, '<doc><elt2/><elt2/><elt4/></doc>', 'change_gi');
+  is( $t->sprint, '<doc><elt2/><elt2/><elt4/></doc>', 'change_gi');  # test 383
 }
 
 # these do not pass (yet?)
@@ -1536,83 +1541,83 @@ matches( $warning, '^invalid option', "warning for extra option");
 
 { my $t= XML::Twig->new->parse( '<doc xmlns:ns1="uri2"><p xmlns="uri" ns1:att="foo"/></doc>');
   my $p= $t->first_elt( '*[@ns1:att=~/^f/]');
-  is( $p->get_namespace, 'uri', 'get_namespace on elt');
-  is( $p->get_namespace( 'ns1'), 'uri2', 'get_namespace with arg');
-  is( $p->get_namespace( 'xmlns'), 'http://www.w3.org/2000/xmlns/', 'get_namespace for xmlns');
-  is( $t->root->get_namespace(), '', 'default get_namespace');
-  is( $t->root->get_namespace( '#default'), '', 'get_namespace with arg #default');
-  is( $t->root->get_namespace( 'xml'), 'http://www.w3.org/XML/1998/namespace', 'get_namespace for xml');
+  is( $p->get_namespace, 'uri', 'get_namespace on elt');  # test 384
+  is( $p->get_namespace( 'ns1'), 'uri2', 'get_namespace with arg');  # test 385
+  is( $p->get_namespace( 'xmlns'), 'http://www.w3.org/2000/xmlns/', 'get_namespace for xmlns');  # test 386
+  is( $t->root->get_namespace(), '', 'default get_namespace');  # test 387
+  is( $t->root->get_namespace( '#default'), '', 'get_namespace with arg #default');  # test 388
+  is( $t->root->get_namespace( 'xml'), 'http://www.w3.org/XML/1998/namespace', 'get_namespace for xml');  # test 389
 }
 
 { my $t= XML::Twig->new->parse( '<doc><e id="e1"/><f id="f1" att="foo"/><e id="e2" att="foo"/><e id="e3"/><t id="t1">text</t></doc>');
-  is( $t->root->first_child( 'e[@att="foo"]')->id, 'e2', 'cond on att value');
-  is( $t->root->first_child( '*[@att="foo"]')->id, 'f1', 'cond on att value (with wc)');
-  is( $t->root->first_child( '*[@att="foo" and @id="e2"]')->id, 'e2', 'and cond on att value');
-  is( $t->root->first_child( '*[@att="foo" or @id="e2"]')->id, 'f1', 'and cond on att value');
-  is(  $t->root->first_child( 't[string()="text"]')->id, 't1', 'string cond');
-  is(  $t->root->first_child( '*[string()="text"]')->id, 't1', 'string cond wc');
-  is(  $t->root->first_child( 't[string()=~/^t/]')->id, 't1', 'regexp cond');
-  is(  $t->root->first_child( '*[string()=~/^t/]')->id, 't1', 'regexp cond wc');
-  is(  $t->root->first_child( qr/^t/)->id, 't1', 'regexp cond wc');
+  is( $t->root->first_child( 'e[@att="foo"]')->id, 'e2', 'cond on att value');  # test 390
+  is( $t->root->first_child( '*[@att="foo"]')->id, 'f1', 'cond on att value (with wc)');  # test 391
+  is( $t->root->first_child( '*[@att="foo" and @id="e2"]')->id, 'e2', 'and cond on att value');  # test 392
+  is( $t->root->first_child( '*[@att="foo" or @id="e2"]')->id, 'f1', 'and cond on att value');  # test 393
+  is(  $t->root->first_child( 't[string()="text"]')->id, 't1', 'string cond');  # test 394
+  is(  $t->root->first_child( '*[string()="text"]')->id, 't1', 'string cond wc');  # test 395
+  is(  $t->root->first_child( 't[string()=~/^t/]')->id, 't1', 'regexp cond');  # test 396
+  is(  $t->root->first_child( '*[string()=~/^t/]')->id, 't1', 'regexp cond wc');  # test 397
+  is(  $t->root->first_child( qr/^t/)->id, 't1', 'regexp cond wc');  # test 398
 
   my $sprint= $t->root->first_child( 't')->sprint;
   $t->root->first_child( 't')->change_att_name( 'foo');
 
-  is( $t->root->first_child( 't')->sprint, $sprint, 'change_att_name on non existent att');
+  is( $t->root->first_child( 't')->sprint, $sprint, 'change_att_name on non existent att');  # test 399
   my $ids= join ':', sort keys %{$t->{twig_id_list}};
   my $elt= XML::Twig::Elt->new( 'e');
-  is( $elt->sprint, '<e/>', 'new elt');
+  is( $elt->sprint, '<e/>', 'new elt');  # test 400
   $elt->del_id;
-  is( $elt->sprint, '<e/>', 'del_id, no id');
+  is( $elt->sprint, '<e/>', 'del_id, no id');  # test 401
   $elt->set_id( 'new_e');
-  is( $elt->sprint, '<e id="new_e"/>', 'set_id');
+  is( $elt->sprint, '<e id="new_e"/>', 'set_id');  # test 402
   my( $new_ids)= join ':', sort keys %{$t->{twig_id_list}};
-  is( $new_ids, $ids, 'set_id on elt not in the tree');
+  is( $new_ids, $ids, 'set_id on elt not in the tree');  # test 403
   $elt->del_id;
-  is( $elt->sprint, '<e/>', 'del_id, no id');
+  is( $elt->sprint, '<e/>', 'del_id, no id');  # test 404
 
-  nok( $t->first_elt( 'e')->next_elt(  $t->first_elt( 'e')), 'next_elt on empty subtree');
-  nok( $t->first_elt( 'e')->next_elt($t->first_elt( 'e'), 'e'), 'next_elt on empty subtree');
+  nok( $t->first_elt( 'e')->next_elt(  $t->first_elt( 'e')), 'next_elt on empty subtree');  # test 405
+  nok( $t->first_elt( 'e')->next_elt($t->first_elt( 'e'), 'e'), 'next_elt on empty subtree');  # test 406
 
-  is( $t->root->get_xpath( './e[1]', 0)->id, 'e1', 'get_xpath with ./');
-  is( $t->root->first_child->get_xpath( '/doc/e[1]', 0)->id, 'e1', 'get_xpath with /');
-  is( $t->root->first_child->get_xpath( '/doc/e[-1]', 0)->id, 'e3', 'get_xpath with /');
-  is( $t->root->first_child->get_xpath( './../e[2]', 0)->id, 'e2', 'get_xpath with ..');
-  is( $t->root->first_child->get_xpath( './../*[2]', 0)->id, 'f1', 'get_xpath with ../*[2]');
-  is( $t->root->first_child->get_xpath( './../*', 0)->id, 'e1', 'get_xpath with ../*');
+  is( $t->root->get_xpath( './e[1]', 0)->id, 'e1', 'get_xpath with ./');  # test 407
+  is( $t->root->first_child->get_xpath( '/doc/e[1]', 0)->id, 'e1', 'get_xpath with /');  # test 408
+  is( $t->root->first_child->get_xpath( '/doc/e[-1]', 0)->id, 'e3', 'get_xpath with /');  # test 409
+  is( $t->root->first_child->get_xpath( './../e[2]', 0)->id, 'e2', 'get_xpath with ..');  # test 410
+  is( $t->root->first_child->get_xpath( './../*[2]', 0)->id, 'f1', 'get_xpath with ../*[2]');  # test 411
+  is( $t->root->first_child->get_xpath( './../*', 0)->id, 'e1', 'get_xpath with ../*');  # test 412
 
 }
 
 { my $t= XML::Twig->new->parse( '<doc><e/><e/></doc>');
-  is( $t->root->cmp( $t->root), 0, 'cmp root with itself');
+  is( $t->root->cmp( $t->root), 0, 'cmp root with itself');  # test 413
   my $ne= $t->root->new( 'ne');
-  is( $ne->cmp( $ne), 0, 'cmp with itself');
-  is_undef( $t->root->cmp( $ne), 'cmp elt in different trees');
+  is( $ne->cmp( $ne), 0, 'cmp with itself');  # test 414
+  is_undef( $t->root->cmp( $ne), 'cmp elt in different trees');  # test 415
   my $t_sprint= $t->sprint;
   $t->root->field_to_att( 'foo');
-  is( $t->sprint, $t_sprint, 'field_to_att on wrong field');
+  is( $t->sprint, $t_sprint, 'field_to_att on wrong field');  # test 416
   my $ne_sprint= $ne->sprint;
   $ne->field_to_att( 'foo');
-  is( $ne->sprint, $ne->sprint, 'field_to_att on wrong field (no child)');
+  is( $ne->sprint, $ne->sprint, 'field_to_att on wrong field (no child)');  # test 417
 
   $ne->prefix( '<p1>p 1</p1>pr', 'asis');
-  is(  $ne->sprint, '<ne><p1>p 1</p1>pr</ne>', 'prefix asis');
+  is(  $ne->sprint, '<ne><p1>p 1</p1>pr</ne>', 'prefix asis');  # test 418
   $ne->prefix( '<p2>p 2</p2>', 'asis');
-  is(  $ne->sprint, '<ne><p2>p 2</p2><p1>p 1</p1>pr</ne>', 'prefix asis');
+  is(  $ne->sprint, '<ne><p2>p 2</p2><p1>p 1</p1>pr</ne>', 'prefix asis');  # test 419
   $ne->suffix( '<s1>s 1</s1>su', 'asis');
-  is(  $ne->sprint, '<ne><p2>p 2</p2><p1>p 1</p1>pr<s1>s 1</s1>su</ne>', 'prefix asis');
+  is(  $ne->sprint, '<ne><p2>p 2</p2><p1>p 1</p1>pr<s1>s 1</s1>su</ne>', 'prefix asis');  # test 420
   $ne->suffix( '<s2>s 2</s2>', 'asis');
-  is(  $ne->sprint, '<ne><p2>p 2</p2><p1>p 1</p1>pr<s1>s 1</s1>su<s2>s 2</s2></ne>', 'prefix asis');
+  is(  $ne->sprint, '<ne><p2>p 2</p2><p1>p 1</p1>pr<s1>s 1</s1>su<s2>s 2</s2></ne>', 'prefix asis');  # test 421
 }
 
 { my $t=  XML::Twig->new( twig_handlers => { w => sub { $_->wrap_in( 'ww'); } })
                    ->parse( '<doc><p/><w>text <i/></w><p/></doc>');
-  is( $t->sprint, '<doc><p/><ww><w>text <i/></w></ww><p/></doc>', 'wrap current elt');
+  is( $t->sprint, '<doc><p/><ww><w>text <i/></w></ww><p/></doc>', 'wrap current elt');  # test 422
   $t->root->wrap_in( 'd');
-  is( $t->sprint, '<d><doc><p/><ww><w>text <i/></w></ww><p/></doc></d>', 'wrap root');
+  is( $t->sprint, '<d><doc><p/><ww><w>text <i/></w></ww><p/></doc></d>', 'wrap root');  # test 423
 }
 
-ok(1, "ok");
+ok(1, "ok");  # test 424
 
 ############################################################################
 # tools                                                                    #
