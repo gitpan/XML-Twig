@@ -26,7 +26,10 @@ INSTALLATION
 
 CHANGES
 
-    This is version 1.7.
+    This is version 1.8.
+    KeepEncoding option added to process non-UTF-8 encoded data. 
+
+    Version 1.7.
     DTD interface added. 
     StartHandlers Added.
     Various bugs fixed

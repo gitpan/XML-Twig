@@ -26,7 +26,7 @@ sub PCDATA { '#PCDATA' }
 BEGIN
 {
     require XML::Parser;
-    $VERSION = '1.7';
+    $VERSION = '1.8';
 
     my $needVersion = '2.21';
     croak "need at least XML::Parser version $needVersion"
@@ -107,6 +107,8 @@ sub new
     delete $args{CharHandler};
     $self->{twig_read_external_dtd}= $args{LoadDTD};
     delete $args{LoadDTD};
+    $self->{twig_keep_ents}= $args{KeepEncoding};
+    delete $args{KeepEncoding};
     $self->{twig}= $self;
 
     
@@ -196,13 +198,18 @@ sub twig_char($$$)
   { my ($p, $string, $called_from_default)= @_;
     my $t=$p->{twig};
 
-    if( $t->{twig_char_handler})
-      { $string= $t->{twig_char_handler}->( $string); }
+    # if KeepEncoding was set then use the original string instead of
+    # the parsed (UTF-8 converted) one
+    $string= $p->original_string() if( $t->{twig_keep_ents});
 
     # why o why does Expat silently convert XML base enttities?
     if( !$called_from_default)
       { $string=~ s/&/&amp;/g; }
     $string=~ s/([<>'"])/$base_ent{$1}/g;
+
+    if( $t->{twig_char_handler})
+      { $string= $t->{twig_char_handler}->( $string); }
+
 
 
     delete $t->{twig_current}->{twig_current} if( $t->{twig_current});
@@ -419,7 +426,7 @@ sub print_prolog
       }
     else
       { print $fh "<!DOCTYPE ".$doctype->{name} if( $doctype->{name});
-        print $fh $doctype->{internal}; 
+        print $fh $doctype->{internal} if($doctype->{internal}); 
         print $fh ">\n"; 
       }
   }
@@ -524,7 +531,12 @@ sub dtd_print
     my $fh= shift || *STDOUT;
     print $fh, $t->dtd_text;
   }
-        
+
+sub DESTROY
+  { my $t= shift;
+    $t->{twig_root}->delete if( $t->{twig_root});
+    undef $t;
+  }        
 
 ######################################################################
 package XML::Twig::Entity_list;
@@ -1334,6 +1346,13 @@ be used when processing the element with the normal TwigHanlder.
 -item CharHandler
 
 A reference to a subroutine that will be called every time PCDATA.
+
+-item KeepEncoding
+
+This is a (slightly?) evil option: if the XML document is not UTF-8 encoded and
+you want to keep it that way, then setting KeepEncoding will use the Expat
+original_string method for character, thus keeping the original encoding, as well
+as the original entities in the strings.
 
 =item - Id
 
