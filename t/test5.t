@@ -25,7 +25,7 @@ my $doc= '<doc>
 </doc>
 ';
 
-my $TMAX=78; # don't forget to update
+my $TMAX=79; # do not forget to update
 print "1..$TMAX\n";
 
 my $t= new XML::Twig;
@@ -228,7 +228,7 @@ else { warn "nok 36: returns $res2 instead of 'elt1elt2'\n"; }
 my $doc_with_escaped_entities=
 '<doc att="m &amp; m">&lt;apos>&apos;&apos;&lt;apos&gt;&lt;&quot;></doc>';
 my $exp_res1=
-'<doc att="m &amp; m">&lt;apos&gt;&apos;&apos;&lt;apos&gt;&lt;&quot;&gt;</doc>';
+q{<doc att="m &amp; m">&lt;apos>''&lt;apos>&lt;"></doc>};
 my $exp_res2='<doc att="m & m"><apos>\'\'<apos><"></doc>';
 my $t7= new XML::Twig();
 $t7->parse( $doc_with_escaped_entities);
@@ -236,11 +236,11 @@ $res= $t7->sprint;
 if( $res eq $exp_res1) { print "ok 37\n"; }
 else { warn "nok 37: returns \n$res instead of \n$exp_res1\n"; }
 
-$t7= new XML::Twig( NoExpand => 1);
+$t7= new XML::Twig( KeepEncoding => 1, NoExpand => 1);
 $t7->parse( $doc_with_escaped_entities);
 $res= $t7->sprint;
-if( $res eq $exp_res2) { print "ok 38\n"; }
-else { warn "nok 38: returns \n$res instead of \n$exp_res2\n"; }
+if( $res eq $doc_with_escaped_entities) { print "ok 38\n"; }
+else { warn "nok 38: returns \n$res instead of \n$doc_with_escaped_entities\n"; }
 
 # test extra options for new
 my $elt= new XML::Twig::Elt( 'p');
@@ -417,11 +417,18 @@ $t->parse( $doc);
 if( $res eq $exp_res) { print "ok 62\n"; }
 else                  { warn "nok 62: should return $exp_res, returned $res"; }
 
+$exp_res="p";
+my $e_res= $t->get_xpath( '/doc/p', 0);
+$res= $e_res->text;
+if( $res eq $exp_res) { print "ok 63\n"; }
+else                  { warn "nok 63: should return $exp_res, returned $res"; }
+
+$exp_res='p1p2';
 $res='';
 foreach ($t->get_xpath( 'ns:p'))
   {  $res .= $_->text; }
-if( $res eq $exp_res) { print "ok 63\n"; }
-else                  { warn "nok 63: should return $exp_res, returned $res"; }
+if( $res eq $exp_res) { print "ok 64\n"; }
+else                  { warn "nok 64: should return $exp_res, returned $res"; }
 
 
 # test : (for name spaces) in attributes
@@ -432,37 +439,37 @@ $exp_res='p1';
 $t= new XML::Twig( TwigHandlers => 
                    { 'ns:p[@ns:a="a1"]' => sub { $res .= $_[1]->text; } });
 $t->parse( $doc);
-if( $res eq $exp_res) { print "ok 64\n"; }
-else                  { warn "nok 64: should return $exp_res, returned $res"; }
-
-$res='';
-$exp_res='p3';
-foreach ($t->get_xpath( 'p[@a="a1"]'))
-  {  $res .= $_->text; }
 if( $res eq $exp_res) { print "ok 65\n"; }
 else                  { warn "nok 65: should return $exp_res, returned $res"; }
 
 $res='';
-$exp_res='p1';
-foreach ($t->get_xpath( 'ns:p[@ns:a="a1"]'))
+$exp_res='p3';
+foreach ($t->find_nodes( 'p[@a="a1"]'))
   {  $res .= $_->text; }
 if( $res eq $exp_res) { print "ok 66\n"; }
 else                  { warn "nok 66: should return $exp_res, returned $res"; }
+
+$res='';
+$exp_res='p1';
+foreach ($t->find_nodes( 'ns:p[@ns:a="a1"]'))
+  {  $res .= $_->text; }
+if( $res eq $exp_res) { print "ok 67\n"; }
+else                  { warn "nok 67: should return $exp_res, returned $res"; }
 
 
 $res='';
 $exp_res='p1p2';
 foreach ($t->get_xpath( 'ns:p[@ns:a="a1" or @ns:a="a2"]'))
   {  $res .= $_->text; }
-if( $res eq $exp_res) { print "ok 67\n"; }
-else                  { warn "nok 67: should return $exp_res, returned $res"; }
+if( $res eq $exp_res) { print "ok 68\n"; }
+else                  { warn "nok 68: should return $exp_res, returned $res"; }
 
 $res='';
 $exp_res='p';
 foreach ($t->get_xpath( 'p[@b="a1" or @ns:a="a1"]'))
   {  $res .= $_->text; }
-if( $res eq $exp_res) { print "ok 68\n"; }
-else                  { warn "nok 68: should return $exp_res, returned $res"; }
+if( $res eq $exp_res) { print "ok 69\n"; }
+else                  { warn "nok 69: should return $exp_res, returned $res"; }
 
 $doc='<doc><p ns:a="a1">p1</p><p a="a1">p2</p><p>p3</p><p a="0">p4</p></doc>';
 $res='';
@@ -470,21 +477,21 @@ $exp_res='p2p4';
 $t= new XML::Twig( twig_handlers =>
                            { 'p[@a]' =>  sub { $res .= $_[1]->text; } });
 $t->parse( $doc);
-if( $res eq $exp_res) { print "ok 69\n"; }
-else                  { warn "nok 69: should return $exp_res, returned $res"; }
+if( $res eq $exp_res) { print "ok 70\n"; }
+else                  { warn "nok 70: should return $exp_res, returned $res"; }
 
 $res='';
 foreach ($t->get_xpath( '//p[@a]'))
   {  $res .= $_->text; }
-if( $res eq $exp_res) { print "ok 70\n"; }
-else                  { warn "nok 70: should return $exp_res, returned $res"; }
+if( $res eq $exp_res) { print "ok 71\n"; }
+else                  { warn "nok 71: should return $exp_res, returned $res"; }
 
 $res='';
 $exp_res='p1p2p4';
 foreach ($t->get_xpath( '//p[@ns:a or @a ]'))
   {  $res .= $_->text; }
-if( $res eq $exp_res) { print "ok 71\n"; }
-else                  { warn "nok 71: should return $exp_res, returned $res"; }
+if( $res eq $exp_res) { print "ok 72\n"; }
+else                  { warn "nok 72: should return $exp_res, returned $res"; }
 
 $doc='<doc><p a="a1">p1</p><ns:p a="a1">p2</ns:p>
       <p>p3</p><p a="0">p4</p></doc>';
@@ -494,26 +501,26 @@ $exp_res='p1p2p4';
 $t= new XML::Twig();
 $t->parse( $doc);
 $res .= $_->text foreach ($t->get_xpath( '//*[@a]'));
-if( $res eq $exp_res) { print "ok 72\n"; }
-else                  { warn "nok 72: should return $exp_res, returned $res"; }
-
-$res='';
-$exp_res='p1p2';
-$res .= $_->text foreach ($t->get_xpath( '*[@a="a1"]'));
 if( $res eq $exp_res) { print "ok 73\n"; }
 else                  { warn "nok 73: should return $exp_res, returned $res"; }
 
 $res='';
 $exp_res='p1p2';
-$res .= $_->text foreach ($t->get_xpath( '//*[@a="a1"]'));
+$res .= $_->text foreach ($t->get_xpath( '*[@a="a1"]'));
 if( $res eq $exp_res) { print "ok 74\n"; }
 else                  { warn "nok 74: should return $exp_res, returned $res"; }
 
 $res='';
-$exp_res='p1';
-$res .= $_->text foreach ($t->get_xpath( 'p[string()= "p1"]'));
+$exp_res='p1p2';
+$res .= $_->text foreach ($t->get_xpath( '//*[@a="a1"]'));
 if( $res eq $exp_res) { print "ok 75\n"; }
 else                  { warn "nok 75: should return $exp_res, returned $res"; }
+
+$res='';
+$exp_res='p1';
+$res .= $_->text foreach ($t->get_xpath( 'p[string()= "p1"]'));
+if( $res eq $exp_res) { print "ok 76\n"; }
+else                  { warn "nok 76: should return $exp_res, returned $res"; }
 
 $doc='<doc><ns:p ns:a="a1">p1</ns:p><p ns:a="a1">p</p><p a="a1">p3</p>
       <ns:p ns:a="a2">p2</ns:p></doc>';
@@ -522,8 +529,8 @@ $exp_res='p1p';
 $t= new XML::Twig( TwigHandlers => 
                    { '[@ns:a="a1"]' => sub { $res .= $_[1]->text; } });
 $t->parse( $doc);
-if( $res eq $exp_res) { print "ok 76\n"; }
-else                  { warn "nok 76: should return $exp_res, returned $res"; }
+if( $res eq $exp_res) { print "ok 77\n"; }
+else                  { warn "nok 77: should return $exp_res, returned $res"; }
 
 $res='';
 $res2='';
@@ -532,8 +539,8 @@ $t= new XML::Twig( TwigHandlers =>
                    { '[@ns:a="a1"]' => sub { $res  .= $_[1]->text; },
                      '[@ns:a="a2"]' => sub { $res2 .= $_[1]->text; } });
 $t->parse( $doc);
-if( $res eq $exp_res) { print "ok 77\n"; }
-else                  { warn "nok 77: should return $exp_res, returned $res"; }
-if( $res2 eq $exp_res2) { print "ok 78\n"; }
-else                 { warn "nok 78: should return $exp_res2, returned $res2"; }
+if( $res eq $exp_res) { print "ok 78\n"; }
+else                  { warn "nok 78: should return $exp_res, returned $res"; }
+if( $res2 eq $exp_res2) { print "ok 79\n"; }
+else                 { warn "nok 79: should return $exp_res2, returned $res2"; }
 

@@ -1,0 +1,254 @@
+CHANGES
+
+    This is version 3.00.37 - 2001-01-09
+
+
+    Changed
+
+      WARNING: THIS CHANGE IS NOT BACKWARD COMPATIBLE
+
+      But it is The Right Thing To Do
+
+      In normal mode (when KeepEncoding is not used) the XML data is
+      now stored as parsed by XML::Parser, ie the base entities are
+      expanded. The "print" methods (print, sprint and flush, plus the
+      new xml_string, pcdata_xml_string and att_xml_string) return the
+      data in XML-escaped form: & and < are escaped in PCDATA and
+      &, < and the quote (" by default) are turned to &amp; &lt; and
+      &quot; (or &apos; if the quote is '). The "text" methods (text,
+      att and pcdata) return the stored text as is.
+      So if you want to output XML you should use the "print" methods
+      and if you want to output text you should use the "text" methods.
+
+      Note that this breaks the trick consisting in adding tags to the
+      content of an element: $elt->prefix( "<b>") no longer adds a <b>
+      tag before an element. $elt->print will now output "&lt;b>...".
+      (but you can still use it by marking those elements as 'asis').
+      It also fixes the annoying &apos; thingie that used to replace '
+      in the data. 
+
+      When the KeepEncoding option is used this is not true, the data
+      is stored asis, base entities are kept un-escaped.
+
+      Note that KeepEncoding is a global setting, if you use several twigs,
+      some with KeepEncoding and some without then you will have to manually
+      set the option using the set_keep_encoding method, otherwise the last
+      XML::Twig::new call will have set it
+
+      In addition when the KeepEncoding option is used the start tag is
+      parsed using a custom function parse_start_tag, which works only
+      for 1-byte encodings (it is regexp-based). This method can be 
+      overridden using the ParseStartTag (or parse_start_tag) option
+      when creating the twig. This function takes the original string as
+      input and returns the gi and the attributes (in a hash).
+      If you write a function that works for multi-byte encodings I would
+      very much appreciate if you could send it back to me so I can add it
+      to the module, so other users can benefit from it.
+
+     An additional option ExpansExternalEnts will expand external entity
+     references to their text (in the output, the text stored is &ent;).
+
+    Added
+
+      When handlers (twig_handlers or start_tag_handlers) are called
+      $_ is set to the element node, so quick hacks look better:
+      
+      my $t= new XML::Twig( twig_handlers => 
+               { elt => sub { print $_->att( 'id'), ": ", $_->text, "\n"; } }
+	                  );
+
+      XML::Twig dispose method which properly reclaims all the memory
+        used by the object (useful if you don't have WeakRef installed)
+
+      XML::Twig and XML::Twig::Elt ignore methods, which can be called
+        from a start_tag_handlers handler and cause the element (or the
+        current element if called on a twig) to be ignored by the 
+        parsing
+
+      XML::Twig parse_start_tag option that overrides the default function
+        used to parse start tags when KeepEncoding is used
+
+      XML::Twig::Elt xml_string, pcdata_xml_string and att_xml_string
+        all return an XML-escaped string for an element (including 
+	sub-elements and their tags but not the enclosing tags for the 
+	element), a #PCDATA element and an attribute
+
+      XML::Twig::Elt methods tag and set_tag, equivalent respectively
+        to gi and set_gi
+      
+      XML::Twig and XML::Twig::Elt set_keep_encoding methods can be used
+        to set the keep_encoding value if you use several twigs with 
+        different keep_encoding options
+
+      Option names for XML::Twig::new are now checked (a warning is output
+        if the option is not a valid one);
+
+      when using pretty_print nice or indented keep_spaces_in is now checked
+        so the elements within an element listed in keep_spaces_in are not
+        indented
+
+      XML::Twig::Elt insert_new_elt method that does a new and a paste
+
+      XML::Twig::Elt split_at method splits a #PCDATA element in 2
+
+      XML::Twig::Elt split method splits all the text descendants of an 
+        element, on a regep, wrapping text captured in brackets in the
+        regexp in a specified element, all elements are returned 
+
+      XML::Twig::Elt mark method is similar to the split method, except
+        that only newly created elements (matched by the regexp) are
+        returned
+
+      XML::Twig::Elt get_type method returns #ELT for elements and the gi
+        (#PCDATA, #CDATA...) otherwise
+
+      XML::Twig::Elt is_elt returns the gi if the element is a real element
+         and 0 if it is #PCDATA, #CDATA...
+      
+      XML::Twig::Elt contains_only_text returns 1 if the element contains no
+         "real" element (is_field is another name for it)
+
+      First implementation of the output_filter option which filters the
+      text before it is output by the print, sprint, flush and text methods
+      (only works for print at the moment, and still under test with various
+      versions of XML::Parser). Standard filters are also available
+
+      Example:
+        
+        #!/bin/perl -w
+        use strict;
+        use XML::Twig;
+
+        my $t = new XML::Twig(output_filter => 'latin1');
+        $t->parse( \*DATA);
+        $t->print;
+ 
+        __DATA__
+        <?xml version="1.0" encoding="ISO-8859-1"?>
+        <docé té="valué">Un homme soupçonné d'être impliqué dans la mort 
+             d'un motard de la police, renversé</docé>
+
+      The 'latin1', 'html' and 'safe' filters are predefined, you can also
+      build additional filters using Iconv (requires text::Iconv) and 
+      Unicode::String (requires Unicode::String and Unicode::Map8):
+
+      my $conv = XML::Twig::iconv_convert( 'latin1');
+      my $t = new XML::Twig(output_filter => $conv);
+
+      my $conv = XML::Twig::unicode_convert( 'latin1');
+      my $t = new XML::Twig(output_filter => $conv);
+
+      warning: conversions work fine with XML::Parser 2.27 but sometimes fail
+      with XML::Parser 2.30 (on Perl 5.6.1, Linux 2.4 on a PC) when using 
+      'latin1' without Text::Iconv or Unicode::String and Unicode::Map8
+      installed.
+
+      The input_filter option works the same way, except the text is 
+      converted before it is stored in the twig (so you can use regexp in 
+      your native encoding for example) 
+
+      the XML::Twig::Elt set_asis method sets a property of an element that
+      causes it to be output asis (without XML-escaping < " and &) so you
+      can still create tagged text
+
+      the XML::Twig::Elt prefix and suffix methods accept an optional
+      'asis' argument that causes the prefix or suffix to get the asis
+      property (so you can do $elt->prefix( '<b>foo</b>', 'asis') for
+      example)
+
+      the XML::Twig and XML::Twig::Elt find_nodes methods are aliases
+      to the get_xpath method (this is the name used in XML::XPath)
+
+      the XML::Twig parseurl and safe_parseurl methods parse a document
+      whose url is given
+
+      XML::Twig::Elt extra_data, set_extra_data and append_extra_data to
+      access the... extra data (PI's and comments) attached to an element
+
+      XML::Twig method parser returns the XML::Parser::Expat object used
+      by the twig 
+
+      Most XML::Parser::Expat methods are now inherited by XML::Twig
+      objects
+
+      XML::Twig::Elt descendant_or_self method that returns the element
+      and its descendants
+
+    Fixed
+      element (and attribute) names can now include '.'
+      get_xpath now works for root based XPath expressions ('/doc/elt') 
+      get_xpath now works for regexps (including regexps on attribute values)
+      you can now properly restore pretty_print and empty_tag_style values
+      speedup (at install) now checks the Perl version and uses qr or ""
+        so XML::Twig works in 5.004 
+      XML::Twig::Elt wrap_in now allows wrapping the root element
+
+      various bugs in the DOCTYPE and DTD output with XML::Parser 2.30
+      
+      the tests to fix a bug when working with XML::Parser 2.27  
+      the tests to fix a bug preventing test2 to pass under windows
+
+      _default_  handlers now work (thanks Zoogie)
+
+      the text method now returns the XML base entities (<>&'") un-escaped
+      (thanks to Hakan Kallberg's persistence to ask for it ;--)
+
+      pretty_print works better for elements without content
+
+      end_tag_handlers now work properly (thanks to Phil Glanville for the
+      patch).
+
+    Enhanced
+
+      Attributes which name starts with # are not output by the print
+      methods, and thus can be used to store private data on elements
+
+      WeakRef is used if installed, so no more memory leaks
+ 
+      Sped-up print and flush by creating the _print and _flush methods 
+      which do not check for file handle and pretty print options
+
+      The doc has been enhanced and somewhat restructured. All options are
+      now written as this_is_an_option although the legacy form thisIsAnOption
+      can still be used. Links now display properly in the text form (thanks to
+      Dominic Mitchell for spotting this and sending a patch)
+
+      Navigation functions (including descendants) now allow not only a gi
+      to be used as filter, but also the '#ELT' token, to filter only "real"
+      elements (as opposed to #PCDATA, #CDATA, #PI, #COMMENT, #ENT), the 
+      '#TEXT' token, to filter only text (PCDATA and CDATA elements), 
+      regular expressions (built with qr//) applied on the elements gi's,
+      code references, the code is passed the element as argument, and a
+      subset of XPath.
+      Functions that can use this token are: children, first_child, last_child,
+      prev_sibling, last_sibling, next_elt, last_elt, descendants, get_xpath,
+      child, sibling, sibling_text, prev_siblings, next_siblings field, 
+      first_child_text
+
+      The paste method now accepts a 'within' position, which inserts the
+      element at the $offset argument (a 3rd, required, argument) in the
+      reference element or in its first text child 
+
+      The XML::Twig::Elt insert method now accepts attributes (hashrefs)
+      applied to the element(s) being inserted:
+      $elt->insert( e1 => { a => 'v'}, e2 => e3 => { a1 =>'v1', a2 => 'v2'}); 
+
+      The XML::Twig::erase method now outputs a meaningful error message if
+      applied to the root (or a cut element)
+
+      Optimizations for better performances (in the end performances are about
+      the same or a little worse than XML::Twig 2.02 but the module is much
+      more powerful)
+
+    Known bugs:
+
+    The DTD interface is completely broken, and I have little hope of
+    fixing it considering I have to deal with 2 incompatible versions of
+    XML::Parser. Plus no one seems to be using it...
+
+    Some XPath/Navigation expressions using " or ' in the text()="" part
+    of the expression will cause a fatal error
+
+    Note that this version works better (but doesn't necessarily require)
+    with WeakRef (Perl version 5.6.0 and above) and Text::Iconv for all
+    its encoding conversions. 

@@ -2,27 +2,34 @@ NAME
 
     XML::Twig - Tree interface to XML documents allowing processing chunk
                 by chunk of huge documents.
+
+WARNING
+
+  If you are upgrading from XML::Twig 2.02 please look at the Changes file
+  for important information about potential incompatibilities between the 2 
+  versions.
                 
 
-SUMMARY (see Twig.pod for full details)
+SUMMARY (see perldoc XML::Twig for full details)
+
 
     single-tree mode    
-        my $t= new XML::Twig();
+        my $t= XML::Twig->new();
         $t->parsefile( 'doc.xml');
         $t->print;
 
     chunk mode 
-        my $t= new XML::Twig( TwigHandlers => { section => \&flush});
+        my $t= XML::Twig->new( TwigHandlers => { section => \&flush});
         $t->parsefile( 'doc.xml');
         $t->flush;
         sub flush { $_[0]->flush; }
     
     sub-tree mode 
         # print all title's in the document
-        my $t= new XML::Twig( TwigRoots => { title => 1 },
-                              TwigHandlers => { title => \&list});
+        my $t= XML::Twig->new( TwigRoots => { title => 1 },
+                               TwigHandlers => { title => \&list});
         $t->parsefile( 'doc.xml');
-        sub list { print $_[1]->print . "\n"; }
+        sub list { print $_->print . "\n"; }
     
 INSTALLATION
 
@@ -31,50 +38,27 @@ INSTALLATION
     make test
     make install
 
+NOTES
+
+   It is very much recommended to install Text::Iconv (for easy character
+   encoding conversions) and WeakRef (to avoid memory leaks) with this version
+   if you can.
+
 CHANGES
 
-    This is version 2.02 - 2001-01-16
+    This is version 3.00.37 - 2002-01-09
 
-    Added 
-      XML::Twig safe_parse and safe_parsefile methods which wrap the parse
-        in an eval block so errors are not fatal any more (the parse stops
-        though)
-      XML::Twig first_elt, get_xpath methods 
-      XML::Twig::Elt descendants, sibling, child, sibling_text, child_text,
-        prev_siblings, next_siblings, get_xpath methods
-      PI's and comments can now ke either droped, kept or processed through
-        the Pi and Comments options to XML::Twig::new (if kept they will be 
-        moved if they occur within an element)
-      StartTagHandlers can now be called outside of TwigRoots, in which case
-        they are called with the following arguments: $t, $gi, %atts 
-      EndTagHandlers (which can be called only _outside_ TwigRoots)
-
-    Enhanced 
-      removed recursion in next_elt and prev_elt
-      handler can now be triggered with a gi[@att], *[@att], *[@att="val"],
-          gi[string()=~/regexp/],  gi[string(child_gi)= "string"] and 
-          gi[string(child_gi)=~/regexp/] conditions
-      get_xpath accepts gi[@att] and gi[string()="toto"] conditions too 
-      all options for new XML::Twig can now be written in lower case with _
-          between words (eg twig_roots instead of TwigRoots) 
-
-    Fixed bugs:
-      in next_elt when the element was empty
-      bug that marked the wrong element as the current one being parsed, thus
-         preventing cut (and methods based on cut) to work properly.
-      StartTagHandlers not set when created with new XML::Twig
-      bug in print that prevented it from working with FileHandle refs
-      allow ':' (for namespace processing) in gi's in xpath expression when
-        setting handlers
+    See the Changes file    
 
 AUTHOR
 
     Michel Rodriguez (m.v.rodriguez@ieee.org)
-    The Twig page is at http://www.xmltwig.cx/ (mirror: http://www.xmltwig.com/)
+    The Twig page is at http://www.xmltwig.com/ 
+    A tutorial is at http://www.xmltwig.com/xmltwig/tutorial/index.html
 
 COPYRIGHT
 
-       Copyright (c) 1999-2000, Michel Rodriguez. All Rights Reserved.
+       Copyright (c) 1999-2002, Michel Rodriguez. All Rights Reserved.
      This module is free software. It may be used, redistributed
      and/or modified under the terms of the Perl Artistic License
           (see http://www.perl.com/perl/misc/Artistic.html)

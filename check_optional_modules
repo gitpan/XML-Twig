@@ -1,0 +1,26 @@
+#!/bin/perl -w
+use strict;
+
+if( $] >=  5.0060)
+  { unless( eval 'require WeakRef' )
+      { warn "WeakRef not install. Installing the WeakRef module ",
+             "would improve the XML::Twig memory management and ",
+             "eliminate memory leaks when re-using twigs.\n";
+      }
+    else
+      { warn "WeakRef is installed\n"; }
+  }
+
+unless( eval 'require Text::Iconv')
+  { my $version= `iconv -V` || '';
+    if($version)
+      { warn "The iconv library was found on your system ",
+             "but the Text::Iconv module is not installed. ",
+             "Installing Text::Iconv would make character ",
+             "encoding translations fast and efficient.\n";
+      }
+    else
+      { warn "Did not find iconv\n"; }
+  }
+else
+  { warn "Text::Iconv is installed\n"; }

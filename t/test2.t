@@ -10,6 +10,7 @@ $|=1;
 use XML::Twig;
 use Cwd;
 
+$0 =~ s!\\!/!g;
 my ($DIR,$PROG) = $0 =~ m=^(.*/)?([^/]+)$=;
 $DIR =~ s=/$== || chop($DIR = cwd());
 

@@ -64,7 +64,8 @@ $t->parse( $doc, ErrorContext=>2);
 test( $t, 'parse');
 
 # test the root
-my $root= etest( $t->root, 'doc', 'doc1', 'root');
+my $root= $t->root;
+etest( $t->root, 'doc', 'doc1', 'root');
 
 # print in a file
 open( TMP, '>tmp');   
@@ -372,16 +373,16 @@ sub etest
     $i++;
     unless( $elt)
       { print "not ok $i\n    -- $message\n";
-        croak "         -- no element returned";
+        carp "         -- no element returned";
         return;
       }
-    if( ($elt->gi eq $gi) && ($elt->att( 'id') eq $id))
+    if( ($elt->tag eq $gi) && ($elt->att( 'id') eq $id))
       { print "ok $i\n"; 
         return $elt;
       }
     print "not ok $i\n    -- $message\n";
-    croak "         -- expecting ", $gi, " ", $id, "\n";
-    croak "         -- found     ", $elt->gi, " ", $elt->id, "\n";
+    carp "         -- expecting ", $gi, " ", $id, "\n";
+    carp "         -- found     ", $elt->tag, " ", $elt->id, "\n";
     return $elt;
   }
 
@@ -391,7 +392,7 @@ sub ttest
     $i++;
     unless( $elt)
       { print "not ok $i\n    -- $message\n";
-        croak "         -- no element returned ";
+        carp "         -- no element returned ";
         return;
       }
     if( $elt->text eq $text)
@@ -399,8 +400,8 @@ sub ttest
         return $elt;
       }
     print "not ok $i\n    -- $message\n";
-    croak "          expecting ", $text, "\n";
-    croak "          found     ", $elt->text, "\n";
+    carp "          expecting ", $text, "\n";
+    carp "          found     ", $elt->text, "\n";
     return $elt;
   }
 
@@ -414,8 +415,8 @@ sub stest
       { print "ok $i\n"; }
     else
       { print "not ok $i\n    -- $message\n";  
-        croak "          expecting ", $expected, "\n";
-         croak"          found     ", $result, "\n";
+        carp "          expecting ", $expected, "\n";
+         carp"          found     ", $result, "\n";
       }
   }
 
@@ -426,7 +427,7 @@ sub sttest
     $i++;
     unless( $elt)
       { print "not ok $i\n    -- $message\n";
-        croak "         -- no element returned ";
+        carp "         -- no element returned ";
         return;
       }
     if( $elt->sprint eq $text)
@@ -434,8 +435,8 @@ sub sttest
         return $elt;
       }
     print "not ok $i\n    -- $message\n";
-    croak "          expecting ", $text, "\n";
-    croak "          found     ", $elt->sprint, "\n";
+    carp "          expecting ", $text, "\n";
+    carp "          found     ", $elt->sprint, "\n";
     return $elt;
   }
 
@@ -447,7 +448,7 @@ sub test
       { print "ok $i\n"; }
     else
       { print "not ok $i\n";
-        croak "  $message\n"; }
+        carp "  $message\n"; }
   }
 
 

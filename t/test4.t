@@ -10,12 +10,11 @@ use XML::Twig;
 my $i=0;
 my $failed=0;
 
-my $TMAX=18; # don't forget to update!
+my $TMAX=18; # do not forget to update!
 
 print "1..$TMAX\n";
 
-my $s='
-<doc>
+my $s='<doc>
   <section id="s1">
     <title id="t1">Title <b>bold</b></title>
     <p id="p1">para1</p>
@@ -63,8 +62,7 @@ $t->parse( $s);
 $doc= $t->sprint;
 stest( $doc, '<doc mod="yes"><title id="t1">Title <b>bold</b></title><title id="t2">Title</title></doc>', "using title as TwigRoots (with doc handler)");
 
-$s='
-<doc>
+$s='<doc>
   <section id="s1">
     <title id="t1">t1 <b>b1</b></title>
     <p id="p5">para1</p>
@@ -102,7 +100,7 @@ $s="<doc>string with ' here</doc>";
 $t= new XML::Twig();
 $t->parse( $s);
 $doc= $t->sprint;
-stest( $doc, "<doc>string with &apos; here</doc>", "apos without KeepEncoding");
+stest( $doc, "<doc>string with ' here</doc>", "apos without KeepEncoding");
 
 $t= new XML::Twig( KeepEncoding => 1);
 $t->parse( $s);
@@ -114,7 +112,7 @@ $s="<doc>string with &quot; here</doc>";
 $t= new XML::Twig();
 $t->parse( $s);
 $doc= $t->sprint;
-stest( $doc, "<doc>string with &quot; here</doc>", "quote without KeepEncoding");
+stest( $doc, "<doc>string with \" here</doc>", "quote without KeepEncoding");
 
 $t= new XML::Twig( KeepEncoding => 1);
 $t->parse( $s);
@@ -149,7 +147,7 @@ $s="<doc>string with &quot; here</doc>";
 $t= new XML::Twig();
 $t->parse( $s);
 $doc= $t->sprint;
-stest( $doc, $s, "&quot; in text");
+stest( $doc, '<doc>string with " here</doc>', "&quot; in text");
 
 $s='<doc att="val &lt; tut">string</doc>';
 $t= new XML::Twig();

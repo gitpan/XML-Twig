@@ -1,9 +1,11 @@
 MANIFEST
 Makefile.PL
 README
+Changes
 Twig.pm.slow
 Twig.pm
 speedup
+check_optional_modules
 t/test1.t
 t/test2.t
 t/test2_1.exp
@@ -17,3 +19,6 @@ t/test2_3.res
 t/test3.t
 t/test4.t
 t/test5.t
+t/is_field.t
+t/test_nav.t
+t/test_attregexp_cond.t

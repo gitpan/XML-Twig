@@ -1,10 +1,9 @@
 <?xml version="1.0" standalone="yes"?>
-<!DOCTYPE doc[
-<!ELEMENT doc (section+, annex*)>
+<!DOCTYPE doc<!ELEMENT doc (section+,annex*)>
 <!ATTLIST doc
    id ID #IMPLIED
 >
-<!ELEMENT section (intro?, title, (para|note)+)>
+<!ELEMENT section (intro?,title,(para|note)+)>
 <!ATTLIST section
    id ID #IMPLIED
 >
