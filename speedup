@@ -1,15 +1,15 @@
 #!/bin/perl -p
-BEGIN { $FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|flushed";
+BEGIN { $FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|data|target|comment|flushed";
 }
 
 s/(\$[a-z_]+(?:\[\d\])?)->del_(twig_current|flushed)/delete $1\->{'$2'}/g;
 s/(\$[a-z_]+(?:\[\d\])?)->set_(twig_current|flushed)/$1\->{'$2'}=1/g;
 
-s/(\$[a-z_]+(?:\[\d\])?)->set_($FIELD)\(([^)]*)\)/$1\->\{'$2'\}= $3/g;
-s/(\$[a-z_]+(?:\[\d\])?)->($FIELD)/$1\->\{'$2'\}/g;
+s/(\$[a-z_]+(?:\[\d\])?)->set_($FIELD)\(([^)]*)\)/$1\->\{$2\}= $3/g;
+s/(\$[a-z_]+(?:\[\d\])?)->($FIELD)\b(?!\()/$1\->\{$2\}/g;
 
 s/(\$[a-z_]+(?:\[\d\])?)->set_atts\(([^)]*)\)/$1\->\{'att'\}= $2/g;
-s/(\$[a-z_]+(?:\[\d\])?)->(atts)\(([^)]*)\)/$1\->\{'att'\}/g;
+s/(\$[a-z_]+(?:\[\d\])?)->(atts)\(([^)]*)\)/$1\->\{att\}/g;
 
 s/(\$[a-z_]+(?:\[\d\])?)->append_(pcdata|cdata)\(([^)]*)\)/$1\->\{$2\}.= $3/g;
 
@@ -20,6 +20,8 @@ s/(\$[a-z_]+(?:\[\d\])?)->att\(\s*([^)]+)\)/$1\->{'att'}->\{$2\}/g;
 
 s/(\$[a-z_]+(?:\[\d\])?)->is_pcdata/(exists $1\->{'pcdata'})/g; 
 s/(\$[a-z_]+(?:\[\d\])?)->is_cdata/(exists $1\->{'cdata'})/g; 
+s/(\$[a-z_]+(?:\[\d\])?)->is_pi/(exists $1\->{'target'})/g; 
+s/(\$[a-z_]+(?:\[\d\])?)->is_comment/(exists $1\->{'comment'})/g; 
 s/(\$[a-z_]+(?:\[\d\])?)->is_text/((exists $1\->{'pcdata'}) || (exists $1\->{'cdata'}))/g; 
 
 s/(\$[a-z_]+(?:\[\d\])?)->is_empty/($1\->{'empty'} || 0)/g;

@@ -33,43 +33,44 @@ INSTALLATION
 
 CHANGES
 
-    This is version 2.01.11 - 2000-08-18
-    Added pretty print and empty element output style
-          XML::Twig new options to test the text content or an attribute
-	    of an element to trigger a handler (see doc)
-	  extended attribute and path conditions to TwigRoots and StartTag 
-	  handlers can now be chained if they return a true value (WARNING:
-	    this can change the behaviour of "old" scripts (2.01.[1-9])
-	    that use path conditions. Add an empty return at the end of a 
-	    handler to "break the handler chain").
-	  handler condition syntax is now checked 
-          XML::Twig::Elt methods is_empty, set_empty, set_not_empty
-          XML::Twig::Elt method inherit_att to inherit the value of an
-	    attribute from the innermost possible ancestor
-          XML::Twig::Elt methods first_child_text, last_child_text
-          WARNING: sightly changed base entity handling
-	  Global section in the pod to cover thread unsafe variables
+    This is version 2.02 - 2001-01-16
 
-    Enhanced XML::Twig::Elt methods new and set_content, added optional
-              attributes and '#EMPTY' arguments
+    Added 
+      XML::Twig safe_parse and safe_parsefile methods which wrap the parse
+        in an eval block so errors are not fatal any more (the parse stops
+        though)
+      XML::Twig first_elt, get_xpath methods 
+      XML::Twig::Elt descendants, sibling, child, sibling_text, child_text,
+        prev_siblings, next_siblings, get_xpath methods
+      PI's and comments can now ke either droped, kept or processed through
+        the Pi and Comments options to XML::Twig::new (if kept they will be 
+        moved if they occur within an element)
+      StartTagHandlers can now be called outside of TwigRoots, in which case
+        they are called with the following arguments: $t, $gi, %atts 
+      EndTagHandlers (which can be called only _outside_ TwigRoots)
+
+    Enhanced 
+      removed recursion in next_elt and prev_elt
+      handler can now be triggered with a gi[@att], *[@att], *[@att="val"],
+          gi[string()=~/regexp/],  gi[string(child_gi)= "string"] and 
+          gi[string(child_gi)=~/regexp/] conditions
+      get_xpath accepts gi[@att] and gi[string()="toto"] conditions too 
+      all options for new XML::Twig can now be written in lower case with _
+          between words (eg twig_roots instead of TwigRoots) 
 
     Fixed bugs:
-          StartTagHandlers processing
-          '0' pcdata/cdata handling in text and sprint methods
-          handling of empty elements that get a content
-	  pcdata is now properly aggregated
-	  fixed memory leak in DESTROY (thanks Jay)
-	  added error test in XML::Twig::Elt paste method (thanks Ken)
-
-    Fixed a unix dependency in test2.t
-          the pod
-    
-
+      in next_elt when the element was empty
+      bug that marked the wrong element as the current one being parsed, thus
+         preventing cut (and methods based on cut) to work properly.
+      StartTagHandlers not set when created with new XML::Twig
+      bug in print that prevented it from working with FileHandle refs
+      allow ':' (for namespace processing) in gi's in xpath expression when
+        setting handlers
 
 AUTHOR
 
     Michel Rodriguez (m.v.rodriguez@ieee.org)
-    The Twig page is at http://www.xmltwig.cx/
+    The Twig page is at http://www.xmltwig.cx/ (mirror: http://www.xmltwig.com/)
 
 COPYRIGHT
 
