@@ -8,9 +8,10 @@ use strict;
 $|=1;
 
 use XML::Twig;
+use Cwd;
 
 my ($DIR,$PROG) = $0 =~ m=^(.*/)?([^/]+)$=;
-$DIR =~ s=/$== || chop($DIR = `pwd`);
+$DIR =~ s=/$== || chop($DIR = cwd());
 
 chdir $DIR;
 

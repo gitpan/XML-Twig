@@ -33,31 +33,43 @@ INSTALLATION
 
 CHANGES
 
-    This is version 2.00
-    Fixed tests so they pass on Perl 5.6, using XML::Parser 2.28
-    Fixed bug when calling new::XML::Twig::Elt( 'CDATA');
-    Added check to XML::Twig::Elt paste method not to paste 
-          an element that has a parent
-    Changed XML::Twig::Elt insert interface so a list of elements
-          can be inserted
-    Fixed bugs in TwigPrintOutsideRoots (the root element tags were not printed)
-    Added XML::Twig flush_up_to and purge_up_to methods
-    Added XML::Twig context and path methods
-    Added XML::Twig::Elt path method
-    Added XML::Twig::Elt replace method
-    Added XML::Twig::Elt wrap_in method
-    Added XML::Twig::Elt suffix method
-    Added XML::Twig::Elt cmp. before and after methods
-    Added XML::Twig setTwigHandlers, setTwigHandler, setStartTagHandlers,
-          setStartTagHandler methods
-    Added path option in TwigHandlers argument for XML::Twig::new
-    Added path option in TwigRoots argument for XML::Twig::new
+    This is version 2.01.11 - 2000-08-18
+    Added pretty print and empty element output style
+          XML::Twig new options to test the text content or an attribute
+	    of an element to trigger a handler (see doc)
+	  extended attribute and path conditions to TwigRoots and StartTag 
+	  handlers can now be chained if they return a true value (WARNING:
+	    this can change the behaviour of "old" scripts (2.01.[1-9])
+	    that use path conditions. Add an empty return at the end of a 
+	    handler to "break the handler chain").
+	  handler condition syntax is now checked 
+          XML::Twig::Elt methods is_empty, set_empty, set_not_empty
+          XML::Twig::Elt method inherit_att to inherit the value of an
+	    attribute from the innermost possible ancestor
+          XML::Twig::Elt methods first_child_text, last_child_text
+          WARNING: sightly changed base entity handling
+	  Global section in the pod to cover thread unsafe variables
+
+    Enhanced XML::Twig::Elt methods new and set_content, added optional
+              attributes and '#EMPTY' arguments
+
+    Fixed bugs:
+          StartTagHandlers processing
+          '0' pcdata/cdata handling in text and sprint methods
+          handling of empty elements that get a content
+	  pcdata is now properly aggregated
+	  fixed memory leak in DESTROY (thanks Jay)
+	  added error test in XML::Twig::Elt paste method (thanks Ken)
+
+    Fixed a unix dependency in test2.t
+          the pod
+    
 
 
 AUTHOR
 
     Michel Rodriguez (m.v.rodriguez@ieee.org)
-    The Twig page is at http://www.xmltwig.cx
+    The Twig page is at http://www.xmltwig.cx/
 
 COPYRIGHT
 

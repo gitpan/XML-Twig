@@ -1,6 +1,7 @@
 #!/bin/perl -w
 
 use strict;
+use Carp;
 
 
 # This just tests a complete twig, no callbacks
@@ -371,7 +372,7 @@ sub etest
     $i++;
     unless( $elt)
       { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned";
+        croak "         -- no element returned";
         return;
       }
     if( ($elt->gi eq $gi) && ($elt->att( 'id') eq $id))
@@ -379,8 +380,8 @@ sub etest
         return $elt;
       }
     print "not ok $i\n    -- $message\n";
-    warn "         -- expecting ", $gi, " ", $id, "\n";
-    warn "         -- found     ", $elt->gi, " ", $elt->id, "\n";
+    croak "         -- expecting ", $gi, " ", $id, "\n";
+    croak "         -- found     ", $elt->gi, " ", $elt->id, "\n";
     return $elt;
   }
 
@@ -390,7 +391,7 @@ sub ttest
     $i++;
     unless( $elt)
       { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned ";
+        croak "         -- no element returned ";
         return;
       }
     if( $elt->text eq $text)
@@ -398,8 +399,8 @@ sub ttest
         return $elt;
       }
     print "not ok $i\n    -- $message\n";
-    warn "          expecting ", $text, "\n";
-    warn "          found     ", $elt->text, "\n";
+    croak "          expecting ", $text, "\n";
+    croak "          found     ", $elt->text, "\n";
     return $elt;
   }
 
@@ -413,8 +414,8 @@ sub stest
       { print "ok $i\n"; }
     else
       { print "not ok $i\n    -- $message\n";  
-        warn "          expecting ", $expected, "\n";
-         warn"          found     ", $result, "\n";
+        croak "          expecting ", $expected, "\n";
+         croak"          found     ", $result, "\n";
       }
   }
 
@@ -425,7 +426,7 @@ sub sttest
     $i++;
     unless( $elt)
       { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned ";
+        croak "         -- no element returned ";
         return;
       }
     if( $elt->sprint eq $text)
@@ -433,8 +434,8 @@ sub sttest
         return $elt;
       }
     print "not ok $i\n    -- $message\n";
-    warn "          expecting ", $text, "\n";
-    warn "          found     ", $elt->sprint, "\n";
+    croak "          expecting ", $text, "\n";
+    croak "          found     ", $elt->sprint, "\n";
     return $elt;
   }
 
@@ -446,7 +447,7 @@ sub test
       { print "ok $i\n"; }
     else
       { print "not ok $i\n";
-        warn "  $message\n"; }
+        croak "  $message\n"; }
   }
 
 

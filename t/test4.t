@@ -102,7 +102,7 @@ $s="<doc>string with ' here</doc>";
 $t= new XML::Twig();
 $t->parse( $s);
 $doc= $t->sprint;
-stest( $doc, "<doc>string with ' here</doc>", "apos without KeepEncoding");
+stest( $doc, "<doc>string with &apos; here</doc>", "apos without KeepEncoding");
 
 $t= new XML::Twig( KeepEncoding => 1);
 $t->parse( $s);
@@ -163,7 +163,7 @@ stest( $doc, $s, "&quot; in attribute");
 #$doc= $t->sprint;
 #stest( $doc, $s, "&#130; in attribute");
 
-#$s="<doc>string with é here</doc>";
+#$s="<doc>string with ‰ here</doc>";
 #$t= new XML::Twig();
 #$t->parse( $s);
 #$doc= $t->sprint;
@@ -172,7 +172,7 @@ stest( $doc, $s, "&quot; in attribute");
 #$t= new XML::Twig( KeepEncoding => 1);
 #$t->parse( $s);
 #$doc= $t->sprint;
-#stest( $doc, '<doc>string with é here</doc>', "eacute WITH KeepEncoding");
+#stest( $doc, '<doc>string with ‰ here</doc>', "eacute WITH KeepEncoding");
 
 #$s='<doc>string with &#130; here</doc>';
 #$t= new XML::Twig();

@@ -15,7 +15,7 @@ use XML::Twig;
 my $i=0;
 my $failed=0;
 
-my $TMAX=22; # don't forget to update!
+my $TMAX=23; # do not forget to update!
 
 print "1..$TMAX\n";
 
@@ -82,7 +82,6 @@ my $p14= XML::Twig::Elt->parse( $string2);
 my $is_pcdata= $p14->is_pcdata;
 test( $is_pcdata ? 0 : 1, "is_pcdata on a <para>");
 my $pcdata= $p14->first_child( PCDATA);
-print "pcdata: " . $pcdata->gi . ": " . $pcdata->text . "\n";
 $is_pcdata=  $pcdata->is_pcdata;
 test( $pcdata->is_pcdata, "is_pcdata on PCDATA");
 
@@ -94,6 +93,14 @@ my $er_t= new XML::Twig( TwigHandlers => { selt => sub { $_[1]->erase; } });
 $er_t->parse( $erase_string);
 sttest( $er_t->root, '<doc><elt id="elt1">text 1 text 2 text 3 text 4</elt></doc>',
  "erase");
+
+# test whether Twig packs strings
+my $br_pcdata= "line 1\nline 2\nline 3\n";
+my $doc_br_pcdata= "<doc>$br_pcdata</doc>";
+my $t_br_pcdata= new XML::Twig();
+$t_br_pcdata->parse( $doc_br_pcdata);
+$pcdata= $t_br_pcdata->root->first_child->pcdata;
+stest( $pcdata, $br_pcdata, "multi-line pcdata");
 
 ##################################################################################
 # test functions
