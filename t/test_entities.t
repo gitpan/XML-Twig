@@ -22,7 +22,10 @@ my $t= XML::Twig->new( twig_roots => { elt2 => sub { $_->print}  },
                        error_context => 2,
 		     );
 select RESULT;
-$t->parse( $doc);
+$t->safe_parse( $doc) or die "This error is probably due to an incompatibility between
+XML::Twig and the version of libexpat that you are using\n See the README and the
+XML::Twig FAQ for more information\n";;
+
 close RESULT;
 select STDOUT;
 

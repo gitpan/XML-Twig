@@ -6,7 +6,7 @@ use XML::Twig;
 
 $|=1;
 
-my $TMAX=9; # do not forget to update!
+my $TMAX=10; # do not forget to update!
 print "1..$TMAX\n";
 
 $/= "\n\n";
@@ -65,6 +65,14 @@ $t= XML::Twig->new( twig_roots => { elt3 => sub { } },
                     error_context => 1,
                   );
 test_twig( $t, 9);
+
+$t= XML::Twig->new( twig_roots =>         { elt => sub { print RESULT "elt handler called\n";       }, },
+                    start_tag_handlers => { doc => sub { print RESULT "start tag handler called\n"; }, },
+                    end_tag_handlers   => { doc => sub { print RESULT "end tag handler called\n";   }, },
+                  );
+test_twig( $t, 10);
+
+
 
 sub test_twig
   { my( $t, $test_nb)= @_;
@@ -300,3 +308,12 @@ __DATA__
   <elt2>an other type of element</elt2>
 </doc>
 
+# doc 4
+<doc>
+  <elt/>
+</doc>
+
+# expected_res 10
+start tag handler called
+elt handler called
+end tag handler called

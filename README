@@ -1,4 +1,4 @@
-$Id: README,v 1.6 2002/09/17 19:17:30 mrodrigu Exp $
+$Id: README,v 1.8 2002/10/20 23:40:09 mrodrigu Exp $
 
 NAME
 
@@ -11,6 +11,7 @@ WARNING
     XML::Twig is tested under the following environments:
 
     Linux, perl 5.004_005, expat 1.95.2 and 1.95.5, XML::Parser 2.27 and 2.31
+    Linux, perl 5.005_03, expat 1.95.2 and 1.95.5, XML::Parser 2.27 and 2.31
     Linux, perl 5.6.1, expat 1.95.2 and 1.95.5, XML::Parser 2.27 and 2.31 
     Linux, perl 5.8.0, expat 1.95.2 and 1.95.5, XML::Parser 2.31 
 
@@ -20,8 +21,13 @@ WARNING
     Twig.pm to the appropriate directory)
 
     XML::Twig does NOT work with expat 1.95.4 (upgrade to 1.95.5)
-    XML::Parser 2.27 does NOT work under perl 5.8.0, nor does XML::Twig 
+    XML::Parser 2.27 does NOT work under perl 5.8.0
                
+    Notes about specific versions:
+
+    You cannot use the output_encoding option with perl 5.004_005
+    Parsing utf-8 Asian characters with perl 5.8.0 seems not to work
+    (this is under investigation, and probably due to XML::Parser)
 
 SUMMARY (see perldoc XML::Twig for full details)
 

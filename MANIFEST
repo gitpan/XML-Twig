@@ -29,4 +29,7 @@ t/test_cdata.t
 t/test_twig_roots.t
 t/test_spaces.t
 t/test_entities.t
+t/test_pi_handler.t
+t/test_comment_handler.t
+t/test_pos.t
 t/dummy.dtd

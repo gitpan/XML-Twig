@@ -1,6 +1,29 @@
-$Id: Changes,v 1.32 2002/09/17 19:17:03 mrodrigu Exp $
+$Id: Changes,v 1.40 2002/11/01 17:12:52 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.09
+
+      added XML::Twig::Elt xml_text method
+
+      fixed several bugs in the split method under 5.8.0 when matching a utf8
+      character (thanks to Dominic Mitchell who spotted them)
+
+      cleaned-up the pod (still in progress)
+
+      added the XML::Twig::Elt pos method that gives the position of
+      an element in its parent's child list
+
+      re-introduced parseurl (thanks to Denis Kolokol for spotting its 
+      absence in this version)
+
+      Fixed a bug: ent_tag_handlers were not called on the root (thanks
+      to Philippe Verdret
+
+      Improved #PI (also declared as '?') and #COMMENT handler support 
+
+      added check on reference type (must be XML::Twig::Elt) in 
+      XML::Twig::Elt::paste (patch by Forrest Cahoon)
 
 Changes in 3.08
 
