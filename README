@@ -7,19 +7,32 @@ NAME
 
 SUMMARY (see perldoc XML::Twig for full details)
 
-XML::Twig is (yet another!) XML module. 
+XML::Twig is (yet another!) XML transformation module. 
 
 Its strong points: can be used to process huge documents while still
-being in tree mode, not bound by DOM or SAX, so it is very perlish and
-offers a very comprehensive set of methods, simple to use, masking some
+being in tree mode; not bound by DOM or SAX, so it is very perlish and
+offers a very comprehensive set of methods; simple to use; masking some
 of the classic pitfalls of XML processing.
 
 What it doesn't offer: full SAX support (it can export SAX, but only
-reads XML), full XPath support (unless you use XML::Twig::XPath).
+reads XML), full XPath support (unless you use XML::Twig::XPath), nor
+DOM support.
 
 Other drawbacks: it is a big module, and with over 500 methods available
 it can be a bit overwhelming. A good starting point is the tutorial at
-http://xmltwig.com/xmltwig/tutorial/index.html
+http://xmltwig.com/xmltwig/tutorial/index.html. In fact the whole
+XML::Twig page at http://xmltwig.com/xmltwig/ has plenty of information
+to get you started with XML::Twig
+
+TOOLS
+
+XML::Twig comes with a few tools built on top of it:
+
+  xml_pp           XML pretty printer
+  xml_grep         XML grep - grep XML files using XML::Twig's subset of XPath
+  xml_split        split big XML files
+  xml_merge        merge back files created by xml_split
+  xml_spellcheck   spellcheck XML files skipping tags
 
 
 SYNOPSYS
@@ -30,6 +43,7 @@ SYNOPSYS
     $t->print;
 
   chunk mode 
+    # print the document, at most one full section is loaded in memory
     my $t= XML::Twig->new( twig_handlers => { section => \&flush});
     $t->parsefile( 'doc.xml');
     $t->flush;
@@ -54,7 +68,7 @@ DEPENDANCIES
 
     XML::Twig needs XML::Parser (and the expat library) installed
    
-    Modules that can enhance XML::Twig are
+    Modules that can enhance XML::Twig are:
 
     Scalar::Util or WeakRef 
       to avoid memory leaks
@@ -71,7 +85,7 @@ DEPENDANCIES
 
 CHANGES
 
-    $Id: README,v 1.6 2004/03/15 16:37:10 mrodrigu Exp $
+    $Id: README,v 1.8 2005/02/10 12:27:15 mrodrigu Exp $
 
     See the Changes file    
 

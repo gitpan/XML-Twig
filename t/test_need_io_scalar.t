@@ -107,7 +107,7 @@ package main;
   $out='';
   $fh= new IO::Scalar \$out;
   select $fh;
-  XML::Twig::_twig_print_default( test_handlers->new);
+  XML::Twig::_twig_print( test_handlers->new);
   select $stdout;
   close $fh;
   is( $out, 'recognized_string', 'twig_print_default');  # test 372
@@ -123,7 +123,7 @@ package main;
   $out='';
   $fh= new IO::Scalar \$out;
   select $fh;
-  XML::Twig::_twig_print_end( test_handlers->new);
+  XML::Twig::_twig_print( test_handlers->new);
   select $stdout;
   close $fh;
   is( $out, 'recognized_string', 'twig_print_end');  # test 374

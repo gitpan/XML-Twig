@@ -19,6 +19,7 @@ if( $XML::Simple::VERSION < 2.09)
     exit;
   }
 
+undef $XML::Simple::PREFERRED_PARSER;
 $XML::Simple::PREFERRED_PARSER= 'XML::Parser';  
 
 $/="\n\n";

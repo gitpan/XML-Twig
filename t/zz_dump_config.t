@@ -1,6 +1,6 @@
 #!/bin/perl
 
-# $Id: zz_dump_config.t,v 1.4 2004/03/26 16:30:40 mrodrigu Exp $
+# $Id: zz_dump_config.t,v 1.6 2004/10/07 09:18:16 mrodrigu Exp $
 
 my $ok; # global, true if the last call to version found the module, false otherwise
 use Config;
@@ -21,7 +21,14 @@ else
 
 # must-have
 warn version( Scalar::Util);
-unless( $ok) { warn version( WeakRef); }
+if( $ok)
+  { unless( defined( &Scalar::Util::weaken))
+      { warn format_warn( '', 'NOT USED, weaken not available in this version');
+        warn version( WeakRef); 
+      }
+  }
+else
+  { warn version( WeakRef); }
 
 # encoding
 warn version( Encode);
@@ -40,6 +47,7 @@ warn version( Test::Pod);
 warn version( XML::Simple);
 warn version( XML::Handler::YAWriter);
 warn version( XML::SAX::Writer);
+warn version( XML::Filter::BufferText);
 warn version( IO::Scalar);
 
 warn "\n\nPlease add this information to bug reports (you can run t/zz_dump_config.t to get it)\n\n";

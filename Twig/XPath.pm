@@ -1,4 +1,4 @@
-# $Id: XPath.pm,v 1.13 2004/03/16 10:59:36 mrodrigu Exp $
+# $Id: XPath.pm,v 1.14 2004/04/05 21:08:20 mrodrigu Exp $
 package XML::Twig::XPath;
 use XML::Twig;
 use XML::XPath;
@@ -95,7 +95,7 @@ sub node_cmp($$)
 	    }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Attribute'))
       { # elt <=> att, compare the elt to the att->{elt}
-				# if the elt is the att->{elt} (cmp return 0) then 1, elt is before att
+				# if the elt is the att->{elt} (cmp return 0) then -1, elt is before att
         return ($a->cmp( $b->{elt}) ) || -1 ;
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath'))
@@ -163,7 +163,7 @@ sub node_cmp($$)
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Elt'))
       { # att <=> elt : compare the att->elt and the elt
-        # if att->elt is the elt (cmp returns 0) then -1 (elt is before att)
+        # if att->elt is the elt (cmp returns 0) then 1 (elt is before att)
         return ($a->{elt}->cmp( $b) ) || 1 ;
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath'))

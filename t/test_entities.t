@@ -104,7 +104,7 @@ open( RESULT, ">$result_file") or die "cannot create $result_file: $!";
 
 $t= XML::Twig->new( twig_roots => { elt2 => 1 },
                     pretty_print => 'indented',
-		    keep_encoding => 1,
+		                keep_encoding => 1,
                     error_context => 1,
 		  );
 $t->parse( $doc);

@@ -8,7 +8,7 @@ $|=1;
 my $i=1;
 my $failed=0;
 
-my $TMAX=42; # do not forget to update!
+my $TMAX=43; # do not forget to update!
 
 print "1..$TMAX\n";
 

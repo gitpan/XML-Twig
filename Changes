@@ -1,6 +1,97 @@
-$Id: Changes,v 1.40 2004/04/05 09:57:16 mrodrigu Exp $
+$Id: Changes,v 1.56 2005/02/10 12:27:15 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.16
+
+      added the xml_split/xml_merge tools
+
+      fixed PI handler behaviour when used in twig_roots
+      mode
+
+      fix a bug  that prevented the DTD to be output
+      when update_DTD mode is on, no DTD is present but
+      entities have been created
+
+      added level(<n>) trigger for handlers
+
+      fixed bug that prevented the output_filter to be
+      called when printing an element. Spotted thanks to
+      Louis Strous.
+      
+      fixed bug in the nsgmls pretty printer that output
+      invalid XML (an extra \n was added in the end tag)
+      found by Lee Goddard
+
+      fixed test 284 in test_additional to make it pass 
+      in RedHat's version of perl 5.8.0, thanks to
+      rdhayes for debugging and fixing that test.
+
+      first shot at getting Pis and comments back in the
+      proper place, even in 'keep' mode. At the moment
+      using set_pcdata  (or set_cdata) removes all
+      embedded comments/pis
+
+      fixed a bug with pi's in keep mode (pi's would not
+      be copied if they were within an element) found by
+      Pascal Sternis
+
+      added a fix to get rid of spurious warnings, sent
+      by Anthony Persaud 
+
+      added the remove_cdata option to the XML::Twig new
+      method, that will output CDATA sections as regular
+      (escaped) PCDATA
+
+      added the index option to the XML::Twig new method,
+      and the associated XML::Twig index method, which 
+      generates a list of element matching a condition 
+      during parsing
+
+      added the XML::Twig::Elt first_descendant method
+
+      fixed a bug with the keep_encoding option where
+      attributes were not parsed when the element name was
+      followed by more than one space (spotted by Gerald
+      Sedrati-Dinet), 
+      see https://rt.cpan.org/Ticket/Display.html?id=8137
+
+      fixed a bug where whitespace at the begining of an
+      element could be dropped (if followed by an element
+      before any other character). Now whitespace is
+      dropped only if it includes a \n
+
+      added feature: when load_DTD is used, default
+      attributes are now filled
+
+      fixed bug on xmlns in path expression trigger 
+      (would not replace prefixes in path expressions),
+      spotted by amonroy on perlmonks, see
+      http://perlmonks.org/index.pl?node_id=386764
+
+      optimized XML::Twig text, thanks to Nick Lassonde
+      for the patch
+
+      fixed bug that generated an empty line before some
+      comments (pointed out by Tanya Huang)
+
+      fixed tests to check XML::Filter::BufferText version
+      (1.00 has a bug in the CDATA handling that makes XML::Twig
+      tests fail).
+
+      Added new options --nowrap and --exclude (-v) to xml_grep
+
+      fixed warning in tests under 5.8.0 (spotted by Ed Avis)
+
+      skipped HTML::Entities tests in 5.8.0 (make test for this
+      module seem to fail on my system, it might be the same 
+      elsewhere)
+
+      Fixed bug RT #6067 (problems with non-standard versions of
+      Scalar::Utils which do not include weaken)
+      Fixed bug RT #6092 (error when using safe output filter)
+      Fixed bug when using map_xmlns, tags in default namespace 
+      were not output
 
 Changes in 3.15
 

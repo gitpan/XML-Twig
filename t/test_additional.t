@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_additional.t,v 1.118 2004/03/26 16:30:40 mrodrigu Exp $
+# $Id: test_additional.t,v 1.127 2005/02/02 13:24:49 mrodrigu Exp $
 
 # test designed to improve coverage of the module
 
@@ -22,7 +22,7 @@ BEGIN
       { $open= eval( 'sub { open( $_[0], $_[1], $_[2]) }'); }
   }
 
-my $TMAX=646; 
+my $TMAX=647; 
 
 print "1..$TMAX\n";
 
@@ -572,7 +572,7 @@ is( $elt->sprint, "<!-- comment --><elt/>", "elt with comment");  # test 193
 }
 
 {
-my $t= XML::Twig->new->parse( '<doc><elt>  elt  1 </elt> <elt>  elt   2 </elt></doc>');
+my $t= XML::Twig->new->parse( "<doc><elt>  elt  1 </elt>\n <elt>  elt   2 </elt></doc>");
 my $elt1= $t->root->first_child;
 my $elt2= $t->root->last_child;
 is( $elt2->prev_sibling_text, '  elt  1 ', "prev_sibling_text");  # test 194
@@ -822,7 +822,7 @@ is( $elt->first_child_text, "text bold text", "merge_text");  # test 279
 my $doc='<doc><p>link to http://www.xmltwig.com but do not link to http://bad.com, though link to toto and link to http://www.xml.com</p><p>now http://www.nolink.com and do not link to this and do not link to http://www.bad.com and do not link to http://www.bad2.com and link to http://link.com also</p></doc>';
 my $expected='<doc><p>see <a href="http://www.xmltwig.com">www.xmltwig.com</a> but do not link to http://bad.com, though link to toto and see <a href="http://www.xml.com">www.xml.com</a></p><p>now http://www.nolink.com and do not link to this and do not link to http://www.bad.com and do not link to http://www.bad2.com and see <a href="http://link.com">link.com</a> also</p></doc>';
 my $t= XML::Twig->new->parse( $doc);
-my $got= $t->subs_text( qr{(?<!do not )link to (http://([^\s,]*))}, 'see &elt( a =>{ href => $1 }, $2)');
+my $got= $t->subs_text( qr{(?<!do not )link to (http://(\S+[\w/]))}, 'see &elt( a =>{ href => $1 }, $2)');
 is( $got->sprint, $expected, 'complex substitution with subs_text');  # test 280
 }
 
@@ -1144,7 +1144,7 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
       $t->set_output_text_filter( 'safe_hex');
       is( $t->sprint, $doc_safe_hex, 'safe_hex');  # test 337
       if( $perl == 5.008)
-        { skip( 2); }
+        { skip( 2 => "cannot use latin1_output_text_filter with perl $perl"); }
       else
         { 
           $t->set_output_text_filter( $t->latin1 );
@@ -1163,8 +1163,11 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
       eval "require HTML::Entities";
       if( $@) 
         { skip( 4, "need HTML::Entities for those tests"); }
+      elsif( $perl == 5.008)
+        { skip( 4, "HTML::Entities don't seem to work well with perl 5.8.0 (the e acute becomes &#233; instead of &eacute;)"); }
       else
-        { import HTML::Entities;
+        { 
+          import HTML::Entities;
           $t->save_global_state;
           $t->set_output_encoding( "UTF-8");
 
@@ -1290,55 +1293,67 @@ sub xml_escape
 }
 
 # test SAX2 export
-{ eval "require XML::SAX::Writer";
+{ eval "require XML::SAX::Writer;";
   if( $@)
     { skip(5, "XML::SAX::Writer not available"); }
   else
-    { import XML::SAX::Writer;
-      my $xmldecl= qq{<?xml version="1.0" encoding="UTF-8"?>};
-      my $body= qq{<doc><!-- comment --><p att="p1">text</p><?target pi ?><ns xmlns:foo="uri2"><foo:e foo:att="bar">foo:e text</foo:e></ns><ns xmlns="uri2"><e att="tata">t</e></ns><p><![CDATA[ some cdata]]></p>[</doc>};
-      my $doc= $xmldecl.$body;
-      my $t= XML::Twig->new( comments =>'process', pi => 'process')->parse( $doc);
-      # add private data
-      $t->root->set_att( '#priv' => 'private');
-      $t->root->insert_new_elt( last_child => '#private');
-      my $output='';
-      my $writer = XML::SAX::Writer->new( Output => \$output);
-      $t->toSAX2( $writer);
-      is( normalize_xml( $output), $doc, 'toSAX2');  # test 357
-      $output='';
-      $t->root->toSAX2( $writer);
-      is( normalize_xml( $output), $body, 'flush_toSAX2');  # test 358
+    { eval "require XML::Filter::BufferText;";
+      if( $@)
+        { skip(5, "XML::Filter::BufferText not available"); }
+      else
+        { import XML::SAX::Writer;
+          import XML::Filter::BufferText;
+          my $output='';
+          my $writer = XML::SAX::Writer->new( Output => \$output);
+          my $xmldecl= qq{<?xml version="1.0" encoding="UTF-8"?>};
+          my $body= qq{<doc><!-- comment --><p att="p1">text</p><?target pi ?><ns xmlns:foo="uri2"><foo:e foo:att="bar">foo:e text</foo:e></ns><ns xmlns="uri2"><e att="tata">t</e></ns><p><![CDATA[ some cdata]]></p>[</doc>};
+          my $doc= $xmldecl.$body;
+          my $xfbtv= $XML::Filter::BufferText::VERSION;  
+          if( $xfbtv < 1.01)
+            { skip( 2, "XML::Filter::BufferText version $xfbtv has a bug in CDATA processing"); }
+          else
+            {
+              my $t= XML::Twig->new( comments =>'process', pi => 'process')->parse( $doc);
+              # add private data
+              $t->root->set_att( '#priv' => 'private');
+              $t->root->insert_new_elt( last_child => '#private');
+              $t->toSAX2( $writer);
+              is( normalize_xml( $output), $doc, 'toSAX2');  # test 357
+              $output='';
+              $t->root->toSAX2( $writer);
+              is( normalize_xml( $output), $body, 'flush_toSAX2');  # test 358
+            }
 
-      my $doc_flush="<doc><p>p 1</p><add/><p/><p>text<flush/> more text</p></doc>";
-      my $doc_flushed=qq{<doc><p>p 1</p><add/><g>a</g><p/><p>text<flush/> more text</p></doc>};
-      $output='';
+          my $doc_flush="<doc><p>p 1</p><add/><p/><p>text<flush/> more text</p></doc>";
+          my $doc_flushed=qq{<doc><p>p 1</p><add/><g>a</g><p/><p>text<flush/> more text</p></doc>};
+          $output='';
 
-      $t= XML::Twig->new( twig_handlers => 
-              { add =>   sub { $_[0]->flush_toSAX2( $writer);
-                               $_->new( g => "a")->toSAX2( $writer);
-                             },
-                flush => sub { $_[0]->flush_toSAX2( $writer); },
-              }
-                           )
-                      ->parse( $doc_flush);
-      $t->flush_toSAX2( $writer);
-      is( normalize_xml( $output), $doc_flushed, 'flush_toSAX2');  # test 359
+          my $t= XML::Twig->new( twig_handlers => 
+                  { add =>   sub { $_[0]->flush_toSAX2( $writer);
+                                   $_->new( g => "a")->toSAX2( $writer);
+                                 },
+                    flush => sub { $_[0]->flush_toSAX2( $writer); },
+                  }
+                               )
+                          ->parse( $doc_flush);
+          $t->flush_toSAX2( $writer);
+          is( normalize_xml( $output), $doc_flushed, 'flush_toSAX2');  # test 359
 
-      $doc= qq{<!DOCTYPE doc [ <!ENTITY toto "foo">]><doc>toto = &toto;</doc>};
-      $t= XML::Twig->new()->parse( $doc);
-      $output='';
-      $writer = XML::SAX::Writer->new( Output => \$output);
-      $t->toSAX2( $writer);
-      $output=~ s{<!DOCTYPE.*?>}{}s; # shows that in fact we have a problem with outputing the DTD
-      is( normalize_xml( $output), '<doc>toto = foo</doc>', 'toSAX2 with an entity');  # test 357    
+          $doc= qq{<!DOCTYPE doc [ <!ENTITY toto "foo">]><doc>toto = &toto;</doc>};
+          $t= XML::Twig->new()->parse( $doc);
+          $output='';
+          $writer = XML::SAX::Writer->new( Output => \$output);
+          $t->toSAX2( $writer);
+          $output=~ s{<!DOCTYPE.*?>}{}s; # shows that in fact we have a problem with outputing the DTD
+          is( normalize_xml( $output), '<doc>toto = foo</doc>', 'toSAX2 with an entity');  # test 357    
 
-      $doc= qq{<!DOCTYPE doc SYSTEM "not_there" ><doc>toto = &toto;</doc>};
-      $t= XML::Twig->new()->parse( $doc);
-      $output='';
-      $writer = XML::SAX::Writer->new( Output => \$output);
-      $t->toSAX2( $writer);
-      is( normalize_xml( $output), normalize_xml( $doc), 'toSAX2 with a non expanded entity');  # test 357    
+          $doc= qq{<!DOCTYPE doc SYSTEM "not_there" ><doc>toto = &toto;</doc>};
+          $t= XML::Twig->new()->parse( $doc);
+          $output='';
+          $writer = XML::SAX::Writer->new( Output => \$output);
+          $t->toSAX2( $writer);
+          is( normalize_xml( $output), normalize_xml( $doc), 'toSAX2 with a non expanded entity');  # test 357    
+        }
  
     }
 }
@@ -1419,10 +1434,10 @@ package main;
       $out='';
       $open->( $fh, ">", \$out);
       select $fh;
-      XML::Twig::_twig_print_default( test_handlers->new);
+      XML::Twig::_twig_print( test_handlers->new);
       select $stdout;
       close $fh;
-      is( $out, 'recognized_string', 'twig_print_default');  # test 372
+      is( $out, 'recognized_string', 'twig_print');  # test 372
 
       $out='';
       $open->( $fh, ">", \$out);
@@ -1435,10 +1450,10 @@ package main;
       $out='';
       $open->( $fh, ">", \$out);
       select $fh;
-      XML::Twig::_twig_print_end( test_handlers->new);
+      XML::Twig::_twig_print( test_handlers->new);
       select $stdout;
       close $fh;
-      is( $out, 'recognized_string', 'twig_print_end');  # test 374
+      is( $out, 'recognized_string', 'twig_print');  # test 374
     }
   XML::Twig::_twig_print_entity; # does nothing!
 
@@ -1711,7 +1726,7 @@ matches( $warning, '^invalid option', "warning for extra option");# test 391
   my( $new_ids)= join ':', sort keys %{$t->{twig_id_list}};
   is( $new_ids, $ids, 'set_id on elt not in the tree');  # test 414
   $elt->del_id;
-  is( $elt->sprint, '<e/>', 'del_id, no id');  # test 415
+  is( $elt->sprint, '<e/>', 'del_id, id removed');  # test 415
 
   nok( $t->first_elt( 'e')->next_elt(  $t->first_elt( 'e')), 'next_elt on empty subtree');  # test 416
   nok( $t->first_elt( 'e')->next_elt($t->first_elt( 'e'), 'e'), 'next_elt on empty subtree');  # test 417
@@ -2337,7 +2352,7 @@ END
 }
 
 { my $doc='<doc><elt att="1">text</elt></doc>';
-  my $nsgmls= qq{<doc\n><elt\natt="1"\n>text<\n/elt><\n/doc>\n};
+  my $nsgmls= qq{<doc\n><elt\natt="1"\n>text</elt></doc>\n};
   my $t= XML::Twig->new( pretty_print => 'nsgmls')->parse( $doc);
   is( $t->sprint, $nsgmls, 'nsgmls style');
   $t->set_pretty_print( 'indented');
@@ -2654,6 +2669,12 @@ my $expected_s2= q{<sub id="s2"><sub>text 1</sub><sub>text 2</sub></sub>};
   $expected_remap=~ s{xmlns=}{xmlns:ns_1=};
   is( $t->sprint, $expected_remap, "map_xmlns  with default ns");
 }
+
+{ my $t= XML::Twig->new->parse( '<doc/>'); 
+  my $elt= $t->root->insert( elt => { att => undef});
+  $elt->insert( '#PCDATA');
+  is( $t->sprint => '<doc><elt att=""></elt></doc>', "undef text and att");
+} 
 
 exit 0;
 
