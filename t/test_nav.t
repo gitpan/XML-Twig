@@ -74,17 +74,29 @@ elt2                       => elt2-1
 foo                        => none
 elt[@id]                   => elt-1
 elt[@id!="elt-1"]          => elt-2
+elt[@duh!="elt-1"]         => elt-1
 elt[@toto]                 => elt-1
 elt[!@toto]                => elt-2
 /2$/                       => elt2-1
 elt[@id="elt-1"]           => elt-1
+elt[@id="elt-1" or @foo="bar"] => elt-1
+elt[@id="elt-1" and @foo!="bar"] => elt-1
+elt[@id="elt-1" and @foo="bar"] => none
 elt2[@id=~/elt2/]          => elt2-1
 elt[@id="elt2-1"]          => none
 elt2[@id="elt2-1"]         => elt2-1
 elt[@id=~/elt2/]           => none
+*[@id="elt1-1"]             => none
+*[@foo]                     => none
+*[@id]                      => elt-1
+*[@id="elt-1" or @foo="bar"] => elt-1
+*[@id=~/elt2$/]             => none
+*[@id=~/2-2$/]              => elt2-2
+*[@id=~/^elt2/]             => elt2-1
 [@id="elt1-1"]             => none
 [@foo]                     => none
 [@id]                      => elt-1
+[@id="elt-1" or @foo="bar"] => elt-1
 [@id=~/elt2$/]             => none
 [@id=~/2-2$/]              => elt2-2
 [@id=~/^elt2/]             => elt2-1
@@ -97,8 +109,13 @@ elt2[text(subelt)="text'"] => elt2-3
 ##[text(subelt)="text}"]     => elt2-3
 [text(subelt)="text1"]     => elt-1
 [text(subelt)="text 2"]    => elt2-3
+*[text(subelt)="text1"]     => elt-1
+*[text(subelt)="text 2"]    => elt2-3
 elt2[text(subelt)="text 2"]=> elt2-3
 elt[text(subelt)="text 2"] => none
+*[text(subelt)="foo"]       => none
+*[text(subelt)=~/text/]     => elt-1
+*[text(subelt)=~/^ext/]     => none
 [text(subelt)="foo"]       => none
 [text(subelt)=~/text/]     => elt-1
 [text(subelt)=~/^ext/]     => none
@@ -123,3 +140,14 @@ elt[@val>1]                  => elt-2
 elt[@val<2]                  => elt-1
 @val<2                       => elt-1
 @val                         => elt-1
+[@val="1" or @dummy="2"]     => elt-1
+[@val="2" or @dummy="2"]     => elt-2
+*[@val="1" or @dummy="2"]     => elt-1
+*[@val="2" or @dummy="2"]     => elt-2
+@val="1" and @dummy="2"      => none
+@val="1" or @dummy="2"       => elt-1
+@val="2" or @dummy="2"       => elt-2
+[@val=~/2/]                  => elt-2
+*[@val=~/2/]                  => elt-2
+@val=~/^2/                  => elt-2
+@val!~/^1/                  => elt-2

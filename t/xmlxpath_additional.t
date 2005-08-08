@@ -1,4 +1,4 @@
-# $Id: xmlxpath_additional.t,v 1.12 2004/03/26 16:30:40 mrodrigu Exp $
+# $Id: xmlxpath_additional.t,v 1.13 2005/07/05 10:47:19 mrodrigu Exp $
 
 use strict;
 
@@ -9,7 +9,7 @@ BEGIN
       { print "1..1\nok 1\n"; warn "skipping: XML::XPath not available\n"; exit; }
   }
 
-print "1..72\n"; 
+print "1..74\n"; 
 
 use XML::Twig::XPath;
 ok(1);
@@ -83,6 +83,7 @@ nok( $root->isPINode, '$root isPINode');
 nok( $root->isCommentNode, '$root isCommentNode');
 nok( $root->isNamespaceNode, '$root isNamespaceNode');
 
+
 my $p= $t->first_elt( 'p');
 ok( $p->isElementNode, '$p isElementNode');
 nok( $p->isAttributeNode, '$p isAttributeNode');
@@ -127,6 +128,11 @@ is( $t->findvalue( '//foo:bar'), 'foobar', '//foo:bar');
 is( $t->findvalue( '//*[@foo:att]'), 'foobar', '//*[@foo:att');
 is( $t->findvalue( '//*[@foo:att=1]'), 'foobar', '//*[@foo:att=1]');
 is( $t->findvalue( '//*[@foo:att=2]'), '', '//*[@foo:att=2]');
+
+my $twig= ($root->findnodes( '..'))[0];
+ok( UNIVERSAL::isa( $twig, 'XML::Twig'), 'findnodes returning the document node (' . ref( $twig) . ')');
+my $back_to_root= ($root->findnodes( '../*'))[0];
+is( $back_to_root->gi, 'doc' , 'findnodes returning the root through the document node');
 }
 
 # test namespace methods

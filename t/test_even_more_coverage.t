@@ -1,8 +1,9 @@
 #!/bin/perl -w
 
-# $Id$
+# $Id: test_additional.t,v 1.128 2005/02/14 16:40:28 mrodrigu Exp $
 
-# tests that require IO::Scalar to run
+# test designed to improve coverage of the module
+
 use strict;
 use Carp;
 
@@ -11,59 +12,25 @@ my $DEBUG=0;
 
 use XML::Twig;
 
-BEGIN 
-  { eval "use bytes";
-    if( $@) 
-      { print "1..1\nok 1\n"; 
-        warn "skipping, need to be able to use bytes\n";
-        exit;
-      } 
-  }
+my $TMAX=1; 
 
-print "1..2\n";
+print "1..$TMAX\n";
 
-my $text= "&#233;t&#233;";
-my $text_safe= "&#233;t&#233;";
-my $text_safe_hex= "&#xe9;t&#xe9;";
-my $doc=qq{<?xml version="1.0" encoding="UTF-8"?>\n<doc>$text</doc>};
-my $doc_safe=qq{<?xml version="1.0" encoding="UTF-8"?>\n<doc>$text_safe</doc>};
-my $doc_safe_hex=qq{<?xml version="1.0" encoding="UTF-8"?>\n<doc>$text_safe_hex</doc>};
+{ my $t= XML::Twig->new( parse_start_tag => sub { return 'a'; })->parse( '<b>c</b>');
+  is( $t->sprint, '<a>c</a>', "dummy parse_start_tag");
+}
 
-my $t= XML::Twig->new()->parse( $doc);
-
-if( $] == 5.008)
-  { skip( 2); }
-else
-  { $t->set_output_text_filter( sub { my $text= shift;
-                                      use bytes;
-                                      $text=~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
-                                               {XML::Twig::_XmlUtf8Decode($1)}egs;
-                                      return $text;
-                                    }
-                          );
-    is( $t->sprint, $doc_safe, 'safe with _XmlUtf8Decode');  # test 338
-    $t->set_output_text_filter( sub { my $text= shift;
-                                      use bytes;
-                                      $text=~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
-                                               {XML::Twig::_XmlUtf8Decode($1, 1)}egs;
-                                      return $text;
-                                    }
-                          );
-    is( $t->sprint, $doc_safe_hex, 'safe_hex with _XmlUtf8Decode');  # test 339
-  }
-
-
-exit 0;
+                                                       
 
 
 ############################################################################
 # tools                                                                    #
+  
 ############################################################################
 
 { my $test_nb;
   sub is
     { my( $got, $expected, $message) = @_;
-      $test_nb||=0; 
       $test_nb++; 
 
       if( $expected eq $got) 
@@ -129,10 +96,9 @@ exit 0;
 my %seen_message;
   sub skip
     { my( $nb_skip, $message)= @_;
-      $test_nb||=0; 
       $message ||='';
       unless( $seen_message{$message})
-        { warn "\n$message: skipping $nb_skip tests\n";
+        { warn "$message: skipping $nb_skip tests\n";
           $seen_message{$message}++;
         }
       for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
@@ -145,32 +111,3 @@ my %seen_message;
 
 sub tags { return join ':', map { $_->gi } @_ }
 sub ids  { return join ':', map { $_->att( 'id') || '<' . $_->gi . ':no_id>' } @_ }
-
-
-sub xml_escape
-  { my $string= shift;
-    #$string=~ s{&}{&amp;}g;
-    $string=~ s{<}{&lt;}g;
-    $string=~ s{>}{&gt;}g;
-    $string=~ s{"}{&quot;}g; #"
-    $string=~ s{'}{&apos;}g; #'
-    return $string;
-  }
-
-sub normalize_xml
-  { my $xml= shift;
-    $xml=~ s{\n}{}g;
-    $xml=~ s{'}{"}g; #'
-    $xml=~ s{ />}{/>}g;
-    return $xml;
-  }
-
-sub hash_ent_text
-  { my %ents= @_;
-    return map { $_ => "<!ENTITY $_ $ents{$_}>" } keys %ents;
-  }
-sub string_ent_text
-  { my %ents= @_;
-    my %hash_ent_text= hash_ent_text( %ents);
-    return join( '', map { $hash_ent_text{$_} } sort keys %hash_ent_text);
-  }

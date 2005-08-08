@@ -1,29 +1,30 @@
 #!/usr/bin/perl -w
-# $Id: xml_merge,v 1.1 2005/02/14 18:07:34 mrodrigu Exp $
+# $Id: xml_merge,v 1.4 2005/03/17 16:37:35 mrodrigu Exp $
 use strict;
 
 use XML::Twig;
 use FindBin qw( $RealBin $RealScript);
 use Getopt::Std;
 
+$Getopt::Std::STANDARD_HELP_VERSION=1; # twice to prevent warning with 5.6.1 (I know it's dumb!)
 $Getopt::Std::STANDARD_HELP_VERSION=1; # to stop processing after --help or --version
 
 use vars qw( $VERSION $USAGE);
 
-$VERSION= "0.01";
-$USAGE= "xml_merge [-o <output_file>] [-v] [-h] [-m] [-V] [file]\n";
+$VERSION= "0.02";
+$USAGE= "xml_merge [-o <output_file>] [-i] [-v] [-h] [-m] [-V] [file]\n";
 
 { # main block
 
 my $opt={};
-getopts('vhmV', $opt);
+getopts('o:ivhmV', $opt);
 
 if( $opt->{h}) { die $USAGE, "\n";            }
 if( $opt->{m}) { exec "pod2text $RealBin/$RealScript"; }
 if( $opt->{V}) { print "xml_merge version $VERSION\n"; exit; }
 
 if( $opt->{o})
-  { open( my $out, '>', $opt->{0}) or die "cannot create $opt->{o}: $!";
+  { open( my $out, '>', $opt->{o}) or die "cannot create $opt->{o}: $!";
     $opt->{fh}= $out; # used to set twig_print_outside_roots
   }
 else
@@ -31,6 +32,19 @@ else
 
 $opt->{subdocs} = 1;
 $opt->{file}    = $ARGV[0];
+
+$opt->{twig_roots}= $opt->{i} ? { 'xi:include' => sub { $opt->{file}= $_->att( 'href');
+                                                        if( $_->att( 'subdocs')) { merge( $opt); }
+                                                        else                     { spit(  $opt); }
+                                                      },
+                                }
+                              : { '?merge'     => sub { $opt= parse( $_->data, $opt);
+                                                        if( $opt->{subdocs}) { merge( $opt); }
+                                                        else                 { spit(  $opt); }
+                                                      },
+                                }
+
+                              ;
 
 merge( $opt);
 
@@ -41,11 +55,7 @@ if( $opt->{v}) { warn "done\n"; }
 sub merge
   { my( $opt)= @_;
     my $t= XML::Twig->new( keep_encoding => 1, keep_spaces => 1,
-                           twig_roots => { '?merge' => sub { $opt= parse( $_->data, $opt);
-                                                             if( $opt->{subdocs}) { merge( $opt); }
-                                                             else                 { spit( $opt); }
-                                                           } 
-                                         },
+                           twig_roots => $opt->{twig_roots},
                            twig_print_outside_roots => $opt->{fh},
                          );
     if( $opt->{v} && $opt->{file}) { warn "merging $opt->{file} (parsing)\n"; }
@@ -95,6 +105,11 @@ C<xml_split> and recreates a single file.
 =item -o <output_file>
 
 unless this option is used the program output goes to STDOUT
+
+=item -i
+
+the files use XInclude instead of processing instructions (they
+were created using the C<-i> option in C<xml_split>)
 
 =item -v
 

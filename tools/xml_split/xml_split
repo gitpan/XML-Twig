@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: xml_split,v 1.2 2005/03/03 06:01:15 mrodrigu Exp $
+# $Id: xml_split,v 1.5 2005/06/15 15:06:49 mrodrigu Exp $
 use strict;
 
 use XML::Twig;
@@ -13,17 +13,17 @@ $Getopt::Std::STANDARD_HELP_VERSION=1; # to stop processing after --help or --ve
 
 use vars qw( $VERSION $USAGE);
 
-$VERSION= "0.03";
-$USAGE= "xml_split [-l <level> | -c <cond>] [-b <base>] [-n <nb>] [-e <ext>] [-p <plugin>] [-I <plugin_dir>] [-d] [-v] [-h] [-m] [-V] <files>\n";
+$VERSION= "0.05";
+$USAGE= "xml_split [-l <level> | -c <cond>] [-b <base>] [-n <nb>] [-e <ext>] [-p <plugin>] [-I <plugin_dir>] [-i] [-d] [-v] [-h] [-m] [-V] <files>\n";
 
 { # main block
 
 my $opt={};
-getopts('l:c:b:n:e:p:dvhmV', $opt);
+getopts('l:c:b:n:e:p:idvhmV', $opt);
 
 # defaults
 $opt->{n} ||= 2; # number of digits used for creating parts
-$opt->{I} ||= ˝"$ENV{HOME}/.xml_split";
+$opt->{I} ||= "$ENV{HOME}/.xml_split";
 
 if( $opt->{h}) { die $USAGE, "\n";            }
 if( $opt->{m}) { exec "pod2text $RealBin/$RealScript"; }
@@ -32,11 +32,12 @@ if( $opt->{V}) { print "xml_split version $VERSION\n"; exit; }
 if( $opt->{c}) { die "cannot use --level and --condition at the same time\n" if( $opt->{l}); }
 else           { $opt->{l} ||= 1; $opt->{c}= "level( $opt->{l})"; }
 
-my $options= { cond    => $opt->{c}, 
-               base    => $opt->{b}, nb_digits => $opt->{n}, ext => $opt->{e},
-               plugin  => $opt->{p},
-               no_pi   => $opt->{d},
-               verbose => $opt->{v}, 
+my $options= { cond     => $opt->{c}, 
+               base     => $opt->{b}, nb_digits => $opt->{n}, ext => $opt->{e},
+               plugin   => $opt->{p},
+               no_pi    => $opt->{d},
+               verbose  => $opt->{v}, 
+               xinclude => $opt->{i} ? 1 : 0,
              };
 
 
@@ -204,7 +205,7 @@ sub dump_elt
     if( !$state->{no_pis})
       { # if we are still witin a fragment, just replace the element by the PI
 				# otherwise print it to the main document
-        my $include= $state->include( $file_name)
+        my $include= $state->include( $file_name);
 															
 				$elt->del_att( '#in_fragment');
 				
@@ -222,6 +223,7 @@ sub dump_elt
 			
     $fragment->set_root( $elt);
     open( my $out, '>', $file_name) or die "cannot create output file '$file_name': $!";
+    $fragment->set_keep_encoding( 1);
     $fragment->print( $out);
     close $out;
   }
@@ -267,8 +269,8 @@ use base 'xml_split::state';
 
 sub include
   { my( $state, $file_name)= @_;
-    if( $state->{include} eq 'xinclude')
-      { return qq{<xi:include href="$file_name">}; }
+    if( $state->{xinclude})
+      { return qq{<xi:include href="$file_name" />}; }
     else
       { return qq{<?merge subdocs = 0 :$file_name?>}; }
   }
@@ -281,11 +283,14 @@ use base 'xml_split::state';
 sub include
   { my( $state, $file_name)= @_;
     my $include;
-    if( $state->{include} eq 'xinclude')
-      { $include= XML::Twig::Elt->new( 'xi:include', { href => $file_name}); }
+    my $subdocs= $state->{elt}->att( '#has_subdocs') || 0;
+    if( $state->{xinclude})
+      { $include= XML::Twig::Elt->new( 'xi:include', { href => $file_name });
+        if( $subdocs) { $include->set_att( subdocs => 1); }
+      }
     else
-      { my $subdocs= $state->{elt}->att( '#has_subdocs') || 0;
-        my $include=	XML::Twig::Elt->new( '#PI')
+      { 
+        $include=	XML::Twig::Elt->new( '#PI')
                                     ->set_pi( merge => " subdocs = $subdocs :$file_name");
       }
     return $include;
@@ -362,6 +367,11 @@ extension to use for generated files
 
 defaults to the original file extension or C<.xml>
 
+=item -i
+
+use XInclude elements instead of Processing Instructions to mark where
+sub files need to be included
+
 =item -v
 
 verbose output
@@ -413,7 +423,7 @@ improve performances.
 
 =item provide other methods that PIs to keep merge information
 
-XInclude is a good candidate.
+XInclude is a good candidate (alpha support added in 0.04).
 
 using entities, which would seem the natural way to do it,
 doesn't work, as they make it impossible to have both the main document

@@ -45,6 +45,8 @@ my @options= ( { },
                { keyattr => {server => '-name' } },
                { normalize_space => 1 },
                { normalise_space => 2 },
+               { group_tags => { f1_ar => 'f1' } },
+               { group_tags => { f1_ar => 'f1', f2_ar => 'f2'} },
              );
 
 plan( tests => @options * @doc);
@@ -55,12 +57,15 @@ foreach my $doc (@doc)
   { foreach my $options (@options)
       { (my $options_text= Dumper( $options))=~ s{\s*\n\s*}{ }g;
         $options_text=~ s{^\$VAR1 = }{};
+
+        my( $options_twig, $options_simple)= UNIVERSAL::isa( $options, 'ARRAY') ?
+                                             @$options : ($options, $options);
+        
         my $t        = XML::Twig->new->parse( $doc);
-        my $twig     = $t->root->simplify( %$options);
+        my $twig     = $t->root->simplify( %$options_twig);
         my $doc_name = $t->root->att( 'doc');
-        my %simple_options= %$options;
-        delete $simple_options{var_regexp};
-        my $simple   = XMLin( $doc, %simple_options); 
+        delete $options_simple->{var_regexp};
+        my $simple   = XMLin( $doc, %$options_simple); 
         my $res=is_deeply( $twig, $simple, "doc: $doc_name - options: $options_text" . Dump( {twig => $twig, simple => $simple}));
         exit unless( $res);
       }
@@ -105,3 +110,7 @@ __DATA__
   </item>
 </doc>
 
+<doc>
+  <f1_ar><f1>f1 1</f1><f1>f1 2</f1></f1_ar>
+  <f2_ar><f2>f2 1</f2><f2>f2 2</f2></f2_ar>
+</doc>

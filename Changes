@@ -1,6 +1,83 @@
-$Id: Changes,v 1.60 2005/03/16 14:03:52 mrodrigu Exp $
+$Id: Changes,v 1.73 2005/08/04 21:10:15 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.18
+
+      added a fix to deal with a bug in XML::Parser in the
+      original_string method when used in CDATA sections
+      longer than 1024 chars (RT # 14008) thanks to Dan 
+      Dascalescu for spotting the bug and providing a test 
+      case.
+
+      added better error diagnostics when the wrong arguments
+      are used in paste
+
+      fixed a bug in subs_text when the text of an element
+      included \n (RT #13665) spotted by Dan Dascalescu
+
+      cleaned up the behaviour of erase when the element
+      being erased has extra_data (comments or pis) attached
+
+      fixed a bug in subs_text that sometimes messed up text
+      after the matching text
+
+      fixed the erase/group_tags option of simplify to make
+      it exactly similar to XML::Simple's
+
+      fixed a bug that caused XML::Twig to crash when ignore
+      was used with twig_roots (RT #13382) spotted by Larry 
+      Siden
+
+      fixed bug in xml_split with default entities (they
+      ended up being doubly escaped)
+
+      fixed various bugs when dealing with ids (changing
+      existing ids, setting the attribute directly...)
+
+      mark and split now accepts several tags/ as arguments, 
+      so you can write for example:
+        $elt->mark( qr/^(\w+): (.*)$/, 'dt', 'dd');
+      
+
+      added XML::Twig::Elt children_trimmed_text method,
+      patch sent by ambrus (RT #12510)
+
+      changed children_text and children_trimmed_text to
+      have them return the entire text in scalar context
+
+      fixed bug that caused XML::Twig not to play nice with
+      XML::Xerces (due to improper import of UNIVERSAL::isa)
+      spotted and patched by Colin Robertson.
+
+      removed most references to 'gi' in the docs, replaced 
+      them by tag. I guess Robin Berjon's relentless teasing
+      is to be credited with this one.
+
+      added tag_regexp condition on handlers (a regexp instead
+      of a regular condition will trigger the handler if the
+      tag matches), suggested by Franck Porcher, implementation
+      helped by a few Perl Monks 
+      (http://perlmonks.org/index.pl?node_id=445677).
+
+      fixed typos in xml_split (RT #11911 and #11911),
+      reported by Alexey Tourbin
+
+      added tests for xml_split and xml_merge and fixed
+      a few bugs in the process
+
+      added the -i option to xml_split and xml_merge,
+      that use XInclude instead of PIs (preliminary
+      support, the XInclude namespace is not declared
+      for example).
+
+			Added the XML::Twig and XML::Twig::Elt trim method
+			that trims an element in-place
+
+			Added the XML::Twig last_elt method and the XML::Twig::Elt
+			last_descendant method
+
+      Added more tests
 
 Changes in 3.17
 

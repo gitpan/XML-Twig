@@ -1,4 +1,4 @@
-# $Id: XPath.pm,v 1.14 2004/04/05 21:08:20 mrodrigu Exp $
+# $Id: XPath.pm,v 1.15 2005/07/05 10:47:19 mrodrigu Exp $
 package XML::Twig::XPath;
 use XML::Twig;
 use XML::XPath;
@@ -107,7 +107,9 @@ sub node_cmp($$)
   }
 
 sub getParentNode
-  { return $_[0]->_parent || $_[0]->twig; }
+  { return $_[0]->_parent 
+        || $_[0]->twig;
+  }
 	
 sub findnodes           { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findnodes(           $path, $elt); }
 sub findnodes_as_string { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findnodes_as_string( $path, $elt); }
