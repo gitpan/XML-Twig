@@ -1,11 +1,15 @@
 #!/bin/perl -w
 
-# $Id: test_mark.t,v 1.1 2004/06/28 14:11:20 mrodrigu Exp $
+# $Id: test_mark.t,v 1.2 2005/08/10 09:32:33 mrodrigu Exp $
 
 # test the mark method
 
 use strict;
 use Carp;
+
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
 #$|=1;
 my $DEBUG=0;
@@ -32,31 +36,6 @@ foreach my $test (@data)
 
 
 exit 0;
-
-
-############################################################################
-# tools                                                                    #
-  
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my( $got, $expected, $message) = @_;
-      $test_nb++; 
-
-      if( $expected eq $got) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else 
-        { print "not ok $test_nb\n"; 
-          if( length( $expected) > 20)
-            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-          else
-            { warn "$message: expected '$expected', got '$got'\n"; }
-        }
-    }
-}
 
 # doc										regexp				elts	hits	result
 __DATA__

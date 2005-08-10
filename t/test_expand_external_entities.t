@@ -3,6 +3,10 @@
 use strict;
 use Carp;
 
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
+
 $|=1;
 
 use XML::Twig;
@@ -50,56 +54,3 @@ is( normalize_xml( $t->sprint), normalize_xml( $xml_no_dtd), "expanded document"
 }
 
 exit 0;
-
-
-############################################################################
-# tools                                                                    #
-  
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my $got     = shift; my $expected= shift; my $message = shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( $expected eq $got) { print "ok $test_nb\n"; }
-      else { print "not ok $test_nb\n"; 
-             if( length( $expected) > 20)
-               { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-             else
-               { warn "$message: expected '$expected', got '$got'\n"; }
-           }
-    }
-
-  sub ok
-    { my $cond   = shift; my $message=shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( $cond) { print "ok $test_nb\n"; }
-      else { print "not ok $test_nb\n"; warn "$message: false\n"; }
-    }
-
-  sub nok
-    { my $cond   = shift; my $message=shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( !$cond) { print "ok $test_nb\n"; }
-      else { print "not ok $test_nb\n"; warn "$message: true (should be false)\n"; }
-    }
-
-  sub skip
-    { my( $nb_skip, $message)= @_;
-      warn "$message: skipping $nb_skip tests\n";
-      for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
-        { print "ok $test\n"; }
-    }
-}
-
-sub normalize_xml
-  { my $xml= shift;
-    $xml=~ s{\n}{}g;
-    $xml=~ s{'}{"}g; #'
-    $xml=~ s{ />}{/>}g;
-    return $xml;
-  }
-

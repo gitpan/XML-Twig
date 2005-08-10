@@ -1,6 +1,14 @@
-$Id: Changes,v 1.73 2005/08/04 21:10:15 mrodrigu Exp $
+$Id: Changes,v 1.75 2005/08/10 14:48:37 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.19
+
+      redid the fix to RT # 14008, this one should be ok
+
+      restructured tests
+
+      added the _dump method (probably not finished)
 
 Changes in 3.18
 

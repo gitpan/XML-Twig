@@ -97,6 +97,7 @@ t/test_need_io_scalar.t
 t/test_need_use_bytes.t
 t/test_bugs_3.15.t
 t/test_bugs_3.18.t
+t/test_bugs_3.19.t
 t/test_new_features_3.15.t
 t/test_new_features_3.16.t
 t/test_new_features_3.18.t
@@ -149,6 +150,6 @@ t/test_xml_split/test_xml_split_expected-7-02.xml
 t/test_xml_split/test_xml_split_expected-8-00.xml
 t/test_xml_split/test_xml_split_expected-8-01.xml
 t/test_xml_split/test_xml_split_expected-8-02.xml
-
+t/tools.pm
 t/zz_dump_config.t
 META.yml                                Module meta-data (added by MakeMaker)

@@ -1,8 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_xml_split.t,v 1.6 2005/08/05 13:15:59 mrodrigu Exp $
+# $Id: test_xml_split.t,v 1.7 2005/08/10 09:32:33 mrodrigu Exp $
 use Carp;
+
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
 my $DEBUG=0;
 
@@ -90,105 +94,4 @@ sub systemq
       }
   }
 
-
-############################################################################
-# tools                                                                    #
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my( $got, $expected, $message) = @_;
-      $test_nb++; 
-
-      if( $expected eq $got) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else 
-        { print "not ok $test_nb\n"; 
-          if( length( $expected) > 20)
-            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-          else
-            { warn "$message: expected '$expected', got '$got'\n"; }
-        }
-    }
-
-  sub matches
-    { my $got     = shift; my $expected_regexp= shift; my $message = shift;
-      $test_nb++; 
-
-      if( $got=~ /$expected_regexp/) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; 
-             warn "$message: expected to match /$expected_regexp/, got '$got'\n";
-           }
-    }
-
-  sub ok
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( $cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: false\n"; }
-    }
-    
-  sub sys_ok
-    { my $message=pop;
-      $test_nb++; 
-      my $status= system join " ", @_, "2>/dev/null";
-      if( !$status)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: $!\n"; }
-
-    }
-
-
-  sub nok
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( !$cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: true (should be false): '$cond'\n"; }
-    }
-
-  sub is_undef
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( ! defined( $cond)) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message is defined: '$cond'\n"; }
-    }
-
-
-my %seen_message;
-  sub skip
-    { my( $nb_skip, $message)= @_;
-      $message ||='';
-      unless( $seen_message{$message})
-        { warn "$message: skipping $nb_skip tests\n";
-          $seen_message{$message}++;
-        }
-      for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
-        { print "ok $test\n";
-          warn "skipping $test ($message)\n" if( $DEBUG); 
-        }
-      $test_nb= $test_nb + $nb_skip;
-    }
-}
-
-sub tags { return join ':', map { $_->gi } @_ }
-sub ids  { return join ':', map { $_->att( 'id') || '<' . $_->gi . ':no_id>' } @_ }
 

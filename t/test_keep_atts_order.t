@@ -1,15 +1,19 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_keep_atts_order.t,v 1.2 2004/03/26 16:30:40 mrodrigu Exp $
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
-use Test::More qw(no_plan);
+# $Id: test_keep_atts_order.t,v 1.3 2005/08/10 09:32:33 mrodrigu Exp $
+
 use XML::Twig;
 
-SKIP: 
+print "1..7\n";
+
   { 
     if( eval 'require Tie::IxHash') { import Tie::IxHash; }
-    else { skip( "Tie::IxHash not available, option  keep_atts_order not allowed", 4); }
+    else { skip( "Tie::IxHash not available, option  keep_atts_order not allowed", 7); }
 
     my $nb_elt=10;
     my $doc= gen_doc( $nb_elt);

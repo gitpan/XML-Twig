@@ -1,12 +1,16 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_bugs_3.18.t,v 1.20 2005/08/05 10:15:21 mrodrigu Exp $
+# $Id: test_bugs_3.18.t,v 1.22 2005/08/10 09:32:33 mrodrigu Exp $
 
 use strict;
 use Carp;
 
-#$|=1;
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
+
+$|=1;
 my $DEBUG=0;
 
 use XML::Twig;
@@ -579,121 +583,3 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
       
       
       
-
-############################################################################
-# tools                                                                    #
-############################################################################
-
-{ my $test_nb;
-  BEGIN { $test_nb=0; }
-  sub is
-    { my( $got, $expected, $message) = @_;
-      $test_nb++; 
-
-      if( $expected eq $got) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else 
-        { print "not ok $test_nb\n"; 
-          if( length( $expected) > 20)
-            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-          else
-            { warn "$message: expected '$expected', got '$got'\n"; }
-        }
-    }
-
-  sub matches
-    { my $got     = shift; my $expected_regexp= shift; my $message = shift;
-      $test_nb++; 
-
-      if( $got=~ /$expected_regexp/) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; 
-             warn "$message: expected to match /$expected_regexp/, got '$got'\n";
-           }
-    }
-
-  sub ok
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( $cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: false\n"; }
-    }
-
-  sub nok
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( !$cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: true (should be false): '$cond'\n"; }
-    }
-
-  sub is_undef
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( ! defined( $cond)) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message is defined: '$cond'\n"; }
-    }
-
-  sub is_like
-    { my( $got, $expected, $message) = @_;
-      $test_nb++; 
-
-      if( clean_sp( $expected) eq clean_sp( $got)) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else 
-        { print "not ok $test_nb\n"; 
-          if( length( $expected) > 20)
-            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-          else
-            { warn "$message: expected '$expected', got '$got'\n"; }
-          warn "compact expected: ", clean_sp( $expected), "\n",
-               "compact got:      ", clean_sp( $got), "\n";  
-        }
-    }
-
-
-my %seen_message;
-  sub skip
-    { my( $nb_skip, $message)= @_;
-      $message ||='';
-      unless( $seen_message{$message})
-        { warn "\n$message: skipping $nb_skip tests\n";
-          $seen_message{$message}++;
-        }
-      for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
-        { print "ok $test\n";
-          warn "skipping $test ($message)\n" if( $DEBUG); 
-        }
-      $test_nb= $test_nb + $nb_skip;
-    }
-}
-
-sub tags { return join ':', map { $_->gi } @_ }
-sub ids  { return join ':', map { $_->att( 'id') || '<' . $_->gi . ':no_id>' } @_ }
-sub id_list { my $list= join( "-", sort keys %{$_[0]->{twig_id_list}});
-              if( !defined $list) { $list= ''; }
-							return $list;
-            } 
-sub id { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
-         return $elt->att( $_[0]->{twig_id});
-		   }
-
-sub clean_sp
-  { my $str= shift; $str=~ s{\s+}{}g; return $str; }

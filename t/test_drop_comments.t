@@ -1,5 +1,10 @@
 #!/usr/local/bin/perl -w
 use strict;
+
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
+
 use XML::Twig;
 
 print "1..3\n";
@@ -35,44 +40,3 @@ XML_TEST
     $twig3->dispose;
 }
 exit 0;
-
-
-############################################################################
-# tools                                                                    #
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my $got     = shift; my $expected= shift; my $message = shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( $expected eq $got) { print "ok $test_nb\n"; }
-      else { print "not ok $test_nb\n"; warn "$message: expected '$expected', got '$got'\n"; }
-    }
-
-  sub ok
-    { my $cond   = shift; my $message=shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( $cond) { print "ok $test_nb\n"; }
-      else { print "not ok $test_nb\n"; warn "$message: false\n"; }
-    }
-
-  sub skip
-    { my( $nb_skip, $message)= @_;
-      warn "$message: skipping $nb_skip tests\n";
-      for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
-        { print "ok $test\n"; }
-    }
-}
-
-{
-my $warning_handler;
-sub warnings_off
-  { $warning_handler= $SIG{__WARN__};
-    $SIG{__WARN__} = sub { };
-  }
-sub warnings_on
-  { $SIG{__WARN__}= $warning_handler if( $warning_handler);
-  }
-}

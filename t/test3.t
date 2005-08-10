@@ -3,6 +3,10 @@
 use strict;
 
 
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
+
 # This just tests a complete twig, no callbacks
 # additional tests for element creation/parse and 
 # space policy
@@ -80,10 +84,10 @@ sttest( $p13, "<doc>\n<p>para</p>\n<p>\n</p>\n</doc>", 'KeepSpaces');
 
 my $p14= XML::Twig::Elt->parse( $string2);
 my $is_pcdata= $p14->is_pcdata;
-test( $is_pcdata ? 0 : 1, "is_pcdata on a <para>");
+ok( $is_pcdata ? 0 : 1, "is_pcdata on a <para>");
 my $pcdata= $p14->first_child( PCDATA);
 $is_pcdata=  $pcdata->is_pcdata;
-test( $pcdata->is_pcdata, "is_pcdata on PCDATA");
+ok( $pcdata->is_pcdata, "is_pcdata on PCDATA");
 
 my $erase_string='<?xml version="1.0"?><doc><elt id="elt1"><selt id="selt1"
 >text 1</selt><selt id="selt2"><selt id="selt3"> text 2</selt></selt
@@ -104,89 +108,3 @@ stest( $pcdata, $br_pcdata, "multi-line pcdata");
 
 exit 0;
 
-##################################################################################
-# test functions
-##################################################################################
-
-# element test
-sub etest 
-  { my ($elt, $gi, $id, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned";
-        return;
-      }
-    if( ($elt->gi eq $gi) && ($elt->att( 'id') eq $id))
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    warn "         -- expecting ", $gi, " ", $id, "\n";
-    warn "         -- found     ", $elt->gi, " ", $elt->id, "\n";
-    return $elt;
-  }
-
-# element text test
-sub ttest
-  { my ($elt, $text, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned ";
-        return;
-      }
-    if( $elt->text eq $text)
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    warn "          expecting ", $text, "\n";
-    warn "          found     ", $elt->text, "\n";
-    return $elt;
-  }
-
-# element string test
-sub sttest
-  { my ($elt, $text, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned ";
-        return;
-      }
-    if( $elt->sprint eq $text)
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    warn "          expecting ", $text, "\n";
-    warn "          found     ", $elt->sprint, "\n";
-    return $elt;
-  }
-
-# testing if the result is a  strings
-sub stest
-  { my ($result, $expected, $message)= @_;
-    $i++;
-    if( $result eq $expected)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n    -- $message\n";  
-        warn "          expecting ", $expected, "\n";
-         warn"          found     ", $result, "\n";
-      }
-  }
-sub test
-  { my ($result, $message)= @_;
-    $i++;
-    if( $result)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n";
-        warn "  $message\n"; }
-  }
-
-
-sub stringify
-  { return join ":", @_; }

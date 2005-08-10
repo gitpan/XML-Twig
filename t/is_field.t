@@ -6,7 +6,6 @@ use XML::Twig;
 $|=1;
 
 my $i=1;
-my $failed=0;
 
 my $TMAX=43; # do not forget to update!
 

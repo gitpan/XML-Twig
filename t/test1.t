@@ -1,10 +1,13 @@
 #!/bin/perl -w
 
-# $Id: test1.t,v 1.3 2004/03/26 16:30:40 mrodrigu Exp $
+# $Id: test1.t,v 1.4 2005/08/10 09:32:33 mrodrigu Exp $
 
 use strict;
 use Carp;
 
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
 # This just tests a complete twig, no callbacks
 
@@ -50,20 +53,17 @@ my $doc='<?xml version="1.0" standalone="no"?>
 </doc>';
 
 
-my $i=0;
-my $failed=0;
-
 my $TMAX=97; # don't forget to update!
 
 print "1..$TMAX\n";
 
 # test twig creation
 my $t= new XML::Twig();
-test( $t, 'twig creation');
+ok( $t, 'twig creation');
 
 # test parse
 $t->parse( $doc, ErrorContext=>2);
-test( $t, 'parse');
+ok( $t, 'parse');
 
 # test the root
 my $root= $t->root;
@@ -77,10 +77,10 @@ $root->print();
 select STDOUT;
 $t->print( \*TMP);
 $root->print( \*TMP);
-test( 'ok', "print");
+ok( 'ok', "print");
 
 # test the element root and twig functions on the root
-test( $root->twig, 'root->twig');
+ok( $root->twig, 'root->twig');
 etest( $root->root, 
       'doc', 'doc1', 'root->root');
 
@@ -109,7 +109,7 @@ etest( $root->next_elt( 'note'),
       'note', 'note1', 'next_elt( note)');
 etest( $note->root,
       'doc', 'doc1', 'root');
-test( $note->twig, 'twig');
+ok( $note->twig, 'twig');
 etest( $note->twig->root,
       'doc', 'doc1', 'twig->root');
 
@@ -135,12 +135,12 @@ etest( $para2->next_sibling( 'para'),
           'para', 'para3', 'next_sibling( para)');
 
 # testing in/parent/in_context
-test( $paranote1->in( $note), 'in');
-test( $paranote1->in( $section1), 'in');
-test( !$paranote1->in( $section2), 'not in');
-test( $paranote1->in_context( 'note'), 'in_context');
-test( $paranote1->in_context( 'section'), 'in_context');
-test( !$paranote1->in_context( 'intro'), 'not in_context');
+ok( $paranote1->in( $note), 'in');
+ok( $paranote1->in( $section1), 'in');
+ok( !$paranote1->in( $section2), 'not in');
+ok( $paranote1->in_context( 'note'), 'in_context');
+ok( $paranote1->in_context( 'section'), 'in_context');
+ok( !$paranote1->in_context( 'intro'), 'not in_context');
 etest( $paranote1->parent,
           'note', 'note1', 'parent');
 
@@ -366,103 +366,5 @@ sttest( $t6->root,'<doc>p1:<el1>p2:text</el1><el2>p3:more text</el2></doc>',
         "prefix pcdata"); 
 
 exit 0;
+__END__
 
-##################################################################################
-# test functions
-##################################################################################
-
-# element test
-sub etest 
-  { my ($elt, $gi, $id, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        carp "         -- no element returned";
-        return;
-      }
-    if( ($elt->tag eq $gi) && ($elt->att( 'id') eq $id))
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    carp "         -- expecting ", $gi, " ", $id, "\n";
-    carp "         -- found     ", $elt->tag, " ", $elt->id, "\n";
-    return $elt;
-  }
-
-# element text test
-sub ttest
-  { my ($elt, $text, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        carp "         -- no element returned ";
-        return;
-      }
-    if( $elt->text eq $text)
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    carp "          expecting ", $text, "\n";
-    carp "          found     ", $elt->text, "\n";
-    return $elt;
-  }
-
-# testing if the result is a  strings
-sub stest
-  { my ($result, $expected, $message)= @_;
-   $result ||='';
-   $expected ||='';
-    $i++;
-    if( $result eq $expected)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n    -- $message\n";  
-        carp "          expecting ", $expected, "\n";
-         carp"          found     ", $result, "\n";
-      }
-  }
-
-
-# element sprint test
-sub sttest
-  { my ($elt, $text, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        carp "         -- no element returned ";
-        return;
-      }
-    if( $elt->sprint eq $text)
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    carp "          expecting ", $text, "\n";
-    carp "          found     ", $elt->sprint, "\n";
-    return $elt;
-  }
-
-
-sub test
-  { my ($result, $message)= @_;
-    $i++;
-    if( $result)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n";
-        carp "  $message\n"; }
-  }
-
-
-sub stringifyh
-  { my %h= @_;
-    return '' unless @_; 
-    return join ':', map { "$_:$h{$_}"} sort keys %h; 
-  }
-
-sub stringify
-  { return '' unless @_; 
-    return join ":", @_; 
-  }

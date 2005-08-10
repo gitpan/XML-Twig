@@ -3,6 +3,10 @@
 use strict;
 use Carp;
 
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
+
 
 $|=1;
 
@@ -71,35 +75,6 @@ ok( $@=~ m{^no element found}, "not well-formed, error message");
 }
 
 exit 0;
-
-############################################################################
-# tools                                                                    #
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my $got     = shift; my $expected= shift; my $message = shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( $expected eq $got) { print "ok $test_nb\n"; }
-      else { print "not ok $test_nb\n"; warn "$message: expected '$expected', got '$got'\n"; }
-    }
-
-  sub ok
-    { my $cond   = shift; my $message=shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( $cond) { print "ok $test_nb\n"; }
-      else { print "not ok $test_nb\n"; warn "$message: false\n"; }
-    }
-
-  sub skip
-    { my( $nb_skip, $message)= @_;
-      warn "$message: skipping $nb_skip tests\n";
-      for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
-        { print "ok $test\n"; }
-    }
-}
 
 {
 my $warning_handler;

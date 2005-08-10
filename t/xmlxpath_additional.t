@@ -1,6 +1,10 @@
-# $Id: xmlxpath_additional.t,v 1.13 2005/07/05 10:47:19 mrodrigu Exp $
+# $Id: xmlxpath_additional.t,v 1.14 2005/08/10 09:32:33 mrodrigu Exp $
 
 use strict;
+
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
 BEGIN 
   { if( eval( 'require XML::XPath'))
@@ -146,48 +150,4 @@ is( $back_to_root->gi, 'doc' , 'findnodes returning the root through the documen
 
 
 exit 0;
-
-############################################################################
-# tools                                                                    #
-  
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my $got     = shift; my $expected= shift; my $message = shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( $got eq $expected) { print "ok $test_nb\n"; }
-      else { print "nok $test_nb\n"; 
-             if( length( $expected) > 20)
-               { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-             else
-               { warn "$message: expected '$expected', got '$got'\n"; }
-           }
-    }
-
-  sub ok
-    { my $cond   = shift; my $message=shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( $cond) { print "ok $test_nb\n"; }
-      else { print "nok $test_nb\n"; warn "$message: false\n"; }
-    }
-
-  sub nok
-    { my $cond   = shift; my $message=shift;
-      if( defined $_[0]) { $test_nb= shift; } else { $test_nb++; } 
-
-      if( !$cond) { print "ok $test_nb\n"; }
-      else { print "nok $test_nb\n"; warn "$message: true (should be false)\n"; }
-    }
-
-  sub skip
-    { my( $nb_skip, $message)= @_;
-      warn "$message: skipping $nb_skip tests\n";
-      for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
-        { print "ok $test\n"; }
-      $test_nb+= $nb_skip;
-    }
-}
 

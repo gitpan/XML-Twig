@@ -1,11 +1,15 @@
 #!/bin/perl -w
 
-# $Id: test_additional.t,v 1.133 2005/08/05 10:15:21 mrodrigu Exp $
+# $Id: test_additional.t,v 1.134 2005/08/10 09:32:33 mrodrigu Exp $
 
 # test designed to improve coverage of the module
 
 use strict;
 use Carp;
+
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
 $|=1;
 my $DEBUG=0;
@@ -1242,16 +1246,6 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
     }
 }
 
-sub xml_escape
-  { my $string= shift;
-    #$string=~ s{&}{&amp;}g;
-    $string=~ s{<}{&lt;}g;
-    $string=~ s{>}{&gt;}g;
-    $string=~ s{"}{&quot;}g; #"
-    $string=~ s{'}{&apos;}g; #'
-    return $string;
-  }
-
 # test SAX1 export
 { eval "require XML::Handler::YAWriter";
   if( $@)
@@ -1358,14 +1352,6 @@ sub xml_escape
  
     }
 }
-
-sub normalize_xml
-  { my $xml= shift;
-    $xml=~ s{\n}{}g;
-    $xml=~ s{'}{"}g; #'
-    $xml=~ s{ />}{/>}g;
-    return $xml;
-  }
 
 # test flushed an twig_current status (not a very good test, but the methods are not used in practice)
 { my $t= XML::Twig->new->parse( '<doc />');
@@ -1504,16 +1490,6 @@ package main;
   is( $t->entity_list->text, $ent_text, 'entity_list (one entity deleted)');# test 388
 
 }
-
-sub hash_ent_text
-  { my %ents= @_;
-    return map { $_ => "<!ENTITY $_ $ents{$_}>" } keys %ents;
-  }
-sub string_ent_text
-  { my %ents= @_;
-    my %hash_ent_text= hash_ent_text( %ents);
-    return join( '', map { $hash_ent_text{$_} } sort keys %hash_ent_text);
-  }
 
 {
   if( $perl < 5.008)  
@@ -2678,93 +2654,3 @@ my $expected_s2= q{<sub id="s2"><sub>text 1</sub><sub>text 2</sub></sub>};
 } 
 
 exit 0;
-
-
-############################################################################
-# tools                                                                    #
-  
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my( $got, $expected, $message) = @_;
-      $test_nb++; 
-
-      if( $expected eq $got) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else 
-        { print "not ok $test_nb\n"; 
-          if( length( $expected) > 20)
-            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-          else
-            { warn "$message: expected '$expected', got '$got'\n"; }
-        }
-    }
-
-  sub matches
-    { my $got     = shift; my $expected_regexp= shift; my $message = shift;
-      $test_nb++; 
-
-      if( $got=~ /$expected_regexp/) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; 
-             warn "$message: expected to match /$expected_regexp/, got '$got'\n";
-           }
-    }
-
-  sub ok
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( $cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: false\n"; }
-    }
-
-  sub nok
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( !$cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: true (should be false): '$cond'\n"; }
-    }
-
-  sub is_undef
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( ! defined( $cond)) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message is defined: '$cond'\n"; }
-    }
-
-
-my %seen_message;
-  sub skip
-    { my( $nb_skip, $message)= @_;
-      $message ||='';
-      unless( $seen_message{$message})
-        { warn "\n$message: skipping $nb_skip tests\n";
-          $seen_message{$message}++;
-        }
-      for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
-        { print "ok $test\n";
-          warn "skipping $test ($message)\n" if( $DEBUG); 
-        }
-      $test_nb= $test_nb + $nb_skip;
-    }
-}
-
-sub tags { return join ':', map { $_->gi } @_ }
-sub ids  { return join ':', map { $_->att( 'id') || '<' . $_->gi . ':no_id>' } @_ }

@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.229 2005/08/05 10:15:21 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.233 2005/08/10 16:10:12 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -82,7 +82,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.18';
+$VERSION = '3.19';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -1715,7 +1715,7 @@ sub _twig_char
 
     # if keep_encoding was set then use the original string instead of
     # the parsed (UTF-8 converted) one
-    if( $t->{twig_keep_encoding})
+    if( $t->{twig_keep_encoding} && !$t->{twig_in_cdata})
       { $string= $p->original_string(); }
 
     if( $t->{twig_input_filter})
@@ -1727,9 +1727,8 @@ sub _twig_char
     my $elt= $t->{twig_current};
 
     if(    $t->{twig_in_cdata})
-      { # text is the continuation of a previously created pcdata
-        $elt->{cdata}.=  $t->{twig_stored_spaces}.$string
-          unless( $t->{twig_keep_encoding} && $elt->{cdata}) ; # fixes a bug in XML::Parser for long CDATA
+      { # text is the continuation of a previously created cdata
+        $elt->{cdata}.=  $t->{twig_stored_spaces} . $string;
       } 
     elsif( $t->{twig_in_pcdata})
       { # text is the continuation of a previously created cdata
@@ -1766,7 +1765,6 @@ sub _twig_char
           }
       }
   }
-
 
 sub _twig_cdatastart
   { 
@@ -1832,6 +1830,8 @@ sub _twig_cdataend
     $elt= $elt->{parent};
     $t->{twig_current}= $elt;
     $elt->{'twig_current'}=1;
+
+    $t->{twig_long_cdata}=0;
   }
 
 sub _twig_pi
@@ -3539,6 +3539,17 @@ sub getRootNode        { return $_[0]; }
 sub getParentNode      { return undef; }
 sub getChildNodes      { my @children= ($_[0]->root); return wantarray ? @children : \@children; }
 
+
+sub _dump
+  { my $t= shift;
+    my $dump='';
+
+    $dump="document\n"; # should dump twig level data here
+    $dump .= $t->root->_dump( @_) if( $t->root);
+
+    return $dump;
+    
+  }
 
 1;
 
@@ -7678,6 +7689,51 @@ sub cmp
     
 #end-extract twig_node
 
+sub _dump
+  { my( $elt, $option)= @_; 
+  
+    my $atts       = defined $option->{atts}       ? $option->{atts}       :  1;
+    my $extra      = defined $option->{extra}      ? $option->{extra}      :  0;
+    my $short_text = defined $option->{short_text} ? $option->{short_text} : 40;
+
+    my $sp= '| ';
+    my $indent= $sp x $elt->level;
+    my $indent_sp= '  ' x $elt->level;
+    
+    my $dump='';
+    if( $elt->is_elt)
+      { if( $extra && $elt->extra_data)
+          { my $extra_data = $indent . "|- (not a node) '" . $elt->extra_data;
+            $extra_data=~ s{\n}{$indent_sp}g;
+            $dump .= $extra_data . "\n";
+          }
+          
+        $dump .= $indent  . '|-' . $XML::Twig::index2gi[$elt->{'gi'}];
+        
+        if( $atts && (my @atts= $elt->att_names) )
+          { $dump .= ' ' . join( ' ', map { qq{$_="} . $elt->{'att'}->{$_} . qq{"} } @atts); }
+
+        $dump .= "\n";
+        $dump .= join( "", map { $_->_dump( $option) } $elt->children);
+      }
+    elsif( (exists $elt->{'pcdata'}))
+      { $dump .= "$indent|-PCDATA:  '" . _short_text( $elt->{pcdata}, $short_text) . "'\n" }
+    elsif( (exists $elt->{'cdata'}))
+      { $dump .= "$indent|-CDATA:   '" . _short_text( $elt->{cdata}, $short_text) . "'\n" }
+    elsif( (exists $elt->{'comment'}))
+      { $dump .= "$indent|-COMMENT: '" . _short_text( $elt->comment_string, $short_text) . "'\n" }
+    elsif( (exists $elt->{'target'}))
+      { $dump .= "$indent|-PI: '"      . $elt->{target} . "' - '" . _short_text( $elt->string, $short_text) . "\n" }
+    return $dump;
+  }
+
+sub _short_text
+  { my( $string, $length)= @_;
+    if( !$length || (length( $string) < $length) ) { return $string; }
+    my $l1= (length( $string) -5) /2;
+    my $l2= length( $string) - ($l1 + 5);
+    return substr( $string, 0, $l1) . ' ... ' . substr( $string, -$l2);
+  }
 1;
 
 __END__
@@ -7892,41 +7948,49 @@ This would convert prices in $ to prices in Euro in a document:
 
 =head2 XML::Twig and various versions of Perl, XML::Parser and expat:
 
-Before being uploaded to CPAN, XML::Twig 3.16 has been tested under the 
+Before being uploaded to CPAN, XML::Twig 3.19 has been tested under the 
 following environments:
 
 =over 4
 
 =item linux-x86
 
-perl 5.6.2 to 5.9.1, expat 1.95.2 to 1.95.7, XML::Parser 2.31, 2.33 and 2.34
-perl 5.6.2, XML::Parser 2.27 (which comes with its own version of expat)
+perl 5.6.2, expat 1.95.8, XML::Parser 2.30, 2.31, 2.33 and 2.34
+perl 5.8.0, expat 1.95.8, XML::Parser 2.31, 2.33 and 2.34
+perl 5.8.7, expat 1.95.8, XML::Parser 2.31, 2.33 and 2.34
 
-=item Mac OS X (10.2/10.3)
+=item Mac OS X (10.3)
 
-Mac OS X: same as linux-x86, plus perl 5.5.4
+perl 5.8.6, expat 1.95.8, XML::Parser 2.34
 
 =item Solaris
 
 perl 5.6.1, expat 1.95.2, XML::Parser 2.31
 
-=item Windows 98
-
-perl 5.6.1 (Activestate build 635), XML::Parser 2.27
-perl 5.8.2 (Activestate build 808), XML::Parser 2.34
-
-Note that with Windows 98 and Perl 5.6.1 C<nmake> may freeze while trying to copy
-the tools (xml_grep, xml_print and xml_spellcheck), so you have to answer no 
-when asked if you want to install them.
-
 =back
 
-See L<http://testers.cpan.org/search?request=dist&dist=XML-Twig> for the
-CPAN testers reports on XML::Twig
+XML::Twig is a lot more sensitive to variations in versions of perl, 
+XML::Parser and expat than to the OS, so this should cover most of
+the reasonable configurations.
 
-XML::Twig does B<NOT> work with expat 1.95.4
-XML::Twig only works with XML::Parser 2.27 in perl 5.6.*  
-XML::Parser 2.28 does not really work
+The "recommended configuration" is perl 5.8.3+ (for good Unicode
+support), XML::Parser 2.31+ and expat 1.95.5+
+
+See L<http://testers.cpan.org/search?request=dist&dist=XML-Twig> for the
+CPAN testers reports on XML::Twig, which list all tested configurations.
+
+Finally: 
+
+=over 4
+
+=item XML::Twig does B<NOT> work with expat 1.95.4
+  
+=item  XML::Twig only works with XML::Parser 2.27 in perl 5.6.*  
+
+Note that I can't compile XML::Parser 2.27 anymore, so I can't garantee 
+that it still works
+
+=item XML::Parser 2.28 does not really work
 
 When in doubt, upgrade expat, XML::Parser and Scalar::Util
 
@@ -8539,6 +8603,14 @@ This argument is set to true by default.
 
 If this optional argument is set to a true value then all spaces in the
 document are kept, and stored as C<PCDATA>.
+
+B<Warning>: adding this option can result in changes in the twig generated:
+space that was previously discarded might end up in a new text element. see
+the difference by calling the following code with 0 and 1 as arguments:
+
+  perl -MXML::Twig -e'print XML::Twig->new( keep_spaces => shift)->parse( "<d> \n<e/></d>")->_dump'
+
+
 C<keep_spaces> and C<discard_spaces> cannot be both set.
 
 =item discard_spaces_in
@@ -8558,6 +8630,9 @@ keep spaces in the elements listed.
 The syntax for using this argument is: 
 
   XML::Twig->new( keep_spaces_in => [ 'elt1', 'elt2']);
+
+B<Warning>: adding this option can result in changes in the twig generated:
+space that was previously discarded might end up in a new text element.
 
 =item pretty_print
 
@@ -11218,9 +11293,12 @@ C<keep_encoding> argument to C<< XML::Twig->new >>
 
 =item DTD handling
 
-Basically the DTD handling methods are competely bugged. No one uses them and
+The DTD handling methods are quite bugged. No one uses them and
 it seems very difficult to get them to work in all cases, including with 
 several slightly incompatible versions of XML::Parser and of libexpat.
+
+Basically you can read the DTD, output it back properly, and update entities,
+but not much more.
 
 So use XML::Twig with standalone documents, or with documents refering to an
 external DTD, but don't expect it to properly parse and even output back the
@@ -11240,8 +11318,7 @@ of Perl that supports it (>5.6.0) will get rid of the memory leaks automagically
 
 =item ID list
 
-The ID list is NOT updated when ID's are modified or elements cut or
-deleted.
+The ID list is NOT updated when elements are cut or deleted.
 
 =item change_gi
 
@@ -11263,7 +11340,7 @@ Only elements that belong to the document will be properly indented. Printing
 elements that do not belong to the twig makes it impossible for XML::Twig to 
 figure out their depth, and thus their indentation level.
 
-Also there is an anavoidable bug when using C<flush> and pretty printing for
+Also there is an unavoidable bug when using C<flush> and pretty printing for
 elements with mixed content that start with an embedded element:
 
   <elt><b>b</b>toto<b>bold</b></elt>

@@ -2,13 +2,13 @@
 
 use strict;
 
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
 $|=1;
 
 use XML::Twig;
-
-my $i=0;
-my $failed=0;
 
 my $TMAX=19; # do not forget to update!
 
@@ -206,95 +206,3 @@ else                 { print "not ok 19\n"; warn "\n$calls instead of 111\n"; }
 
 exit 0;
 
-##################################################################################
-# test functions
-##################################################################################
-
-# element test
-sub etest 
-  { my ($elt, $gi, $id, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned";
-        return;
-      }
-    if( ($elt->gi eq $gi) && ($elt->att( 'id') eq $id))
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    warn "         -- expecting ", $gi, " ", $id, "\n";
-    warn "         -- found     ", $elt->gi, " ", $elt->id, "\n";
-    return $elt;
-  }
-
-# element text test
-sub ttest
-  { my ($elt, $text, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned ";
-        return;
-      }
-    if( $elt->text eq $text)
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    warn "          expecting ", $text, "\n";
-    warn "          found     ", $elt->text, "\n";
-    return $elt;
-  }
-
-# element string test
-sub sttest
-  { my ($elt, $text, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        warn "         -- no element returned ";
-        return;
-      }
-    if( $elt->sprint eq $text)
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    warn "          expecting ", $text, "\n";
-    warn "          found     ", $elt->sprint, "\n";
-    return $elt;
-  }
-
-# testing if the result is a  strings
-sub stest
-  { my ($result, $expected, $message)= @_;
-    $i++;
-    if( $result eq $expected)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n    -- $message\n";  
-        warn "not ok $i\n    -- $message\n";  
-        warn "          expecting ", $expected, "\n";
-        warn "          found     ", $result, "\n";
-      }
-  }
-sub test
-  { my ($result, $message)= @_;
-    $i++;
-    if( $result)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n";
-        warn "  $message\n"; }
-  }
-
-
-sub stringify
-  { return join ":", @_; }
-
-sub hstringify
-  { my %hash= %{shift()};
-    return join ":", map { "$_:%hash{$_}"}  sort keys %hash; 
-  }

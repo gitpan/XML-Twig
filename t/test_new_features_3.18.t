@@ -1,9 +1,14 @@
 #!/usr/bin/perl -w
 use strict;
-use XML::Twig;
 
-# $Id: test_new_features_3.18.t,v 1.5 2005/05/03 21:59:56 mrodrigu Exp $
+# $Id: test_new_features_3.18.t,v 1.6 2005/08/10 09:32:33 mrodrigu Exp $
 use Carp;
+
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
+
+use XML::Twig;
 
 my $DEBUG=0;
 print "1..44\n";
@@ -103,43 +108,6 @@ print "1..44\n";
   is( join( ':', $t->root->children_text("e")), " hell : o, \n   world" , "children_text (list context)");
   $scalar= $t->root->children_text("e");
   is( $scalar, " hell  o, \n   world" , "children_text (scalar context)");
-}
-
-############################################################################
-# tools                                                                    #
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my( $got, $expected, $message) = @_;
-      $test_nb++; 
-
-      unless( defined $got){ $got = ''; }
-      unless( defined $expected){ $expected = ''; }
-
-      if( $expected eq $got) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else 
-        { print "not ok $test_nb\n"; 
-          if( length( $expected) > 20)
-            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-          else
-            { warn "$message: expected '$expected', got '$got'\n"; }
-        }
-    }
-    
-  sub is_undef
-    { my $cond   = shift; my $message=shift() || '';
-      $test_nb++; 
-
-      if( ! defined( $cond)) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message is defined: '$cond'\n"; }
-    }
 }
 
 

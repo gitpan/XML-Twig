@@ -1,15 +1,19 @@
 #!/bin/perl -w
 
-# $Id$
+# $Id: xmlxpath_test1.t,v 1.2 2005/08/10 14:48:38 mrodrigu Exp $
 
 use strict;
 use Carp;
+
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
 my $DEBUG=0;
 
 BEGIN 
   { if( eval( 'require XML::Twig::XPath'))
-      { import XML::Twig::XPath; require Test; import Test; plan( tests => 114); }
+      { import XML::Twig::XPath; print "1..114\n"; }
     else
       { print "1..1\nok 1\n"; warn "skipping: XML::XPath not available\n"; exit; }
   }
@@ -61,14 +65,14 @@ my $failed=0;
 
 # test twig creation
 my $t= XML::Twig::XPath->new;
-test( $t, 'twig creation');
+ok( $t, 'twig creation');
 
 # test parse
 $t->parse( $doc, ErrorContext=>2);
-test( $t, 'parse');
+ok( $t, 'parse');
 
-test( ($t->node_cmp( $t->root)  == -1), 'cmp twig to root');
-test( ($t->node_cmp( $t) == 0), 'cmp twig to root');
+ok( ($t->node_cmp( $t->root)  == -1), 'cmp twig to root');
+ok( ($t->node_cmp( $t) == 0), 'cmp twig to root');
 
 
 
@@ -84,10 +88,10 @@ $root->print();
 select STDOUT;
 $t->print( \*TMP);
 $root->print( \*TMP);
-test( 'ok', "print");
+ok( 'ok', "print");
 
 # test the element root and twig functions on the root
-test( $root->twig, 'root->twig');
+ok( $root->twig, 'root->twig');
 etest( $root->root, 
       'doc', 'doc1', 'root->root');
 
@@ -116,7 +120,7 @@ etest( $root->next_elt( 'note'),
       'note', 'note1', 'next_elt( note)');
 etest( $note->root,
       'doc', 'doc1', 'root');
-test( $note->twig, 'twig');
+ok( $note->twig, 'twig');
 etest( $note->twig->root,
       'doc', 'doc1', 'twig->root');
 
@@ -142,12 +146,12 @@ etest( $para2->next_sibling( 'para'),
           'para', 'para3', 'next_sibling( para)');
 
 # testing in/parent/in_context
-test( $paranote1->in( $note), 'in');
-test( $paranote1->in( $section1), 'in');
-test( !$paranote1->in( $section2), 'not in');
-test( $paranote1->in_context( 'note'), 'in_context');
-test( $paranote1->in_context( 'section'), 'in_context');
-test( !$paranote1->in_context( 'intro'), 'not in_context');
+ok( $paranote1->in( $note), 'in');
+ok( $paranote1->in( $section1), 'in');
+ok( !$paranote1->in( $section2), 'not in');
+ok( $paranote1->in_context( 'note'), 'in_context');
+ok( $paranote1->in_context( 'section'), 'in_context');
+ok( !$paranote1->in_context( 'intro'), 'not in_context');
 etest( $paranote1->parent,  # 30
           'note', 'note1', 'parent');
 
@@ -373,8 +377,8 @@ sttest( $t6->root,'<doc>p1:<el1>p2:text</el1><el2>p3:more text</el2></doc>',
         "prefix pcdata"); 
 
 is( $t6->node_cmp( 1), -1, "compare twig with scalar");
-my_ok( UNIVERSAL::isa( $t->root->getParentNode, 'XML::Twig::XPath'), 'getParentNode on the root');
-my_ok( UNIVERSAL::isa( $t->root->first_child->getParentNode, 'XML::Twig::XPath::Elt'), 'getParentNode on an elt');
+ok( UNIVERSAL::isa( $t->root->getParentNode, 'XML::Twig::XPath'), 'getParentNode on the root');
+ok( UNIVERSAL::isa( $t->root->first_child->getParentNode, 'XML::Twig::XPath::Elt'), 'getParentNode on an elt');
 eval '$t6->root->node_cmp( []);';
 matches( $@, "^unknown node type ", "compare elt with scalar");
 my $elt= XML::Twig::XPath::Elt->new( elt => { att1 => 1, att2 => 2 }, "99");
@@ -391,160 +395,7 @@ matches( $@, "^unknown node type ", "compare att with scalar");
 $elt->set_att( att3 => 3);
 my $att3= XML::Twig::XPath::Attribute->new( $elt => 'att3');
 is( $att1->node_cmp( $att3), -1, "attribute comparison");
-my_ok( $att2->to_number == 2, "to_number on att");
-my_ok( $elt->to_number == 99, "to_number on elt");
-
-
+ok( $att2->to_number == 2, "to_number on att");
+ok( $elt->to_number == 99, "to_number on elt");
 
 exit 0;
-
-
-##################################################################################
-# test functions
-##################################################################################
-
-# element test
-sub etest 
-  { my ($elt, $gi, $id, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        carp "         -- no element returned";
-        return;
-      }
-    if( ($elt->tag eq $gi) && ($elt->att( 'id') eq $id))
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    carp "         -- expecting ", $gi, " ", $id, "\n";
-    carp "         -- found     ", $elt->tag, " ", $elt->id, "\n";
-    return $elt;
-  }
-
-# element text test
-sub ttest
-  { my ($elt, $text, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        carp "         -- no element returned ";
-        return;
-      }
-    if( $elt->text eq $text)
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    carp "          expecting ", $text, "\n";
-    carp "          found     ", $elt->text, "\n";
-    return $elt;
-  }
-
-# testing if the result is a  strings
-sub stest
-  { my ($result, $expected, $message)= @_;
-   $result ||='';
-   $expected ||='';
-    $i++;
-    if( $result eq $expected)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n    -- $message\n";  
-        carp "          expecting ", $expected, "\n";
-         carp"          found     ", $result, "\n";
-      }
-  }
-
-
-# element sprint test
-sub sttest
-  { my ($elt, $text, $message)= @_;
-    $i++;
-    unless( $elt)
-      { print "not ok $i\n    -- $message\n";
-        carp "         -- no element returned ";
-        return;
-      }
-    if( $elt->sprint eq $text)
-      { print "ok $i\n"; 
-        return $elt;
-      }
-    print "not ok $i\n    -- $message\n";
-    carp "          expecting ", $text, "\n";
-    carp "          found     ", $elt->sprint, "\n";
-    return $elt;
-  }
-
-
-sub test
-  { my ($result, $message)= @_;
-    $i++;
-    if( $result)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n";
-        carp "  $message\n"; }
-  }
-
-sub matches
-  { my( $got, $expected_regexp, $message)= @_;
-    $i++; 
-
-    if( $got=~ /$expected_regexp/) { print "ok $i\n"; }
-    else { print "not ok $i\n"; 
-           warn "$message: expected to match /$expected_regexp/, got '$got'\n";
-         }
-  }
-
-sub stringifyh
-  { my %h= @_;
-    return '' unless @_; 
-    return join ':', map { "$_:$h{$_}"} sort keys %h; 
-  }
-
-sub stringify
-  { return '' unless @_; 
-    return join ":", @_; 
-  }
-
-  sub my_ok
-    { my $cond   = shift; my $message=shift;
-      $i++; 
-
-      if( $cond)
-        { print "ok $i\n"; 
-          warn "ok $i $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $i\n"; warn "$message: false\n"; }
-    }
-
-  sub nok
-    { my $cond   = shift; my $message=shift;
-      $i++; 
-
-      if( !$cond)
-        { print "ok $i\n"; 
-          warn "ok $i $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $i\n"; warn "$message: true (should be false): '$cond'\n"; }
-    }
-
-  sub is
-    { my( $got, $expected, $message) = @_;
-      $i++; 
-
-      if( $expected eq $got) 
-        { print "ok $i\n";
-          warn "ok $i $message\n" if( $DEBUG); 
-        }
-      else 
-        { print "not ok $i\n"; 
-          if( length( $expected) > 20)
-            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-          else
-            { warn "$message: expected '$expected', got '$got'\n"; }
-        }
-    }
-
-

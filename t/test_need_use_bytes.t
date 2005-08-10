@@ -6,6 +6,10 @@
 use strict;
 use Carp;
 
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
+
 #$|=1;
 my $DEBUG=0;
 
@@ -54,123 +58,3 @@ else
 
 
 exit 0;
-
-
-############################################################################
-# tools                                                                    #
-############################################################################
-
-{ my $test_nb;
-  sub is
-    { my( $got, $expected, $message) = @_;
-      $test_nb||=0; 
-      $test_nb++; 
-
-      if( $expected eq $got) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else 
-        { print "not ok $test_nb\n"; 
-          if( length( $expected) > 20)
-            { warn "$message:\nexpected: '$expected'\ngot     : '$got'\n"; }
-          else
-            { warn "$message: expected '$expected', got '$got'\n"; }
-        }
-    }
-
-  sub matches
-    { my $got     = shift; my $expected_regexp= shift; my $message = shift;
-      $test_nb++; 
-
-      if( $got=~ /$expected_regexp/) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; 
-             warn "$message: expected to match /$expected_regexp/, got '$got'\n";
-           }
-    }
-
-  sub ok
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( $cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: false\n"; }
-    }
-
-  sub nok
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( !$cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message: true (should be false): '$cond'\n"; }
-    }
-
-  sub is_undef
-    { my $cond   = shift; my $message=shift;
-      $test_nb++; 
-
-      if( ! defined( $cond)) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
-        }
-      else { print "not ok $test_nb\n"; warn "$message is defined: '$cond'\n"; }
-    }
-
-
-my %seen_message;
-  sub skip
-    { my( $nb_skip, $message)= @_;
-      $test_nb||=0; 
-      $message ||='';
-      unless( $seen_message{$message})
-        { warn "\n$message: skipping $nb_skip tests\n";
-          $seen_message{$message}++;
-        }
-      for my $test ( ($test_nb + 1) .. ($test_nb + $nb_skip))
-        { print "ok $test\n";
-          warn "skipping $test ($message)\n" if( $DEBUG); 
-        }
-      $test_nb= $test_nb + $nb_skip;
-    }
-}
-
-sub tags { return join ':', map { $_->gi } @_ }
-sub ids  { return join ':', map { $_->att( 'id') || '<' . $_->gi . ':no_id>' } @_ }
-
-
-sub xml_escape
-  { my $string= shift;
-    #$string=~ s{&}{&amp;}g;
-    $string=~ s{<}{&lt;}g;
-    $string=~ s{>}{&gt;}g;
-    $string=~ s{"}{&quot;}g; #"
-    $string=~ s{'}{&apos;}g; #'
-    return $string;
-  }
-
-sub normalize_xml
-  { my $xml= shift;
-    $xml=~ s{\n}{}g;
-    $xml=~ s{'}{"}g; #'
-    $xml=~ s{ />}{/>}g;
-    return $xml;
-  }
-
-sub hash_ent_text
-  { my %ents= @_;
-    return map { $_ => "<!ENTITY $_ $ents{$_}>" } keys %ents;
-  }
-sub string_ent_text
-  { my %ents= @_;
-    my %hash_ent_text= hash_ent_text( %ents);
-    return join( '', map { $hash_ent_text{$_} } sort keys %hash_ent_text);
-  }

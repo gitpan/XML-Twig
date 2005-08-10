@@ -1,7 +1,11 @@
 #!/usr/bin/perl -w
 use strict; 
 
-# $Id: test_unique_xpath.t,v 1.5 2004/03/26 16:30:40 mrodrigu Exp $
+# $Id: test_unique_xpath.t,v 1.6 2005/08/10 09:32:33 mrodrigu Exp $
+
+use FindBin qw($Bin);
+BEGIN { unshift @INC, $Bin; }
+use tools;
 
 use XML::Twig;
 print "1..65\n";
@@ -35,20 +39,6 @@ foreach( 1..8)
     is( 9-$_, $e->first_child( "[-$_]")->att( 'pos'), "first_child [-$_]");
   }
 
-
-
-{ my $i=0;
-  sub is
-    { my( $expected, $got, $test)= @_;
-      $i++;
-      if( $expected eq $got) 
-        { print "ok $i\n"; }
-      else                 
-        { print"not ok $i\n";
-          warn "$test: expected $expected - got $got\n"; 
-        }
-    }
-}
 
 exit 0;
 
