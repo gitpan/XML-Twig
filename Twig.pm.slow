@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.233 2005/08/10 16:10:12 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.234 2005/08/11 13:44:11 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -82,7 +82,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.19';
+$VERSION = '3.20';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -7948,7 +7948,7 @@ This would convert prices in $ to prices in Euro in a document:
 
 =head2 XML::Twig and various versions of Perl, XML::Parser and expat:
 
-Before being uploaded to CPAN, XML::Twig 3.19 has been tested under the 
+Before being uploaded to CPAN, XML::Twig 3.20 has been tested under the 
 following environments:
 
 =over 4
@@ -7991,6 +7991,8 @@ Note that I can't compile XML::Parser 2.27 anymore, so I can't garantee
 that it still works
 
 =item XML::Parser 2.28 does not really work
+
+=back
 
 When in doubt, upgrade expat, XML::Parser and Scalar::Util
 
