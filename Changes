@@ -1,6 +1,18 @@
-$Id: Changes,v 1.75 2005/08/10 14:48:37 mrodrigu Exp $
+$Id: Changes,v 1.76 2005/08/12 12:21:39 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.21
+
+      fixed a test that failed if Tie::IxHash was not
+      available
+
+      added link to Atom feed for the CPAN testers 
+      results at http://xmltwig.com/rss/twig_testers.rss
+
+Changes in 3.20
+
+      fixed the pod (which caused the tests to fail)   
 
 Changes in 3.19
 

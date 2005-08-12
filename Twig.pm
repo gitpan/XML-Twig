@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.234 2005/08/11 13:44:11 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.235 2005/08/12 12:21:39 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -82,7 +82,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.20';
+$VERSION = '3.21';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -7978,6 +7978,9 @@ support), XML::Parser 2.31+ and expat 1.95.5+
 
 See L<http://testers.cpan.org/search?request=dist&dist=XML-Twig> for the
 CPAN testers reports on XML::Twig, which list all tested configurations.
+
+An Atom feed of the CPAN Testers results is available at
+L<http://xmltwig.com/rss/twig_testers.rss>
 
 Finally: 
 

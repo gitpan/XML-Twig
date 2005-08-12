@@ -5,15 +5,21 @@ use FindBin qw($Bin);
 BEGIN { unshift @INC, $Bin; }
 use tools;
 
-# $Id: test_keep_atts_order.t,v 1.3 2005/08/10 09:32:33 mrodrigu Exp $
+# $Id: test_keep_atts_order.t,v 1.4 2005/08/12 12:21:40 mrodrigu Exp $
 
 use XML::Twig;
 
-print "1..7\n";
 
   { 
-    if( eval 'require Tie::IxHash') { import Tie::IxHash; }
-    else { skip( "Tie::IxHash not available, option  keep_atts_order not allowed", 7); }
+    if( eval 'require Tie::IxHash') 
+      { import Tie::IxHash; 
+        print "1..7\n";
+      }
+    else 
+      { warn( "Tie::IxHash not available, option keep_atts_order not allowed\n");
+        print "1..1\nok 1\n";
+        exit 0;
+      }
 
     my $nb_elt=10;
     my $doc= gen_doc( $nb_elt);
