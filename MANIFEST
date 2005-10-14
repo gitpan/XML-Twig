@@ -90,6 +90,7 @@ t/xmlxpath_test1.t
 t/test_errors.t
 t/test_safe_encode.t
 t/pod.t
+t/pod_coverage.t
 t/test_expand_external_entities.t
 t/test_expand_external_entities.xml
 t/test_expand_external_entities.dtd
@@ -98,9 +99,11 @@ t/test_need_use_bytes.t
 t/test_bugs_3.15.t
 t/test_bugs_3.18.t
 t/test_bugs_3.19.t
+t/test_bugs_3.21.t
 t/test_new_features_3.15.t
 t/test_new_features_3.16.t
 t/test_new_features_3.18.t
+t/test_new_features_3.22.t
 t/test_xml_split.t
 t/test_xml_split.xml
 t/test_xml_split_entities.xml

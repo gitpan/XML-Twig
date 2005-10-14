@@ -11,8 +11,8 @@ XML::Twig is (yet another!) XML transformation module.
 
 Its strong points: can be used to process huge documents while still
 being in tree mode; not bound by DOM or SAX, so it is very perlish and
-offers a very comprehensive set of methods; simple to use; masking some
-of the classic pitfalls of XML processing.
+offers a very comprehensive set of methods; simple to use; DWIMs as
+much as possible
 
 What it doesn't offer: full SAX support (it can export SAX, but only
 reads XML), full XPath support (unless you use XML::Twig::XPath), nor
@@ -85,7 +85,7 @@ DEPENDANCIES
 
 CHANGES
 
-    $Id: README,v 1.10 2005/03/16 14:03:52 mrodrigu Exp $
+    $Id: README,v 1.11 2005/08/25 15:01:33 mrodrigu Exp $
 
     See the Changes file    
 

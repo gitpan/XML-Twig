@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.235 2005/08/12 12:21:39 mrodrigu Exp $
+# $Id: Twig.pm.slow,v 1.250 2005/10/14 16:14:47 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -82,7 +82,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.21';
+$VERSION = '3.22';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -614,14 +614,87 @@ sub new
 
 sub parseurl
   { my $t= shift;
-    return $t->_parseurl( 0, @_);
+    $t->_parseurl( 0, @_);
   }
 
 sub safe_parseurl
   { my $t= shift;
-    return $t->_parseurl( 1, @_);
+    $t->_parseurl( 1, @_);
   }
 
+
+sub parsefile_html
+  { my $t= shift;
+    my $file= shift;
+    $t->parse( _html2xml( _slurp( $file)), @_);
+  }
+
+sub parse_html
+  { my $t= shift;
+    my $content= shift;
+    $t->parse( _html2xml( UNIVERSAL::isa( $content, 'GLOB') ? _slurp_fh( $content) : $content), @_);
+  }
+
+sub xparse
+  { my $t= shift;
+    my $to_parse= $_[0];
+    if( isa( $to_parse, 'GLOB'))             { $t->parse( @_);                 }
+    elsif( $to_parse=~ m{^\s*<})             { $t->parse( @_);                 }
+    elsif( $to_parse=~ m{^\w+://.*\.html?$}) { _use( 'LWP::Simple') or croak "missing LWP::Simple"; 
+                                               $t->_parse_as_xml_or_html( get( shift()), @_);
+                                             }
+    elsif( $to_parse=~ m{^\w+://})           { $t->parseurl( @_);              }
+    elsif( $to_parse=~ m{\.html?$})          { my $content= _slurp( shift);
+                                               $t->_parse_as_xml_or_html( $content, @_); 
+                                             }
+    else                                     { $t->parsefile( @_);             }
+  }
+
+sub _parse_as_xml_or_html
+  { my $t= shift;
+    $t->safe_parse( @_) || $t->parse_html( @_); 
+  }  
+    
+
+sub nparse
+  { my $class= shift;
+    my $to_parse= pop;
+    $class->new( @_)->xparse( $to_parse);
+  }
+
+sub _html2xml
+  { my( $html)= @_;
+    _use( 'HTML::TreeBuilder') or croak "cannot parse HTML: missing HTML::TreeBuilder\n"; 
+    return HTML::TreeBuilder->new->parse( $html)->as_XML;
+  }
+
+    
+
+{ my %used; # module => 1 if require ok, 0 otherwise
+  sub _use
+    { my( $module)= @_;
+      if( exists $used{$module})  { return $used{$module}; }
+      if( eval "require $module") { import $module; $used{$module}= 1; return 1; }
+      else                        {                 $used{$module}= 0; return  ; }
+    }
+}
+
+sub _slurp
+  { my( $filename)= @_;
+    # use bareword filehandle to stay compatible with real old perl
+    open( TWIG_TO_SLURP, "<$filename") or croak "cannot open '$filename': $!"; 
+    local $/= undef;
+    my $content= <TWIG_TO_SLURP>;
+    return $content;
+  }
+  
+sub _slurp_fh
+  { my( $fh)= @_;
+    local $/= undef;
+    my $content= <$fh>;
+    return $content;
+  }    
+ 
 # I should really add extra options to allow better configuration of the 
 # LWP::UserAgent object
 # this method forks: 
@@ -1181,28 +1254,48 @@ sub _twig_init
   { 
     my $p= shift;
     my $t=$p->{twig};
+
+    if( $t->{twig_parsing} ) { croak "cannot reuse a twig that is already parsing"; }
+    $t->{twig_parsing}=1;
+
     $t->{twig_parser}= $p; 
     weaken( $t->{twig_parser}) if( $weakrefs);
-    $t->{twig_parsing}=1;
+
     # in case they had been created by a previous parse
     delete $t->{twig_dtd};
     delete $t->{twig_doctype};
     delete $t->{twig_xmldecl};
+
     # if needed set the output filehandle
     $t->_set_fh_to_twig_output_fh();
   }
 
 # uses eval to catch the parser's death
 sub safe_parse
-  { my( $t, $str)= @_;
-    eval { $t->parse( $str); } ;
-    return $@ ? 0 : $t;
+  { my $t= shift;
+    eval { $t->parse( @_); } ;
+    return $@ ? $t->_reset_twig &&  0 : $t;
   }
 
 sub safe_parsefile
-  { my( $t, $file)= @_;
-    eval { $t->parsefile( $file); } ;
-    return $@ ? 0 : $t;
+  { my $t= shift;
+    eval { $t->parsefile( @_); } ;
+    return $@ ? $t->_reset_twig : $t;
+  }
+
+# restore a twig in a proper state so it can be reused for a new parse
+sub _reset_twig
+  { my $t= shift;
+    $t->{twig_parsing}= 0;
+    delete $t->{twig_current};
+    delete $t->{extra_data};
+    delete $t->{twig_dtd};
+    delete $t->{twig_in_pcdata};
+    delete $t->{twig_in_cdata};
+    delete $t->{twig_stored_space};
+    delete $t->{twig_entity_list};
+    $t->root->delete if( $t->root);
+    delete $t->{root};
   }
 
 
@@ -1715,8 +1808,21 @@ sub _twig_char
 
     # if keep_encoding was set then use the original string instead of
     # the parsed (UTF-8 converted) one
-    if( $t->{twig_keep_encoding} && !$t->{twig_in_cdata})
-      { $string= $p->original_string(); }
+    #if( $t->{twig_keep_encoding} && !$t->{twig_in_cdata})
+    #  { $string= $p->original_string(); }
+
+    if( $t->{twig_keep_encoding})
+      { if( !$t->{twig_in_cdata})
+          { $string= $p->original_string(); }
+        else
+          { use bytes;
+            if( length( $string) < 1024)
+              { $string= $p->original_string(); }
+            else
+              { #warn "dodgy case";
+              }
+          }
+      }
 
     if( $t->{twig_input_filter})
       { $string= $t->{twig_input_filter}->( $string); }
@@ -4572,6 +4678,7 @@ sub del_att
 sub strip_att
   { my( $elt, $att)= @_;
     $_->del_att( $att) foreach ($elt->descendants_or_self( qq{*[\@$att]}));
+    return $elt;
   }
 
 sub change_att_name
@@ -5958,7 +6065,7 @@ sub split_at
     my $left_string= substr( $string, 0, $offset);
     my $right_string= substr( $string, $offset);
     $text_elt->set_pcdata( $left_string);
-    my $new_elt= XML::Twig::Elt->new( $elt->gi, $right_string);
+    my $new_elt= $elt->new( $elt->gi, $right_string);
     $new_elt->paste( after => $elt);
     return $new_elt;
   }
@@ -6110,6 +6217,10 @@ sub mark
                       && ($text_elt->gi eq $next_sibling->gi)
                     )
                     { $text_elt->merge_text( $next_sibling); }
+                    
+                  # if the match is at the beginning of the text an empty #PCDATA is left: remove it 
+                  if( !$text_elt->text) { $text_elt->delete; } 
+                  
                   # go to next 
                   $text_elt= $post_match;
                   $text= $post_match->text;
@@ -6123,7 +6234,12 @@ sub mark
                     { $pos= length( $prev_sibling->text);
                       $prev_sibling->merge_text( $post_match); 
                     }
+
+                  # if the match is at the end of the text an empty #PCDATA is left: remove it 
+                  if( !$text_elt->text) { $text_elt->delete; } 
+                  
                 }
+              
             }
         }
       return $elt;
@@ -6154,7 +6270,7 @@ sub mark
           else
             { $exp= qq{ '#PCDATA' => "$item"}; }
           $exp=~ s{\$(\d)}{\$var[$1]}g; # replace references to matches
-          $sub.= qq{ \$new= XML::Twig::Elt->new( $exp); };
+          $sub.= qq{ \$new= \$match->new( $exp); };
           $sub .= q{ $new->paste( before => $match); };
         }
       $sub .= q{ $match->delete; };
@@ -6182,7 +6298,7 @@ sub merge_text
 # recursively copy an element and returns the copy (can be huge and long)
 sub copy
   { my $elt= shift;
-    my $copy= XML::Twig::Elt->new( $elt->gi);
+    my $copy= $elt->new( $elt->gi);
 
     $copy->set_extra_data( $elt->extra_data) if( $elt->extra_data);
     $copy->{extra_data_before_end_tag}= $elt->{extra_data_before_end_tag} if( $elt->{extra_data_before_end_tag});
@@ -6490,6 +6606,7 @@ BEGIN {
 
   sub start_tag
     { my $elt= shift;
+      my $option= shift;
   
       return if( $elt->{gi}<$XML::Twig::SPECIAL_GI);
 
@@ -6517,7 +6634,11 @@ BEGIN {
              my $output_att_name= $ns_map ? _restore_original_prefix( $ns_map, $att_name) : $att_name;
              if( $output_text_filter) { $output_att_name=  $output_text_filter->( $output_att_name); }
 
-             $tag .= $output_att_name . '=' . $quote . $elt->att_xml_string( $att_name, $quote) . $quote; 
+             $tag .=   $output_att_name . '=' 
+                     . $quote 
+                     . $elt->att_xml_string( $att_name, $quote, $option->{escape_gt})
+                     . $quote
+                     ; 
            }
         } 
   
@@ -6919,22 +7040,30 @@ BEGIN {
   sub att_xml_string 
     { my $elt= shift;
       my $att= shift;
-      my $quote= shift || '"';
       if( defined (my $string= $elt->{att}->{$att}))
-        { unless( $keep_encoding)
-            { if( $do_not_escape_amp_in_atts)
-                { $string=~ s{([$quote<])}{$XML::Twig::base_ent{$1}}g; 
-                  $string=~ s{&(?!(\w+|#\d+|[xX][0-9a-fA-F]+);)}{&amp;}g; # dodgy: escape & that do not start an entity
-                }
-              else
-                { $string=~ s{([$quote<&])}{$XML::Twig::base_ent{$1}}g; 
- 								  $string=~ s{\Q]]>}{]]&gt;}g;
- 								}
-            }
-          return $output_text_filter ? $output_text_filter->( $string) : $string;
-        }
+        { return _att_xml_string( $string, @_); }
       else
         { return ''; }
+    }
+    
+  # escaped xml string for an attribute value
+  sub _att_xml_string 
+    { my( $string, $quote, $escape_gt)= @_;
+      unless( $keep_encoding)
+        { my $replace= "$quote<";
+          $replace .= '>' if( $escape_gt);
+          
+          if( $do_not_escape_amp_in_atts)
+            { $string=~ s{([$replace])}{$XML::Twig::base_ent{$1}}g; 
+              $string=~ s{&(?!(\w+|#\d+|[xX][0-9a-fA-F]+);)}{&amp;}g; # dodgy: escape & that do not start an entity
+            }
+          else
+            { $replace.= "&";
+              $string=~ s{([$replace])}{$XML::Twig::base_ent{$1}}g; 
+              unless( $escape_gt) { $string=~ s{\Q]]>}{]]&gt;}g; }
+            }
+        }
+      return $output_text_filter ? $output_text_filter->( $string) : $string;
     }
 
   sub ent_string 
@@ -7201,7 +7330,7 @@ sub set_text
     foreach my $child (@{[$elt->children]})
       { $child->delete; }
 
-    my $pcdata= XML::Twig::Elt->new( PCDATA, $string);
+    my $pcdata= $elt->new( PCDATA, $string);
     $pcdata->paste( $elt);
 
     $elt->set_not_empty;
@@ -7257,7 +7386,7 @@ sub set_content
               }
             else
               { # previous child is not a string: creat a new pcdata element
-                $pcdata= XML::Twig::Elt->new( PCDATA, $child);
+                $pcdata= $elt->new( PCDATA, $child);
                 $pcdata->paste( 'last_child', $elt);  
               }
           }
@@ -7279,7 +7408,7 @@ sub insert
       { $child->cut; }
     # insert elements
     while( my $gi= shift @args)
-      { my $new_elt= XML::Twig::Elt->new( $gi);
+      { my $new_elt= $elt->new( $gi);
         # add attributes if needed
         if( defined( $args[0]) && ( isa( $args[0], 'HASH')) )
           { $new_elt->set_atts( shift @args); }
@@ -7322,7 +7451,7 @@ sub insert_new_elt
 sub wrap_in
   { my $elt= shift;
     while( my $gi = shift @_)
-      { my $new_elt = XML::Twig::Elt->new( $gi);
+      { my $new_elt = $elt->new( $gi);
         if( $elt->{twig_current})
           { my $t= $elt->twig;
             $t->{twig_current}= $new_elt;
@@ -7425,7 +7554,7 @@ sub prefix
          )
       { $elt->_first_child->set_pcdata( $prefix . $elt->_first_child->pcdata); }
     else
-      { my $new_elt= XML::Twig::Elt->new( PCDATA, $prefix);
+      { my $new_elt= $elt->new( PCDATA, $prefix);
         $new_elt->paste( $elt);
         $new_elt->set_asis if( $asis);
       }
@@ -7446,7 +7575,7 @@ sub suffix
          )
       { $elt->last_child->set_pcdata( $elt->_last_child->pcdata . $suffix); }
     else
-      { my $new_elt= XML::Twig::Elt->new( PCDATA, $suffix);
+      { my $new_elt= $elt->new( PCDATA, $suffix);
         $new_elt->paste( 'last_child', $elt);
         $new_elt->set_asis if( $asis);
       }
@@ -7484,7 +7613,7 @@ sub _stringify_struct
     my $string='';
     my $pretty_print= XML::Twig::Elt::set_pretty_print( 'none');
     foreach my $child ($elt->children)
-      { $child->add_id; $string .= $child->start_tag ||''; }
+      { $child->add_id; $string .= $child->start_tag( { escape_gt => 1 }) ||''; }
     XML::Twig::Elt::set_pretty_print( $pretty_print);
     return $string;
   }
@@ -7537,9 +7666,7 @@ sub _match_tag
   { my( $elt, %atts)= @_;
     my $string= "<$elt\\b";
     foreach my $key (sort keys %atts)
-      { my $val= $atts{$key};
-        $val= "\Q$val\E";
-       # my $val= qq{\Q$atts{$key}\E};
+      { my $val= qq{\Q$atts{$key}\E};
         $string.= qq{[^>]*$key=(?:"$val"|'$val')};
       }
     $string.=  qq{[^>]*>};
@@ -7948,20 +8075,16 @@ This would convert prices in $ to prices in Euro in a document:
 
 =head2 XML::Twig and various versions of Perl, XML::Parser and expat:
 
-Before being uploaded to CPAN, XML::Twig 3.20 has been tested under the 
+Before being uploaded to CPAN, XML::Twig 3.22 has been tested under the 
 following environments:
 
 =over 4
 
 =item linux-x86
 
-perl 5.6.2, expat 1.95.8, XML::Parser 2.30, 2.31, 2.33 and 2.34
-perl 5.8.0, expat 1.95.8, XML::Parser 2.31, 2.33 and 2.34
-perl 5.8.7, expat 1.95.8, XML::Parser 2.31, 2.33 and 2.34
-
-=item Mac OS X (10.3)
-
-perl 5.8.6, expat 1.95.8, XML::Parser 2.34
+perl 5.6.2, expat 1.95.8, XML::Parser 2.34
+perl 5.8.0, expat 1.95.8, XML::Parser 2.34
+perl 5.8.7, expat 1.95.8, XML::Parser2.34
 
 =item Solaris
 
@@ -7970,8 +8093,8 @@ perl 5.6.1, expat 1.95.2, XML::Parser 2.31
 =back
 
 XML::Twig is a lot more sensitive to variations in versions of perl, 
-XML::Parser and expat than to the OS, so this should cover most of
-the reasonable configurations.
+XML::Parser and expat than to the OS, so this should cover some
+reasonable configurations.
 
 The "recommended configuration" is perl 5.8.3+ (for good Unicode
 support), XML::Parser 2.31+ and expat 1.95.5+
@@ -8847,6 +8970,7 @@ example:
 Note that the index is not maintained after the parsing. If elements are 
 deleted, renamed or otherwise hurt during processing, the index is NOT updated.
 
+
 =back
 
 B<Note>: I _HATE_ the Java-like name of arguments used by most XML modules.
@@ -8855,12 +8979,11 @@ C<UglyJavaLikeName> or as C<readable_perl_name>: C<twig_print_outside_roots>
 or C<TwigPrintOutsideRoots> (or even C<twigPrintOutsideRoots> {shudder}). 
 XML::Twig normalizes them before processing them.
 
-=item parse (SOURCE [, OPT => OPT_VALUE [...]])
+=item parse ( $source)
 
-This method is inherited from XML::Parser.
-The C<SOURCE> parameter should either be a string containing the whole XML
+The C<$source> parameter should either be a string containing the whole XML
 document, or it should be an open C<IO::Handle>. Constructor options to
-C<XML::Parser::Expat> given as keyword-value pairs may follow theC<SOURCE> 
+C<XML::Parser::Expat> given as keyword-value pairs may follow theC<$source> 
 parameter. These override, for this call, any options or attributes passed
 through from the XML::Parser instance.
 
@@ -8874,8 +8997,6 @@ This is just an alias for C<parse> for backwards compatibility.
 
 =item parsefile (FILE [, OPT => OPT_VALUE [...]])
 
-This method is inherited from XML::Parser.
-
 Open C<FILE> for reading, then call C<parse> with the open handle. The file
 is closed no matter how C<parse> returns. 
 
@@ -8885,9 +9006,18 @@ to return even when an error occurs.
 
 =item parseurl ($url $optional_user_agent)
 
-Gets the data from C<$url> and parse it. Note that the data is piped to the
-parser in chunks the size of the XML::Parser::Expat buffer, so memory 
-consumption and hopefully speed are optimal.
+Gets the data from C<$url> and parse it. The data is piped to the parser in 
+chunks the size of the XML::Parser::Expat buffer, so memory consumption and
+hopefully speed are optimal.
+
+For most (read "small") XML it is probably as efficient (and easier to debug)
+to just C<get> the XML file and then parse it as a string.
+
+  use XML::Twig;
+  use LWP::Simple;
+  my $twig= XML::Twig->new();
+  $twig->parse( get( $URL )); # get is exported by LWP::Simple
+
 
 If the C<$optional_user_agent> argument is used then it is used, otherwise a
 new one is created.
@@ -8915,6 +9045,42 @@ no way to keep going after an error.
 Same as C<parseurl> except that it wraps the parsing in an C<eval> block. It 
 returns the twig on success and 0 on failure (the twig object also contains
 the parsed twig) . C<$@> contains the error message on failure
+
+=item parse_html
+
+parse an HTML string or file handle (by converting it to XML using
+HTML::TreeBuilder, which needs to be available).
+
+B<Alpha>: implementation, and thus generated XML could change. 
+
+=item parsefile_html
+
+parse an HTML file (by converting it to XML using HTML::TreeBuilder, which 
+needs to be available). The file is loaded completely in memory and converted
+to XML before being parsed.
+
+B<Alpha>: implementation, and thus generated XML could change. 
+
+=item xparse ($thing_to_parse)
+
+parse the C<$thing_to_parse>, whether it is a filehandle, a string, an HTML 
+file, an HTML URL, an URL or a file.
+
+Note that this is mostly a convenience method for one-off scripts. For example
+files that end in '.htm' or '.html' are parsed first as XML, and if this fails
+as HTML. This is certainly not the most efficient way to do this in general.
+
+=item nparse ($optional_twig_options, $thing_to_parse)
+
+create a twig with the C<$optional_options>, and parse the C<$thing_to_parse>, 
+whether it is a filehandle, a string, an HTML file, an HTML URL, an URL or a 
+file.
+
+Examples:
+ 
+   XML::Twig->nparse( "file.xml");
+   XML::Twig->nparse( error_context => 1, "file://file.xml");
+
 
 =item parser
 
@@ -9408,8 +9574,21 @@ circular references it never goes out of scope, so if you want to parse lots
 of XML documents then the memory leak becomes a problem. Use
 C<< $twig->dispose >> to clear this problem.
 
-=back 
+=item create_accessors (list_of_attribute_names)
 
+A convenience method that creates l-valued accessors for attributes. 
+So C<< $twig->create_accessors( 'foo') >> will create a C<foo> method
+that can be called on elements:
+
+  $elt->foo;         # equivalent to $elt->att( 'foo');
+  $elt->foo( 'bar'); # equivalent to $elt->set_att( foo => 'bar');
+
+=item set_do_not_escape_amp_in_atts
+
+An evil method, that I only document because Test::Pod::Coverage complaints otherwise,
+but really, you don't want to know about it.
+
+=back 
 
 =head2 XML::Twig::Elt
 
@@ -10045,11 +10224,18 @@ and newly created ones)
 This method behaves exactly as L<split|split>, except only the newly created 
 elements are returned
 
-=item wrap_children ( $regexp_string, $tag, $optional_att, $otional_value)
+=item wrap_children ( $regexp_string, $tag, $optional_attribute_hashref)
 
 Wrap the children of the element that match the regexp in an element C<$tag>.
-If C<$optional_att> and C<$optional_value> are passed then the new element will
-have an attribute C<$optional_att> with a value C<$optional_value>.
+If $optional_attribute_hashref is passed then the new element will
+have these attributes.
+
+The $regexp_string includes tags, within pointy brackets, as in 
+C<< <title><para>+ >> and the usual Perl modifiers (+*?...). 
+Tags can be further qualified with attributes:
+C<< <para type="warning" classif="cosmic_secret">+ >>. The values
+for attributes should be xml-escaped: C<< <candy type="M&amp;Ms">* >>
+(C<E<lt>>, C<&> B<C<E<gt>>> and C<"> should be escaped). 
 
 Note that elements might get extra C<id> attributes in the process. See L<add_id>.
 Use L<strip_att> to remove unwanted id's. 
@@ -10152,7 +10338,7 @@ Note that the substitution is always global, as in using the C<g> modifier
 in a perl substitution, and that it is performed on all text descendants
 of the element.
 
-Bug warning: in the C<$regexp>, you can only use C<\1>, C<\2>... if the replacement
+B<Bug>: in the C<$regexp>, you can only use C<\1>, C<\2>... if the replacement
 expression does not include elements or attributes. eg
 
   t->subs_text( qr/((t[aiou])\2)/, '$2');             # ok, replaces toto, tata, titi, tutu by to, ta, ti, tu
@@ -10177,6 +10363,8 @@ to 1
 
 Remove the attribute C<$att> from all descendants of the element (including 
 the element)
+
+Return the element
 
 =item change_att_name ($old_name, $new_name)
 

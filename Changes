@@ -1,6 +1,47 @@
-$Id: Changes,v 1.76 2005/08/12 12:21:39 mrodrigu Exp $
+$Id: Changes,v 1.85 2005/10/14 16:16:08 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.22
+
+      added the XML::Twig xparse method, which parses
+      whatever is thrown at it (filehandle, string, 
+      HTML file, HTML URL, URL or file).
+
+      added the XML::Twig nparse method, which creates
+      a twig and then calls xparse on the last parameter.
+
+      added the parse_html and parsefile_html methods,
+      which parse HTML strings (or fh) and files 
+      respectively, whith the help of HTML::TreeBuilder.
+      the implementation may still change. Note that
+      at the moment there seems to be encoding problems
+      with it (if the input is not UTF8).
+
+      added info to t/zz_dump_config.t
+
+      fixed a bug that caused subs_text to leave empty
+      #PCDATA elements if the regexp matched at the begining
+      or at the end of the text of an element.
+
+      fixed RT #15014: in a few methods objects were 
+      created as XML::Twig::Elt, instead of in the class
+      of the calling object.
+
+      fixed RT #14959: problem with wrap_children when
+      an attribute of one of the child element includes
+      a '>'
+
+      improved the docs for wrap_children
+
+      added a better error message when re-using an
+      existing twig during the parse
+
+      partially fixed a bug with windows line-endings in
+      CDATA sections with keep_encoding set (RT #14815)
+
+      added Test::Pod::Coverage test to please the kwalitee 
+      police ;--)
 
 Changes in 3.21
 
@@ -17,7 +58,7 @@ Changes in 3.20
 Changes in 3.19
 
       redid the fix to RT # 14008, this one should be ok
-
+û!F
       restructured tests
 
       added the _dump method (probably not finished)

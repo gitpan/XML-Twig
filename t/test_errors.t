@@ -13,17 +13,47 @@ use tools;
 
 use XML::Twig;
 
-my $TMAX=93; 
+my $TMAX=99; 
 print "1..$TMAX\n";
+
+my $error_file= "t/test_errors.errors";
+
+{ # test insufficient version of XML::Parser (not that easy, it is already too late here)
+my $need_version= 2.23;
+
+my $q= $^O eq "MSWin32" ? '"' : "'";
+
+my $version= $need_version - 0.01;
+unlink $error_file if -f $error_file;
+system( qq{$^X -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig$q 2> $error_file});
+ok( -f $error_file, "error generated for low version of XML::Parser");
+matches( slurp( $error_file), "^need at least XML::Parser version 2\.23", "error message for low version of XML::Parser");
+
+$version= $need_version;
+unlink $error_file if -f $error_file;
+system( qq{$^X -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig$q 2> $error_file});
+ok( ! -f $error_file || ! slurp( $error_file), "no error generated for proper version of XML::Parser");
+
+$version= $need_version + 0.01;
+unlink $error_file if -f $error_file;
+system( qq{$^X -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig$q 2> $error_file});
+ok( ! -f $error_file || ! slurp( $error_file), "no error generated for high version of XML::Parser");
+
+unlink $error_file if -f $error_file;
+
+}
 
 my $warning;
 my $init_warn= $SIG{__WARN__};
-
 
 { $SIG{__WARN__}= sub { $warning= join '', @_; };
   XML::Twig->new( dummy => 1);
   $SIG{__WARN__}= $init_warn;
   matches( $warning, "^invalid option Dummy", "invalid option");
+}
+
+{ eval { XML::Twig::_slurp( $error_file) };
+  matches( $@, "^cannot open '\Q$error_file\E'", "_slurp inexisting file");
 }
 
 { eval {XML::Twig->new->parse( '<doc/>')->root->first_child( 'du,')};
@@ -200,8 +230,14 @@ my $init_warn= $SIG{__WARN__};
    matches( $@, "^error in grouped tag a");
 }
 
-{  eval { XML::Twig::Elt->parse( '<e>foo</e>')->subs_text( qr/foo/, '&elt( invalid/0)'); };
+{  eval { XML::Twig::Elt->parse( '<e>foo</e>')->subs_text( "foo", '&elt( invalid/0)'); };
    matches( $@, "^invalid replacement expression ");
+}
+
+{ eval { my $t=XML::Twig->new( twig_handlers => { e => sub { $_[0]->parse( "<doc/>") } });
+            $t->parse( "<d><e/></d>");
+       };
+  matches( $@, "^cannot reuse a twig that is already parsing");
 }
 
 exit 0;
