@@ -318,7 +318,7 @@ else { print "not ok 49\n"; warn "returns \n$res\n instead of \n$exp_res\n"; }
 
 $elt->set_empty_tag_style( 'html');
 $res= $elt->sprint;
-$exp_res= '<p att1="val1"><sub /><sub att="val" />'.
+$exp_res= '<p att1="val1"><sub></sub><sub att="val"></sub>'.
           '<sub>sub5<sub>sub3</sub>sub5 again<sub>sub4</sub></sub></p>';
 if( $res eq $exp_res) { print "ok 50\n"; }
 else { print "not ok 50\n"; warn "returns \n$res\n instead of \n$exp_res\n"; }

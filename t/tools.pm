@@ -1,4 +1,4 @@
-# $Id: tools.pm,v 1.3 2005/10/10 13:47:34 mrodrigu Exp $
+# $Id: tools.pm,v 1.4 2005/12/09 13:54:47 mrodrigu Exp $
 
 use strict;
 
@@ -340,6 +340,11 @@ sub _use
   { my( $module)= @_;
     if( eval "require $module") { import $module; return 1; }
     else                        { return;                }
+  }
+
+sub test_get_xpath
+  { my( $t, $exp, $expected)= @_;
+    is( ids( $t->get_xpath( $exp)), $expected, "$exp xpath exp");
   }
 
 __END__

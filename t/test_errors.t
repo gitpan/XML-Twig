@@ -13,7 +13,7 @@ use tools;
 
 use XML::Twig;
 
-my $TMAX=99; 
+my $TMAX=109; 
 print "1..$TMAX\n";
 
 my $error_file= "t/test_errors.errors";
@@ -238,6 +238,39 @@ my $init_warn= $SIG{__WARN__};
             $t->parse( "<d><e/></d>");
        };
   matches( $@, "^cannot reuse a twig that is already parsing");
+}
+
+{ ok( XML::Twig->new( twig_handlers => { 'elt[string()="foo"]' => sub {}} ), 'twig_handlers with string condition' );
+  eval { XML::Twig->new( twig_roots => { 'elt[string()="foo"]' => sub {}} ) };
+  matches( $@, "^string.. condition not supported on twig_roots option", 'twig_roots with string condition' );
+  ok( XML::Twig->new( twig_handlers => { 'elt[string()=~ /foo/]' => sub {}} ), 'twig_handlers with regexp' );
+  eval { XML::Twig->new( twig_roots => { 'elt[string()=~ /foo/]' => sub {}} ) };
+  matches( $@, "^regexp condition not supported on twig_roots option", 'twig_roots with regexp condition' );
+
+  #ok( XML::Twig->new( twig_handlers => { 'elt[string()!="foo"]' => sub {}} ), 'twig_handlers with !string condition' );
+  #eval { XML::Twig->new( twig_roots => { 'elt[string()!="foo"]' => sub {}} ) };
+  #matches( $@, "^string.. condition not supported on twig_roots option", 'twig_roots with !string condition' );
+  #ok( XML::Twig->new( twig_handlers => { 'elt[string()!~ /foo/]' => sub {}} ), 'twig_handlers with !regexp' );
+  #eval { XML::Twig->new( twig_roots => { 'elt[string()!~ /foo/]' => sub {}} ) };
+  #matches( $@, "^regexp condition not supported on twig_roots option", 'twig_roots with !regexp condition' );
+
+}
+
+{ XML::Twig::_disallow_use( "XML::Parser");
+  nok( XML::Twig::_use( "XML::Parser"), '_use XML::Parser (disallowed)');
+  XML::Twig::_allow_use( "XML::Parser");
+  ok( XML::Twig::_use( "XML::Parser"), '_use XML::Parser (allowed)');
+  ok( XML::Twig::_use( "XML::Parser"), '_use XML::Parser (allowed, 2cd try)');
+  nok( XML::Twig::_use( "XML::Parser::foo::nonexistent"), '_use XML::Parser::foo::nonexistent');
+}
+
+{ XML::Twig::_disallow_use( "Tie::IxHash");
+  eval { XML::Twig->new( keep_atts_order => 1); };
+  matches( $@, "^Tie::IxHash not available, option keep_atts_order not allowed", 'no Tie::IxHash' );
+}
+
+{ eval { XML::Twig::_first_n { $_ } 0, 1, 2, 3; }; 
+  matches( $@, "^illegal position number 0", 'null argument to _first_n' );
 }
 
 exit 0;

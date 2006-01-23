@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_additional.t,v 1.134 2005/08/10 09:32:33 mrodrigu Exp $
+# $Id: test_additional.t,v 1.138 2006/01/19 17:52:45 mrodrigu Exp $
 
 # test designed to improve coverage of the module
 
@@ -479,7 +479,7 @@ $elt->set_empty;
 ok( $elt->is_empty, "\$elt is empty");# test 166
 is( $t->sprint, '<doc><!--a comment--><elt/></doc>', "empty element again");# test 167
 $t->set_empty_tag_style( 'html');
-is( $t->sprint, '<doc><!--a comment--><elt /></doc>', "empty element (html style)");# test 168
+is( $t->sprint, '<doc><!--a comment--><elt></elt></doc>', "empty element (html style)");# test 168
 XML::Twig::Elt::set_empty_tag_style( 'expand');
 is( $t->sprint, '<doc><!--a comment--><elt></elt></doc>', "empty element (expand style)");# test 169
 $t->set_empty_tag_style( 'normal');
@@ -1031,15 +1031,17 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
     { my $out='';
       $open->( my $fh, ">", \$out);
       my $doc= q{<doc><sect><p>p1</p><p>p2</p><flush/></sect></doc>};
-      my $t= XML::Twig->new( twig_handlers => { flush => sub { $_->flush( $fh) } } )
-                      ->parse( $doc);
+      my $t= XML::Twig->new( twig_handlers => { flush => sub { $_->flush( $fh) } } );
+      $t->{twig_autoflush}=0;
+      $t->parse( $doc);
       is( $out, q{<doc><sect><p>p1</p><p>p2</p><flush/>}, "flush");# test 319
       close $fh;
 
       $out="";
       $open->( $fh, ">", \$out);
-      $t= XML::Twig->new( twig_handlers => { flush => sub { $_[0]->flush_up_to( $_->prev_sibling, $fh) } } )
-                      ->parse( $doc);
+      $t= XML::Twig->new( twig_handlers => { flush => sub { $_[0]->flush_up_to( $_->prev_sibling, $fh) } } );
+      $t->{twig_autoflush}=0;
+      $t->parse( $doc);
       is( $out, q{<doc><sect><p>p1</p><p>p2</p>}, "flush_up_to");# test 320
 
       $t= XML::Twig->new( twig_handlers => { purge => sub { $_[0]->purge_up_to( $_->prev_sibling->prev_sibling, $fh) } } )
@@ -1071,8 +1073,9 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
       }
       { my $out="";
         $open->( my $fh, ">", \$out);
-        my $t= XML::Twig->new( twig_handlers => { stop => sub { print $fh "[X]"; $_->set_text( '[Y]'); $_[0]->flush( $fh); $_[0]->finish_print( $fh); } })
-                        ->parse( q{<doc>before<stop/>finish</doc>});
+        my $t= XML::Twig->new( twig_handlers => { stop => sub { print $fh "[X]"; $_->set_text( '[Y]'); $_[0]->flush( $fh); $_[0]->finish_print( $fh); } });
+        $t->{twig_autoflush}=0;
+        $t->parse( q{<doc>before<stop/>finish</doc>});
         select STDOUT;
         is( $out, q{[X]<doc>before<stop>[Y]</stop>finish</doc>}, "finish_print");# test 328
       }
@@ -1276,7 +1279,7 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
                              },
                 flush => sub { $_[0]->flush_toSAX1( $writer); },
               }
-                           )
+                        )
                       ->parse( $doc_flush);
       my $output=  $t->flush_toSAX1( $writer) || '';
       $SIG{__WARN__}= $old_warning_handler;
@@ -2466,12 +2469,12 @@ DTD
 # handlers on PIs
 { my $t= XML::Twig->new( pretty_print => 'none', twig_handlers => { '?t1' => sub { return "<?t2 $_[2]?>"; } })
                   ->parse( '<doc><!--comment--><?t1 data ?><elt>toto</elt></doc>');
-  is( $t->sprint, '<doc><!--comment--><?t2 data ?><elt>toto</elt></doc>', 'handler on pi, with comment');# test 613
+  is( $t->sprint, '<doc><!--comment--><?t2 data ?><elt>toto</elt></doc>', 'handler on pi t1, with comment');# test 613
 }
 # handlers on PIs
 { my $t= XML::Twig->new( pretty_print => 'none', twig_handlers => { '?' => sub { return "<?t2 $_[2]?>"; } })
                   ->parse( '<doc><!--comment--><?t1 data ?><elt>toto</elt></doc>');
-  is( $t->sprint, '<doc><!--comment--><?t2 data ?><elt>toto</elt></doc>', 'handler on pi, with comment');# test 614
+  is( $t->sprint, '<doc><!--comment--><?t2 data ?><elt>toto</elt></doc>', 'handler on all pi, with comment');# test 614
 }
 
 # creating an output encoding

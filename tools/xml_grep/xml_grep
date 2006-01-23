@@ -1,12 +1,12 @@
 #!/usr/local/bin/perl -w
-# $Id: xml_grep,v 1.10 2004/04/21 12:26:36 mrodrigu Exp $
+# $Id: xml_grep,v 1.14 2005/10/27 12:27:53 mrodrigu Exp $
 use strict;
 
 use Getopt::Long;
 use Pod::Usage;
 use XML::Twig;
 
-my $VERSION="0.5";
+my $VERSION="0.7";
 
 # options (all used globally in the script)
 my( $help, $man, @roots, @paths, $files, $count, $nb_results, $encoding, @exclude,
@@ -23,22 +23,22 @@ my $file_results = 0;
 
 GetOptions( 'help'            => \$help,
             'man'             => \$man,
-	          'Version'         => \$version,
-	          'exclude|v=s'     => \@exclude,
+            'Version'         => \$version,
+            'exclude|v=s'     => \@exclude,
             'root=s'          => \@roots,
             'cond=s'          => \@paths,
-	          'files'           => \$files,
-	          'count'           => \$count,
-	          'nb_results=i'    => \$nb_results,
-	          'encoding=s'      => \$encoding,
-	          'wrap:s'          => \$wrap,
-						'nowrap'          => \$nowrap,
-	          'descr:s'         => \$descr,
+            'files'           => \$files,
+            'count'           => \$count,
+            'nb_results=i'    => \$nb_results,
+            'encoding=s'      => \$encoding,
+            'wrap:s'          => \$wrap,
+            'nowrap'          => \$nowrap,
+            'descr:s'         => \$descr,
             'group_by_file:s' => \$group,
-	          'pretty_print:s'  => \$pretty_print,
-			      'text_only'       => \$text_only,
-						'date!'           => \$date,
-	  ) or pod2usage(2);
+            'pretty_print:s'  => \$pretty_print,
+            'text_only'       => \$text_only,
+            'date!'           => \$date,
+    ) or pod2usage(2);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -68,11 +68,11 @@ if( $nowrap) { $wrap=''; } elsif( !defined( $wrap) and (@roots or @paths)) { $wr
 
 if( !defined( $descr) and (@roots or @paths))
   { if( $date)
-		  { $date= localtime();
+      { $date= localtime();
         $descr        = qq{version="$VERSION" date="$date"}
       }
     else
-		  { $descr        = qq{version="$VERSION"}; }
+      { $descr        = qq{version="$VERSION"}; }
   } 
 
 # some globals
@@ -91,52 +91,16 @@ if( $count)
   }
 elsif( @exclude)
   { # general options
-		$nowrap=1;
+    $nowrap=1;
     # twig options
-		$options{twig_print_outside_roots} = 1;
+    $options{twig_print_outside_roots} = 1;
     my $root_handlers={};
-		foreach my $exclude (@exclude)
-		  { $root_handlers->{$exclude}= sub { }; }
+    foreach my $exclude (@exclude)
+      { $root_handlers->{$exclude}= sub { }; }
     $options{twig_roots}= $root_handlers;
-	}
+  }
 else
-  { if( @roots)
-      { my $root_handlers={};
-        my $root_handler= sub { my( $t, $root)= @_;
-                                if( !@paths or $_->att( '#print'))
-                                  { print result_start()        unless( $results); 
-                                    print file_result_start()   unless( !$group or $file_results);
-                                    if( $text_only)
-																		  { print $root->text, "\n"; }
-																		else
-																		  { $root->print; }
-                                    $nb_results--;
-                                    unless( $nb_results) { $@= "XMLGREP: NB_RESULT_REACHED"; die; }
-                                  }
-                                $t->purge; 
-                              };
-        foreach my $root (@roots)
-          { $root_handlers->{$root}= $root_handler; }
-
-        $options{twig_roots}= $root_handlers;
-      }
-
-    if( @paths)
-      { my $twig_handlers={};
-         my $twig_handler;
-         if( $files)
-           { $twig_handler= sub { $@="XMLGREP: FOUND"; die; }; }
-         else
-           { $twig_handler= sub { my( $t, $hit)= @_;
-                                  foreach my $elt ( $hit->ancestors_or_self) 
-                                    { $elt->set_att( '#print' => 1); }
-                                };
-           }
-        foreach my $path (@paths)
-          { $twig_handlers->{$path}= $twig_handler; }
-
-        $options{twig_handlers}= $twig_handlers;
-      }
+  { create_regular_handlers( \%options, \@roots, \@paths);
   }
     
     
@@ -145,12 +109,12 @@ else
 $options{pretty_print}    = $pretty_print if( $pretty_print);
 $options{output_encoding} = $encoding     if( $encoding); 
      
-my $t= XML::Twig->new( %options);
+my $t= create_twig( %options);
 
 if( @ARGV)
   { foreach my $file (@ARGV)
       { $current_file= $file;
-				my $ok= ($current_file=~ m{^(http|ftp|file)://}) ? $t->safe_parseurl( $file) : $t->safe_parsefile( $file);
+        my $ok= ($current_file=~ m{^(http|ftp|file)://}) ? $t->safe_parseurl( $file) : $t->safe_parsefile( $file);
         if( !$ok)
           { if( $@ =~ m{XMLGREP: FOUND}) 
               { # in files mode
@@ -159,21 +123,23 @@ if( @ARGV)
                 exit unless( $nb_results);
               }
             elsif( $@ =~ m{^XMLGREP: NB_RESULT_REACHED})
-              { print file_result_end() if( $file_results);
-                print result_end()      if( $group && $results);
+              { print file_result_end() if( $group && $file_results);
+                print result_end()      if( $results);
                 exit;
               }
             else
-              { die /$@/; }
+              { $@ ||= 'unknown cause';
+                die $@; 
+              }
           }
         else
-         { if( $count)    { print "$current_file: $count_file\n";
-			    $count_total += $count_file;
-			    $count_file=0;
-                          }
-			    
+         { if( $count)    
+             { print "$current_file: $count_file\n";
+               $count_total += $count_file;
+               $count_file=0;
+             }
            elsif( @roots) { print file_result_end() if( $file_results); }
-	   elsif( $count) { print "$count_total matches\n"; }
+           elsif( $count) { print "$count_total matches\n"; }
          }
       }
     if( $count) { print "total: $count_total\n"; }
@@ -187,18 +153,99 @@ else
     else        { print result_end();             }
   }
 
+sub create_regular_handlers
+  { my( $options, $roots, $paths)= @_;
+    if( @$roots)
+      { my $root_handlers={};
+        my $root_handler= twig_roots_handler( @$paths);
+        foreach my $root (@$roots)
+          { $root_handlers->{$root}= $root_handler; }
+
+        $options->{twig_roots}= $root_handlers;
+      }
+
+    if( @$paths)
+      { my $twig_handlers={};
+        my $twig_handler= twig_handlers();
+        foreach my $path (@$paths)
+          { $twig_handlers->{$path}= $twig_handler; }
+
+        $options->{twig_handlers}= $twig_handlers;
+      }
+  }
+
+sub create_twig
+  { my( %options)= @_;
+    my $twig;
+    eval { $twig= XML::Twig->new( %options) };
+    if( $@)
+      { # see if we are in the case where the only condition uses string() or regexp
+        if( ($@=~ m{^(regexp|string\(\)) condition not supported on twig_roots option})
+            && $options{twig_roots} && !$options{twig_handlers}
+            && ( keys %{$options{twig_roots}} == 1)
+          )
+          { # in this case add the proper twig_roots option
+            my $cond= (keys %{$options{twig_roots}})[0];
+            (my $root= $cond)=~ s{\[[^\]]*\]$}{};
+            warn "cond: '$cond' - root: '$root'\n";
+            delete $options{twig_roots};
+            delete $options{twig_handlers};
+            @paths= ($cond);
+            @roots= ($root);
+            create_regular_handlers( \%options, \@roots, \@paths);
+            return create_twig( %options);
+          }
+        elsif( $@=~ m{^wrong condition: unrecognized expression in handler: '(.*?)'})
+          { die "error in filter condition '$1'\n"; }
+        else
+          { die "error: $@"; }
+      }
+      return $twig;
+  }
+
+ 
+sub twig_roots_handler
+  { my( @paths)= @_;
+    return  sub 
+              { my( $t, $root)= @_;
+                if( !@paths or $_->att( '#print'))
+                  { print result_start()        unless( $results); 
+                    print file_result_start()   unless( !$group or $file_results);
+                    if( $text_only)
+                      { print $root->text, "\n"; }
+                    else
+                      { $root->print; }
+                    $nb_results--;
+                    unless( $nb_results) { $@= "XMLGREP: NB_RESULT_REACHED"; die; }
+                  }
+                $t->purge; 
+                1;
+              };
+  }
+
+sub twig_handlers
+  { if( $files)
+      { return sub { $@="XMLGREP: FOUND"; die; }; }
+    else
+      { return sub { my( $t, $hit)= @_;
+                     foreach my $elt ( $hit->ancestors_or_self) 
+                       { $elt->set_att( '#print' => 1); }
+                         1;
+                   };
+      }
+  }
 
 sub result_start
   { $results=1;
-		return if( $text_only);
+    return if( $text_only);
     my $enc_decl= $encoding ? qq{encoding="$encoding" } : '';
     return $wrap ?  qq{<?xml version="1.0" $enc_decl?>\n<$wrap $descr>\n}
-					       : '';
+                 : '';
   }
 
 sub result_end
   { my $result;
-		return if( $text_only);
+    return if( $text_only);
     if( !$group) { $result= "\n"; }
     $result .= qq{</$wrap>\n} if( $wrap);
     return $result;
@@ -206,7 +253,7 @@ sub result_end
 
 sub file_result_start
   { $file_results=1;
-		return if( $text_only);
+    return if( $text_only);
     my $result;
     $result= qq{<$group filename="$current_file">};
     if( !$pretty_print)
@@ -216,7 +263,7 @@ sub file_result_start
 
 sub file_result_end
   { $file_results=0;
-		return if( $text_only);
+    return if( $text_only);
     return qq{\n</$group>\n};
   }
 
@@ -352,7 +399,7 @@ Displays the text of the results, one by line.
 =head2 Condition Syntax
 
 <cond> is an XPath-like expression as allowed by XML::Twig to trigger handlers. 
-	 
+ 
 exemples: 
   'para'
   'para[@compact="compact"]'

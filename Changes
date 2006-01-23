@@ -1,6 +1,68 @@
-$Id: Changes,v 1.85 2005/10/14 16:16:08 mrodrigu Exp $
+$Id: Changes,v 1.98 2006/01/19 17:52:44 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.23
+
+      added autoflush: there is no more need for the
+      last $twig->flush after the parsing, it is done
+      automatically at the end of the parsing, with the
+      same arguments as the first flush on the twig.
+      This can be turned of by setting $twig->{twig_autoflush}
+      to 0.
+      WARNING: if you finished the output with a direct
+      print instead of a flush, then this change will 
+      cause a bug. Hopefully this should not be the case
+      and is easily fixable. 
+
+      fixed bug RT #17145 where get_xpath('//root/elt[1]/child')
+      would produce a fatal error if there were no elt 
+      element under root. Spotted by Dan Dascalescu.
+
+      fixed bug RT #17064 (comments and PIs after the
+      root element were not properly processed), spotted
+      by Dan Dascalescu.
+      
+      fixed bug RT #17044: the SYSTEM value was not
+      output in UpdateDTD mode, thanks to Michal
+      Lewandowski for pointing this out.
+
+      changed the way empty tags are expanded with the
+      'html' style: only tags that are allowed to be 
+      empty in XHTML are output as '<tag />', thanks
+      to Tom Rathborne for proding me to look into this.
+
+      added a 'wrapped' pretty_print option, that is
+      a bit dodgy I think but that might please some.
+
+      fixed bug RT #16540 (tags with specific names 
+      (like 'level'), tripped XML::Twig, spotted by
+      Graham
+    
+      added comparison with XML::LibXML in the SEE ALSO
+      section (and in the FAQ), following a question
+      from surf on c.l.p.m
+      
+      XML::Twig now rejects string/regexp condition
+      in twig_roots
+      
+      added better error checking in xml_grep
+      
+      fix for string/regexp condition in xml_grep 
+
+      added support for ! @att (or not @att) in get_xpath
+      added support for several predicates in get_xpath
+      (not nested predicates though).
+
+      fixed bug RT #15671 (wrong condition interpretation
+      for attribute value 0)
+
+      added XML::Twig print_to_file method
+
+      added XML::Twig::Elt methods: following_elt,
+      following_elts, preceding_elt, preceding_elts
+      (needed to support the corresponding axis in
+      get_xpath)
 
 Changes in 3.22
 
@@ -25,7 +87,7 @@ Changes in 3.22
       or at the end of the text of an element.
 
       fixed RT #15014: in a few methods objects were 
-      created as XML::Twig::Elt, instead of in the class
+      created as XML::Twig::Elt, instead of in the classû!F
       of the calling object.
 
       fixed RT #14959: problem with wrap_children when

@@ -1,6 +1,6 @@
 #!/bin/perl
 
-# $Id: zz_dump_config.t,v 1.8 2005/10/14 16:14:48 mrodrigu Exp $
+# $Id: zz_dump_config.t,v 1.11 2006/01/16 15:42:25 mrodrigu Exp $
 
 my $ok; # global, true if the last call to version found the module, false otherwise
 use Config;
@@ -10,6 +10,9 @@ warn "\n\nConfiguration:\n\n";
 # required
 warn "perl: $]\n";
 warn "OS: $Config{'osname'} - $Config{'myarchname'}\n";
+
+print "\n";
+
 warn version( XML::Parser, 'required');
 
 # try getting this info
@@ -18,6 +21,8 @@ if( $xmlwf_v=~ m{xmlwf using expat_(.*)$}m)
   { warn format_warn( 'expat', $1, '(required)'); }
 else
   { warn format_warn( 'expat', '<no version information found>'); }
+
+print "\n";
 
 # must-have
 warn version( Scalar::Util, 'for improved memory management');
@@ -35,12 +40,17 @@ warn version( Encode, 'for encoding conversions');
 unless( $ok) { warn version( Text::Iconv, 'for encoding conversions'); }
 unless( $ok) { warn version( Unicode::Map8, 'for encoding conversions'); }
 
+print "\n";
+
 # optional
 warn version( LWP, 'for the parseurl method');
 warn version( HTML::Entities, 'for the html_encode filter');
 warn version( Tie::IxHash, 'for the keep_atts_order option');
 warn version( XML::XPath, 'to use XML::Twig::XPath');
 warn version( HTML::TreeBuilder, 'to use parse_html and parsefile_html');
+warn version( Text::Wrap, 'to use the "wrapped" option for pretty_print');
+
+print "\n";
 
 # used in tests
 warn version( Test, 'for testing purposes');
@@ -65,6 +75,7 @@ sub version
       { $ok=1;
         import $module;
         $version= ${"$module\::VERSION"};
+        $version=~ s{\s*$}{};
       }
     else
       { $ok=0;

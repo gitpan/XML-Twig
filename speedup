@@ -1,13 +1,13 @@
 #!/bin/perl 
 
-# $Id: speedup,v 1.6 2004/05/12 15:54:17 mrodrigu Exp $
+# $Id: speedup,v 1.7 2006/01/19 11:16:35 mrodrigu Exp $
 
 use XML::Parser;
 
 
 $FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|ent|data|target|comment|flushed";
-$FIELD2="parent|first_child|last_child|prev_sibling|next_sibling";
-$SET_FIELD="first_child|next_sibling|pcdata|cdata|ent|data|target|comment|flushed";
+$FIELD2="parent|first_child|last_child|prev_sibling|next_sibling|pcdata"; # _set_$field is inlined
+$SET_FIELD="first_child|next_sibling|cdata|ent|data|target|comment|flushed";
 # depending on the version of perl use either qr or ""
 print STDERR "perl version is $] XML::Parser version is $XML::Parser::VERSION\n";
 

@@ -37,7 +37,7 @@ print "1..$TMAX\n";
       ok( !$@, 'checking bug RT 7523');
     }
   else
-    { if( $@=~ m{^Can't locate Text/Iconv.pm})
+    { if( $@=~ m{^Can't locate Text/Iconv.pm} || $@=~ m{^Text::Iconv not available} )
         { skip( 1, "Text::Iconv not available"); }
       elsif( $@=~ m{^Unsupported encoding: utf8})
         { skip( 1, "your version of iconv does not support utf8"); }

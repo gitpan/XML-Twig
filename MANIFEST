@@ -100,10 +100,14 @@ t/test_bugs_3.15.t
 t/test_bugs_3.18.t
 t/test_bugs_3.19.t
 t/test_bugs_3.21.t
+t/test_bugs_3.22.t
 t/test_new_features_3.15.t
 t/test_new_features_3.16.t
 t/test_new_features_3.18.t
 t/test_new_features_3.22.t
+t/test_new_features_3.22.xml
+t/test_new_features_3.22.html
+t/test_wrapped.t
 t/test_xml_split.t
 t/test_xml_split.xml
 t/test_xml_split_entities.xml
