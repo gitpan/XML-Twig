@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
 use strict;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
-# $Id: test_keep_atts_order.t,v 1.4 2005/08/12 12:21:40 mrodrigu Exp $
+# $Id: test_keep_atts_order.t,v 1.5 2006/04/20 08:09:51 mrodrigu Exp $
 
 use XML::Twig;
 

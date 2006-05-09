@@ -1,4 +1,4 @@
-# $Id: tools.pm,v 1.4 2005/12/09 13:54:47 mrodrigu Exp $
+# $Id: tools.pm,v 1.6 2006/05/08 16:48:31 mrodrigu Exp $
 
 use strict;
 
@@ -345,6 +345,18 @@ sub _use
 sub test_get_xpath
   { my( $t, $exp, $expected)= @_;
     is( ids( $t->get_xpath( $exp)), $expected, "$exp xpath exp");
+  }
+
+sub perl_io_layer_used
+  { return ( ($] >= 5.008) && (${^UNICODE} & 24) ); }
+
+# slurp and discard locale errors
+sub slurp_error
+  { my( $file)= @_;
+    my $error= eval { slurp( $file); } || '';
+    $error=~ s{^\s$}{}mg;
+    $error=~ s{^[^:]+: warning:.*$}{}mg;
+    return $error;
   }
 
 __END__

@@ -1,11 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_new_features_3.22.t,v 1.8 2005/12/08 10:47:43 mrodrigu Exp $
+# $Id: test_new_features_3_22.t,v 1.12 2006/04/20 16:36:28 mrodrigu Exp $
 use Carp;
 
 use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 use XML::Twig;
@@ -27,7 +28,7 @@ print "1..20\n";
       my $expected= HTML::TreeBuilder->new->parse( $html)->as_XML;
       is_like( XML::Twig->new->parse_html( $html)->sprint, $expected, 'parse_html string using HTML::TreeBuilder');
 
-      my $html_file= "t/test_new_features_3.22.html";
+      my $html_file= File::Spec->catfile( "t", "test_new_features_3_22.html");
       spit( $html_file => $html);
       is_like( XML::Twig->new->parsefile_html( $html_file)->sprint, $expected, 'parsefile_html using HTML::TreeBuilder');
 
@@ -90,7 +91,7 @@ else
 }
 
 { 
-  my $file= "$Bin/test_new_features_3.22.html";
+  my $file= File::Spec->catfile( "$Bin", "test_new_features_3_22.html");
   if( -f $file) 
     { XML::Twig::_disallow_use( 'LWP::Simple');
       eval { XML::Twig->nparse( "file://$file"); };
@@ -111,13 +112,15 @@ else
 }
 
 { 
-  my $file= "$Bin/test_new_features_3.22.xml";
+  my $file= File::Spec->catfile( "$Bin", "test_new_features_3_22.xml");
   if( -f $file) 
-    { XML::Twig::_disallow_use( 'LWP');
+    { XML::Twig::_disallow_use( 'LWP::Simple');
       eval { XML::Twig->nparse( "file://$file"); };
-      matches( $@, "^LWP not available", "nparse url without LWP");
-      XML::Twig::_allow_use( 'LWP');
-      if( XML::Twig::_use( 'LWP'))
+      matches( $@, "^missing LWP::Simple", "nparse url without LWP::Simple");
+      XML::Twig::_allow_use( 'LWP::Simple');
+      if( perl_io_layer_used())
+        { skip( 1 => "cannot test url parsing when UTF8 perlIO layer used"); }
+      elsif( XML::Twig::_use( 'LWP::Simple'))
         { my $content= XML::Twig->nparse( "file://$file")->sprint;
           is( $content, "<doc></doc>", "nparse url");
         }
@@ -129,7 +132,7 @@ else
 }
  
 
-{ my $file= "t/test_new_features_3.22.xml";
+{ my $file= File::Spec->catfile( "t", "test_new_features_3_22.xml");
   open( FH, "<$file") or die "cannot find test file '$file': $!";
   my $content= XML::Twig->nparse( \*FH)->sprint;
   is( $content, "<doc></doc>", "nparse glob");

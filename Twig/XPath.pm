@@ -1,15 +1,32 @@
-# $Id: XPath.pm,v 1.15 2005/07/05 10:47:19 mrodrigu Exp $
+# $Id: XPath.pm,v 1.17 2006/03/31 14:01:50 mrodrigu Exp $
 package XML::Twig::XPath;
-use XML::Twig;
-use XML::XPath;
-
 use strict;
+use XML::Twig;
+
+my $XPATH;        # XPath engine (XML::XPath or Tree::XPathEngine);
+my $XPATH_NUMBER; # <$XPATH>::Number, the XPath number class  
+BEGIN 
+  { foreach my $xpath_engine ( qw( XML::XPathEngine XML::XPath) )
+      { if(  XML::Twig::_use( $xpath_engine) ) { $XPATH= $xpath_engine; last; } }
+    unless( $XPATH) { die "cannot use XML::XPath or XML::XPathEngine: $!"; }
+    $XPATH_NUMBER= "${XPATH}::Number";
+  }
+
 
 use vars qw($VERSION);
-$VERSION="0.01";
+$VERSION="0.02";
 
 BEGIN
 { package XML::XPath::NodeSet;
+  no warnings; # to avoid the "Subroutine sort redefined" message
+	# replace the native sort routine by a Twig'd one
+  sub sort 
+    { my $self = CORE::shift;
+      @$self = CORE::sort { $a->node_cmp( $b) } @$self;
+      return $self;
+    }
+
+  package XML::XPathEngine::NodeSet;
   no warnings; # to avoid the "Subroutine sort redefined" message
 	# replace the native sort routine by a Twig'd one
   sub sort 
@@ -23,12 +40,12 @@ package XML::Twig::XPath;
 
 use base 'XML::Twig';
 
-sub to_number { return XML::XPath::Number->new( $_[0]->root->text); }
+sub to_number { return $XPATH_NUMBER->new( $_[0]->root->text); }
 
 sub new
   { my $class= shift;
 		my $t= XML::Twig->new( elt_class => 'XML::Twig::XPath::Elt', @_);
-    $t->{twig_xp}= XML::XPath->new();
+    $t->{twig_xp}= $XPATH->new();
 		bless $t;
 		return $t;
   }
@@ -64,7 +81,7 @@ use base 'XML::Twig::Elt';
 sub isAttributeNode { 0 }
 sub isNamespaceNode { 0 }
 
-sub to_number { return XML::XPath::Number->new( $_[0]->text); }
+sub to_number { return $XPATH_NUMBER->new( $_[0]->text); }
 
 sub getAttributes
   { my $elt= shift;
@@ -135,7 +152,7 @@ sub getValue     { return $_[0]->{value}; }
 sub getName      { return $_[0]->{name} ; }
 sub getLocalName { (my $name= $_[0]->{name}) =~ s{^.*:}{}; $name; }
 sub string_value { return $_[0]->{value}; }
-sub to_number    { return XML::XPath::Number->new( $_[0]->{value}); }
+sub to_number    { return $XPATH_NUMBER->new( $_[0]->{value}); }
 sub isElementNode   { 0 }
 sub isAttributeNode { 1 }
 sub isNamespaceNode { 0 }
@@ -176,6 +193,8 @@ sub node_cmp($$)
       { die "unknown node type ", ref( $b); }
   }
 
+*cmp=*node_cmp;
+  
 1;
 
 package XML::Twig::XPath::Namespace;

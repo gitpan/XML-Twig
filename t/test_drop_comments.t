@@ -1,8 +1,8 @@
 #!/usr/local/bin/perl -w
 use strict;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 use XML::Twig;

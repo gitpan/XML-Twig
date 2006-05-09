@@ -3,8 +3,8 @@
 use strict;
 
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 # This just tests a complete twig, no callbacks

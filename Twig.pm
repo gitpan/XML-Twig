@@ -1,4 +1,4 @@
-# $Id: Twig.pm.slow,v 1.279 2006/01/23 10:42:57 mrodrigu Exp $
+# $Id: Twig_pm.slow,v 1.294 2006/05/08 16:48:31 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -88,7 +88,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.23';
+$VERSION = '3.24';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -617,7 +617,17 @@ sub new
     return $self;
   }
 
-
+sub parse
+  { # trap underlying bug in IO::Handle (see RT #17500)
+    # croak if perl 5.8+, -CD (or PERL_UNICODE set to D) and parsing a pipe
+    if( $]>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[1], 'GLOB') && -p $_[1] )
+      { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"
+              . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"
+              . "not to include 'D'";
+      }
+    shift->SUPER::parse( @_);
+  }
+  
 sub parseurl
   { my $t= shift;
     $t->_parseurl( 0, @_);
@@ -646,12 +656,24 @@ sub xparse
     my $to_parse= $_[0];
     if( isa( $to_parse, 'GLOB'))             { $t->parse( @_);                 }
     elsif( $to_parse=~ m{^\s*<})             { $to_parse=~ m{<html}i ? $t->_parse_as_xml_or_html( @_)
-                                                                     :   $t->parse( @_);                 
+                                                                     : $t->parse( @_);                 
                                              }
     elsif( $to_parse=~ m{^\w+://.*\.html?$}) { _use( 'LWP::Simple') or croak "missing LWP::Simple"; 
                                                $t->_parse_as_xml_or_html( get( shift()), @_);
                                              }
-    elsif( $to_parse=~ m{^\w+://})           { $t->parseurl( @_);              }
+    elsif( $to_parse=~ m{^\w+://})           { _use( 'LWP::Simple') or croak "missing LWP::Simple";
+                                               my $doc= get( shift);
+                                               my $xml_parse_ok= $t->safe_parse( $doc, @_);
+                                               if( $xml_parse_ok)
+                                                 { return $xml_parse_ok; }
+                                               else
+                                                 { my $diag= $@;
+                                                   if( $doc=~ m{<html}i)
+                                                     { $t->parse_html( $doc, @_); }
+                                                    else
+                                                      { die $diag; }
+                                                 }
+                                             }
     elsif( $to_parse=~ m{\.html?$})          { my $content= _slurp( shift);
                                                $t->_parse_as_xml_or_html( $content, @_); 
                                              }
@@ -676,7 +698,17 @@ sub _html2xml
     return HTML::TreeBuilder->new->parse( $html)->as_XML;
   }
 
-    
+sub add_stylesheet
+  { my( $t, $type, $href)= @_;
+    my $ss= $t->{twig_elt_class}->new( '#PI');
+    if( $type eq "xsl") 
+      { $ss->_set_pi( 'xml-stylesheet', qq{type="text/xsl" href="$href"}); }
+    else
+      { croak "unsupported style sheet type '$type'"; }
+      
+    $t->_add_cpi_outside_of_root( leading_cpi => $ss);
+    return $t;
+  }
 
 { my %used;       # module => 1 if require ok, 0 otherwise
   my %disallowed; # for testing, refuses to _use modules in this hash
@@ -713,6 +745,14 @@ sub _first_n(&$@)        # needs a prototype to accept passing bare blocks
       { croak "illegal position number 0"; }
   }
 
+sub _slurp_uri
+  { my( $uri)= @_;
+    if( $uri=~ m{^\w+://})
+      { _use( 'LWP::Simple'); return get( $uri); }
+    else
+      { return _slurp( $uri); }
+  }
+
 sub _slurp
   { my( $filename)= @_;
     # use bareword filehandle to stay compatible with real old perl
@@ -732,7 +772,7 @@ sub _slurp_fh
  
 # I should really add extra options to allow better configuration of the 
 # LWP::UserAgent object
-# this method forks: 
+# this method forks (except on VMS!)
 #   - the child gets the data and copies it to the pipe,
 #   - the parent reads the stream and sends it to XML::Parser
 # the data is cut it chunks the size of the XML::Parser::Expat buffer
@@ -740,28 +780,40 @@ sub _slurp_fh
 sub _parseurl
   { my( $t, $safe, $url, $agent)= @_;
     _use( 'LWP') || croak "LWP not available, needed to use parseurl methods";
-    pipe( README, WRITEME) or croak  "cannot create connected pipes: $!";
-    if( my $pid= fork)
-      { # parent code: parse the incoming file
-        close WRITEME; # no need to write
-        my $result= $safe ? $t->safe_parse( \*README) : $t->parse( \*README);
-        close README;
-        return $@ ? 0 : $t;
-      }
-    else
-     { # child
-        close README; # no need to read
-        $|=1;
+    if( $^O ne 'VMS')
+      { pipe( README, WRITEME) or croak  "cannot create connected pipes: $!";
+        if( my $pid= fork)
+          { # parent code: parse the incoming file
+            close WRITEME; # no need to write
+            my $result= $safe ? $t->safe_parse( \*README) : $t->parse( \*README);
+            close README;
+            return $@ ? 0 : $t;
+          }
+        else
+         { # child
+            close README; # no need to read
+            $|=1;
+            $agent    ||= LWP::UserAgent->new;
+            my $request  = HTTP::Request->new( GET => $url);
+            # _pass_url_content is called with chunks of data the same size as
+            # the XML::Parser buffer 
+            my $response = $agent->request( $request, 
+                             sub { _pass_url_content( \*WRITEME, @_); }, BUFSIZE);
+            $response->is_success or croak "$url ", $response->message;
+            close WRITEME;
+            CORE::exit(); # CORE is there for mod_perl (which redefines exit)
+          }
+      } 
+    else 
+      { $|=1;
         $agent    ||= LWP::UserAgent->new;
         my $request  = HTTP::Request->new( GET => $url);
-        # _pass_url_content is called with chunks of data the same size as
-        # the XML::Parser buffer 
-        my $response = $agent->request( $request, 
-                         sub { _pass_url_content( \*WRITEME, @_); }, BUFSIZE);
+        my $response = $agent->request( $request);
         $response->is_success or croak "$url ", $response->message;
-        close WRITEME;
-        CORE::exit(); # CORE is there for mod_perl (which redefines exit)
-      }
+        my $result= $safe ? $t->safe_parse($response->content) : $t->parse($response->content);
+        return $@ ? 0 : $t;
+     }
+
   }
 
 # get the (hopefully!) XML data from the URL and 
@@ -1434,7 +1486,7 @@ sub _twig_start
     else 
       { # processing root
         $t->set_root( $elt);
-        # call dtd handlerif need be
+        # call dtd handler if need be
         $t->{twig_dtd_handler}->($t, $t->{twig_dtd})
           if( defined $t->{twig_dtd_handler});
       
@@ -1979,7 +2031,7 @@ sub _twig_cdataend
     my $elt= $t->{twig_current};
     delete $elt->{'twig_current'};
     my $cdata= $elt->{cdata};
-    $elt->{cdata}=  $cdata;
+    $elt->_set_cdata( $cdata);
 
     if( $t->{twig_handlers})
       { # look for handlers
@@ -2036,7 +2088,7 @@ sub _twig_comment
     if( $t->{twig_keep_encoding}) { $comment_text= substr( $p->original_string(), 4, -3); }
     
     $t->_twig_pi_comment( $p, '#COMMENT', $t->{twig_keep_comments}, $t->{twig_process_comments},
-                          'set_comment', '_comment_elt_handler', '_comment_text_handler', $comment_text
+                          '_set_comment', '_comment_elt_handler', '_comment_text_handler', $comment_text
                         );
   }
 
@@ -2051,7 +2103,7 @@ sub _twig_pi
       }
 
     $t->_twig_pi_comment( $p, '#PI', $t->{twig_keep_pi}, $t->{twig_process_pi},
-                          'set_pi', '_pi_elt_handlers', '_pi_text_handler', $target, $data
+                          '_set_pi', '_pi_elt_handlers', '_pi_text_handler', $target, $data
                         );
   }
 
@@ -2122,6 +2174,7 @@ sub _add_cpi_outside_of_root
     $t->{$type} ||= $t->{twig_elt_class}->new( '#CPI');
     # create the node as a child of the current element
     $elt->paste_last_child( $t->{$type});
+    return $t;
   }
   
 sub _twig_final
@@ -2143,10 +2196,11 @@ sub _twig_final
         push @args,  @{$t->{twig_autoflush_data}->{args}} if( $t->{twig_autoflush_data}->{args});
         $t->flush( @args);
         delete $t->{twig_autoflush_data};
+        $t->root->delete;
       }
 
     # tries to clean-up (probably not very well at the moment)
-    undef $p->{twig};
+    #undef $p->{twig};
     undef $t->{twig_parser};
 
     undef $t->{twig_parsing};
@@ -2191,6 +2245,7 @@ sub _twig_entity($$$$$$)
   { 
     my( $p, $name, $val, $sysid, $pubid, $ndata)= @_;
     my $t=$p->{twig};
+    if( $sysid && !$ndata) { $val= _slurp_uri( $sysid); }
     my $ent=XML::Twig::Entity->new( $name, $val, $sysid, $pubid, $ndata);
     $t->entity_list->add( $ent);
     if( $parser_version > 2.27) 
@@ -2209,6 +2264,8 @@ sub _twig_entity($$$$$$)
         $t->{twig_doctype}->{internal} .= $ent_decl 
           unless( $t->{twig_doctype}->{internal}=~ m{<!ENTITY\s+$name\s+});
       }
+
+
   }
 
 sub _twig_xmldecl
@@ -2615,6 +2672,9 @@ sub print
 
 sub flush
   { my $t= shift;
+
+    return if( $t->{twig_completely_flushed});
+  
     my $fh=  _is_fh( $_[0]) ? shift : undef;
     my $old_select= defined $fh ? select $fh : undef;
     my $up_to= ref $_[0] ? shift : undef;
@@ -2643,6 +2703,7 @@ sub flush
     else
       { $last_elt= $t->{twig_root};
         $flush_trailing_data=1;
+        $t->{twig_completely_flushed}=1;
       }
 
     # flush the DTD unless it has ready flushed (ie root has been flushed)
@@ -2819,7 +2880,6 @@ sub last_elt
     return $root->last_descendant( $cond); 
   }
 
-
 sub next_n_elt
   { my( $t, $offset, $cond)= @_;
     $offset -- if( $t->root->matches( $cond) );
@@ -2876,8 +2936,16 @@ sub children
     else
       { return (); }
   }
-
+  
 sub _children { return ($_[0]->root); }
+
+# weird, but here for completude
+# used to solve (non-sensical) /doc[1] XPath queries
+sub child
+  { my $t= shift;
+    my $nb= shift;
+    return ($t->children( @_))[$nb];
+  }
 
 sub descendants
   { my( $t, $cond)= @_;
@@ -3899,6 +3967,7 @@ BEGIN
     *all_children_match= *all_children_are;
     *getElementsByTagName= *descendants;
     *find_by_tag_name= *descendants_or_self;
+    *unwrap          = *erase;
   
     *first_child_is  = *first_child_matches;
     *last_child_is   = *last_child_matches;
@@ -3964,16 +4033,31 @@ sub new
 
     my $atts= ref $_[0] eq 'HASH' ? shift : undef;
 
+    if( $atts && defined $atts->{'#CDATA'})
+      { delete $atts->{'#CDATA'};
+
+        my $cdata= new( $class, '#CDATA', @_);
+        return new( $class, $gi, $atts, $cdata);
+      }
+
     if( $gi eq PCDATA)
-      { $elt->_set_pcdata( shift); }
+      { if( grep { ref $_ } @_) { croak "element #PCDATA can only be created from text"; }
+        $elt->_set_pcdata( join( '', @_)); 
+      }
     elsif( $gi eq ENT)
       { $elt->{ent}=  shift; }
     elsif( $gi eq CDATA)
-      { $elt->{cdata}=  shift; }
+      { if( grep { ref $_ } @_) { croak "element #CDATA can only be created from text"; }
+        $elt->_set_cdata( join( '', @_)); 
+      }
     elsif( $gi eq COMMENT)
-      { $elt->{comment}=  shift; }
+      { if( grep { ref $_ } @_) { croak "element #COMMENT can only be created from text"; }
+        $elt->_set_comment( join( '', @_)); 
+      }
     elsif( $gi eq PI)
-      { $elt->set_pi( shift, shift); }
+      { if( grep { ref $_ } @_) { croak "element #PI can only be created from text"; }
+        $elt->_set_pi( shift, join( '', @_));
+      }
     else
       { # the rest of the arguments are the content of the element
         if( @_)
@@ -4299,9 +4383,9 @@ sub set_extra_data
 sub extra_data { return $_[0]->{extra_data}; }
 
 sub set_target 
-  { $_[0]->{'target'}= $_[1];
-    return $_[0]; 
-     
+  { my( $elt, $target)= @_;
+    $elt->{target}= $target;
+    return $elt; 
   }
 sub target { return $_[0]->{target}; }
 
@@ -4312,6 +4396,15 @@ sub set_data
 sub data { return $_[0]->{data}; }
 
 sub set_pi
+  { my $elt= shift;
+    unless( $elt->{gi} == $XML::Twig::gi2index{'#PI'})
+      { $elt->cut_children;
+        $elt->set_gi( '#PI');
+      }
+    return $elt->_set_pi( @_);
+  }
+
+sub _set_pi
   { $_[0]->{target}=  $_[1];
     $_[0]->{data}=  $_[2];
     return $_[0]; 
@@ -4324,7 +4417,16 @@ sub pi_string { my $string= PI_START . $_[0]->{target};
                 return $string;
               }
 
-sub set_comment    { $_[0]->{comment}= $_[1]; return $_[0]; }
+sub set_comment
+  { my $elt= shift;
+    unless( $elt->{gi} == $XML::Twig::gi2index{'#COMMENT'})
+      { $elt->cut_children;
+        $elt->set_gi( '#COMMENT');
+      }
+    return $elt->_set_comment( @_);
+  }
+
+sub _set_comment   { $_[0]->{comment}= $_[1]; return $_[0]; }
 sub comment        { return $_[0]->{comment}; }
 sub comment_string { return COMMENT_START . $_[0]->{comment} . COMMENT_END; }
 
@@ -4333,6 +4435,16 @@ sub ent      { return $_[0]->{ent}; }
 sub ent_name { return substr( $_[0]->{ent}, 1, -1);}
 
 sub set_cdata 
+  { my $elt= shift;
+    unless( $elt->{gi} == $XML::Twig::gi2index{'#CDATA'})
+      { $elt->cut_children;
+        $elt->insert_new_elt( first_child => '#CDATA', @_);
+        return $elt;
+      }
+    return $elt->_set_cdata( @_);
+  }
+  
+sub _set_cdata 
   { delete $_[0]->{empty};
     $_[0]->{cdata}= $_[1]; 
     return $_[0];
@@ -4343,6 +4455,7 @@ sub append_cdata
     return $_[0];
   }
 sub cdata { return $_[0]->{cdata}; }
+
 
 #start-extract twig_node
 sub contains_only_text
@@ -4788,6 +4901,7 @@ sub in_class
     return unless( defined $elt_class);
     return $elt->class=~ m{(?:^|\s)\Q$class\E(?:\s|$)} ? $elt : 0;
   }
+
 
 #end-extract twig_node
 
@@ -5661,7 +5775,6 @@ sub next_siblings
                       my $pos;
                       if( $pred=~ m{^(-?\s*\d+)$})
                         { my $pos= $1;
-                          #$step= "(($step)[$pos])";
                           if( $step=~ m{^\s*grep(.*) (\$_->\w+\(\s*'[^']*'\s*\))})
                             { $step= "XML::Twig::_first_n $1 $pos, $2"; }
                           else
@@ -5928,7 +6041,8 @@ BEGIN
               }
             $ref= $_[0];
             # check here so error message lists the caller file/line
-            if( !$ref->{parent} && ($method=~ m{^(before|after)$}) ) { croak "cannot paste $1 root"; }
+            if( !$ref->{parent} && ($pos=~ m{^(before|after)$}) && !(exists $elt->{'target'}) && !(exists $elt->{'comment'})) 
+              { croak "cannot paste $1 root"; }
             $elt->$method( @_); 
           }
         else
@@ -5947,7 +6061,18 @@ BEGIN
     sub paste_before
       { my( $elt, $ref)= @_;
         my( $parent, $prev_sibling, $next_sibling );
-        unless( $ref->{parent}) { croak "cannot paste before root"; }
+        
+        # trying to paste before an orphan (root or detached wlt)
+        unless( $ref->{parent}) 
+          { if( my $t= $ref->twig)
+              { if( (exists $elt->{'comment'}) || (exists $elt->{'target'})) # we can still do this
+                  { $t->_add_cpi_outside_of_root( leading_cpi => $elt); return; }
+                else
+                  { croak "cannot paste before root"; }
+              }
+            else
+              { croak "cannot paste before an orphan element"; }
+          }
         $parent= $ref->{parent};
         $prev_sibling= $ref->{prev_sibling};
         $next_sibling= $ref;
@@ -5966,7 +6091,18 @@ BEGIN
      sub paste_after
       { my( $elt, $ref)= @_;
         my( $parent, $prev_sibling, $next_sibling );
-        unless( $ref->{parent}) { croak "cannot paste after root"; }
+
+        # trying to paste after an orphan (root or detached wlt)
+        unless( $ref->{parent}) 
+            { if( my $t= $ref->twig)
+                { if( (exists $elt->{'comment'}) || (exists $elt->{'target'})) # we can still do this
+                    { $t->_add_cpi_outside_of_root( trailing_cpi => $elt); return; }
+                  else
+                    { croak "cannot paste after root"; }
+                }
+              else
+                { croak "cannot paste after an orphan element"; }
+            }
         $parent= $ref->{parent};
         $prev_sibling= $ref;
         $next_sibling= $ref->{next_sibling};
@@ -6538,13 +6674,13 @@ sub copy
         $copy->{extra_data_in_pcdata}= $elt->{extra_data_in_pcdata} if( $elt->{extra_data_in_pcdata});
       }
     elsif( (exists $elt->{'cdata'}))
-      { $copy->{cdata}=  $elt->{cdata}; 
+      { $copy->_set_cdata( $elt->{cdata}); 
         $copy->{extra_data_in_pcdata}= $elt->{extra_data_in_pcdata} if( $elt->{extra_data_in_pcdata});
       }
     elsif( (exists $elt->{'target'}))
-      { $copy->set_pi( $elt->{target}, $elt->{data}); }
+      { $copy->_set_pi( $elt->{target}, $elt->{data}); }
     elsif( (exists $elt->{'comment'}))
-      { $copy->{comment}=  $elt->{comment}; }
+      { $copy->_set_comment( $elt->{comment}); }
     elsif( (exists $elt->{'ent'}))
       { $copy->{ent}=  $elt->{ent}; }
     else
@@ -7574,11 +7710,11 @@ sub set_text
     elsif( $XML::Twig::index2gi[$elt->{'gi'}] eq CDATA)  
       { if( $option{force_pcdata})
           { $elt->set_gi( PCDATA);
-            $elt->{cdata}= '';
+            $elt->_set_cdata('');
             return $elt->set_pcdata( $string);
           }
         else
-          { return $elt->{cdata}=  $string; }
+          { return $elt->_set_cdata( $string); }
       }
     elsif( $elt->contains_a_single( PCDATA) )
       { # optimized so we have a slight chance of not loosing embedded comments and pi's
@@ -7622,7 +7758,7 @@ sub set_content
         return $elt;
       }
     elsif( ($XML::Twig::index2gi[$elt->{'gi'}] eq CDATA) && ($#_ == 0) && !( ref $_[0]))
-      { $elt->{cdata}=  $_[0];
+      { $elt->_set_cdata( $_[0]);
         return $elt;
       }
 
@@ -8042,7 +8178,7 @@ sub cmp
 
     # easy cases
     return  0 if( $a == $b);    
-    return  1 if( $a->in($b)); # a starts after b 
+    return 1 if( $a->in($b)); # a starts after b 
     return -1 if( $b->in($a)); # a starts before b
 
     # ancestors does not include the element itself
@@ -9718,6 +9854,28 @@ Same as using the C<L<output_filter>> option when creating the twig
 
 Same as using the C<L<output_text_filter>> option when creating the twig
 
+=item add_stylesheet ($type, @options)
+
+Adds an external stylesheet to an XML document.
+
+Supported types and options:
+
+=over 4
+
+=item xsl
+
+ option: the url of the stylesheet
+
+ Example:
+
+  $t->add_stylesheet( xsl => "xsl_style.xsl");
+
+will generate the following PI at the beginning of the document:
+
+  <?xml-stylesheet type="text/xsl" href="xsl_style.xsl"?>
+
+=back
+
 =item Methods inherited from XML::Parser::Expat
 
 A twig inherits all the relevant methods from XML::Parser::Expat. These 
@@ -9916,6 +10074,14 @@ To create an element C<foo> containing a CDATA section:
 
            my $foo= XML::Twig::Elt->new( '#CDATA' => "content of the CDATA section")
                                   ->wrap_in( 'foo');
+
+An attribute of '#CDATA', will create the content of the attribute as CDATA:
+
+  my $elt= XML::Twig::Elt->new( 'p' => { #CDATA => 1}, 'foo < bar');
+
+creates an element 
+
+  <p><![CDATA[foo < bar]]></>
 
 =item parse         ($string, %args)
 
@@ -10796,23 +10962,25 @@ If C<$optional_offset> is used then only one element will be returned, the one
 with the appropriate offset in the list, starting at 0
 
 Quoting and interpolating variables can be a pain when the Perl syntax and the 
-XPATH syntax collide, so here are some more examples to get you started:
+XPATH syntax collide, so use alternate quoting mechanisms like q or qq 
+(I like q{} and qq{} myself).
+
+Here are some more examples to get you started:
 
   my $p1= "p1";
   my $p2= "p2";
-  my @res= $t->get_xpath( "p[string( '$p1') or string( '$p2')]");
+  my @res= $t->get_xpath( qq{p[string( "$p1") or string( "$p2")]});
 
   my $a= "a1";
-  my @res= $t->get_xpath( "//*[@att=\"$a\"]);
+  my @res= $t->get_xpath( qq{//*[@att="$a"]});
 
   my $val= "a1";
-  my $exp= "//p[ \@att='$val']"; # you need to use \@ or you will get a warning
+  my $exp= qq{//p[ \@att='$val']}; # you need to use \@ or you will get a warning
   my @res= $t->get_xpath( $exp);
 
 Note that the only supported regexps delimiters are / and that you must 
 backslash all / in regexps AND in regular strings.
 
-XML::Twig does not provide natively full XPATH support, but you can use 
 XML::Twig does not provide natively full XPATH support, but you can use 
 C<L<XML::Twig::XPath>> to get C<findnodes> to use C<XML::XPath> as the
 XPath engine, with full coverage of the spec.
@@ -10862,10 +11030,15 @@ and return the C<table> element:
 
 =item wrap_in        (@tag)
 
-Wrap elements C<$tag> as the successive ancestors of the element, returns the 
+Wrap elements in C<@tag> as the successive ancestors of the element, returns the 
 new element.
-$elt->wrap_in( 'td', 'tr', 'table') wraps the element as a single cell in a 
+C<< $elt->wrap_in( 'td', 'tr', 'table') >> wraps the element as a single cell in a 
 table for example.
+
+Optionally each tag can be followed by a hasref of attributes, that will be 
+set on the wrapping element:
+
+  $elt->wrap_in( p => { class => "advisory" }, div => { class => "intro", id => "div_intro });
 
 =item insert_new_elt ($opt_position, $tag, $opt_atts_hashref, @opt_content)
 

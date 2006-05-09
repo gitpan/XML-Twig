@@ -5,39 +5,55 @@
 use strict;
 use Carp;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
+use Config;
 use tools;
 
 #$|=1;
 
 use XML::Twig;
 
-my $TMAX=109; 
+my $TMAX=110; 
 print "1..$TMAX\n";
 
-my $error_file= "t/test_errors.errors";
+my $error_file= File::Spec->catfile('t','test_errors.errors');
 
 { # test insufficient version of XML::Parser (not that easy, it is already too late here)
 my $need_version= 2.23;
 
-my $q= $^O eq "MSWin32" ? '"' : "'";
+my $q= ( ($^O eq "MSWin32") || ($^O eq 'VMS') ) ? '"' : "'";
+
+use Config;
+my $secure_perl_path = $Config{perlpath};
+if ($^O ne 'VMS') {
+    $secure_perl_path .= $Config{_exe} unless $secure_perl_path =~ m/$Config{_exe}$/i;
+}
 
 my $version= $need_version - 0.01;
 unlink $error_file if -f $error_file;
-system( qq{$^X -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig$q 2> $error_file});
+if ($^O eq 'VMS') {
+    system( qq{$secure_perl_path $q-Mblib$q -e$q use vmsish qw(hushed);use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
+} else {
+    system( qq{$secure_perl_path $q-Mblib$q -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
+}
+
 ok( -f $error_file, "error generated for low version of XML::Parser");
-matches( slurp( $error_file), "^need at least XML::Parser version 2\.23", "error message for low version of XML::Parser");
+matches( slurp_error( $error_file), "need at least XML::Parser version 2\.23", "error message for low version of XML::Parser");
 
 $version= $need_version;
 unlink $error_file if -f $error_file;
-system( qq{$^X -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig$q 2> $error_file});
-ok( ! -f $error_file || ! slurp( $error_file), "no error generated for proper version of XML::Parser");
+system( qq{$secure_perl_path $q-Mblib$q -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
+ok( ! -f $error_file || slurp_error( $error_file)!~ "need at least XML::Parser version",
+    "no error generated for proper version of XML::Parser"
+  );
 
 $version= $need_version + 0.01;
 unlink $error_file if -f $error_file;
 system( qq{$^X -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig$q 2> $error_file});
-ok( ! -f $error_file || ! slurp( $error_file), "no error generated for high version of XML::Parser");
+ok( ! -f $error_file || slurp_error( $error_file)!~ "need at least XML::Parser version", 
+    "no error generated for high version of XML::Parser"
+  );
 
 unlink $error_file if -f $error_file;
 
@@ -271,6 +287,23 @@ my $init_warn= $SIG{__WARN__};
 
 { eval { XML::Twig::_first_n { $_ } 0, 1, 2, 3; }; 
   matches( $@, "^illegal position number 0", 'null argument to _first_n' );
+}
+
+{ if( ( $] <= 5.008) || ($^O eq 'VMS') )
+    { skip(1, ''); }
+  else
+    { 
+      my $infile= File::Spec->catfile('t','test_new_features_3_22.xml');
+      my $error=File::Spec->catfile('t','error.log');
+      
+      my $secure_perl_path = $Config{perlpath};
+      if ($^O ne 'VMS') { $secure_perl_path .= $Config{_exe} unless $secure_perl_path =~ m/$Config{_exe}$/i; }
+
+my $cmd= qq{$secure_perl_path "-CSDAL" "-MXML::Twig" -e"close STDERR; open( STDERR, qq{>$error}) or die qq{cannot open $error (for STDERR)}; open( FH, q{'$secure_perl_path' -p -e1 $infile |}) or die $!; XML::Twig->nparse( \\*FH); die qq{OK\n};"};
+      system $cmd;
+
+      matches( slurp( $error), "^cannot parse the output of a pipe", 'parse a pipe with perlIO layer set to UTF8 (RT #17500)');
+    }
 }
 
 exit 0;

@@ -1,9 +1,9 @@
-# $Id: xmlxpath_additional.t,v 1.14 2005/08/10 09:32:33 mrodrigu Exp $
+# $Id: xmlxpath_additional.t,v 1.15 2006/04/20 08:09:51 mrodrigu Exp $
 
 use strict;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 BEGIN 

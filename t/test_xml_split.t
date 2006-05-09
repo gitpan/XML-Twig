@@ -1,12 +1,13 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_xml_split.t,v 1.7 2005/08/10 09:32:33 mrodrigu Exp $
+# $Id: test_xml_split.t,v 1.9 2006/04/20 16:36:28 mrodrigu Exp $
 use Carp;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
+use Config;
 
 my $DEBUG=0;
 
@@ -16,15 +17,17 @@ if( !$os_ok{$^O}) { print "1..1\nok 1\n"; warn "skipping, test runs only on some
 
 print "1..18\n";
 
-my $perl      = $^X;
-my $xml_split = "tools/xml_split/xml_split";
-my $xml_merge = "tools/xml_merge/xml_merge";
+my $perl= $Config{perlpath};
+if ($^O ne 'VMS') { $perl .= $Config{_exe} unless $perl =~ m/$Config{_exe}$/i; }
+
+my $xml_split = File::Spec->catfile( "tools", "xml_split", "xml_split");
+my $xml_merge = File::Spec->catfile( "tools", "xml_merge", "xml_merge");
 
 sys_ok( "$perl -c $xml_split", "xml_split compilation");
 sys_ok( "$perl -c $xml_merge", "xml_merge compilation");
 
-my $test_dir="t/test_xml_split";
-my $test_file= "t/test_xml_split.xml";
+my $test_dir=File::Spec->catfile( "t", "test_xml_split");
+my $test_file= File::Spec->catfile( "t", "test_xml_split.xml");
 
 my $base_nb; # global, managed by test_split_merge
 test_split_merge( $test_file, "",             ""   );
@@ -34,7 +37,7 @@ test_split_merge( $test_file, "-i -c elt1",   "-i" );
 test_split_merge( $test_file, "-c elt2",      ""   );
 test_split_merge( $test_file, "-i -c elt2",   "-i" );
 
-$test_file="t/test_xml_split_entities.xml";
+$test_file=File::Spec->catfile( "t", "test_xml_split_entities.xml");
 test_split_merge( $test_file, "",         ""   );
 test_split_merge( $test_file, "-c elt",   "" );
 
@@ -44,8 +47,8 @@ sub test_split_merge
     $split_opts ||= '';
     $merge_opts ||= '';
     $base_nb++;
-    my $expected_base= "$test_dir/test_xml_split_expected-$base_nb"; 
-    my $base= "$test_dir/test_xml_split-$base_nb"; 
+    my $expected_base= File::Spec->catfile( "$test_dir", "test_xml_split_expected-$base_nb"); 
+    my $base= File::Spec->catfile( "$test_dir", "test_xml_split-$base_nb"); 
 
     systemq( "$perl $xml_split -b $base $split_opts $file");
     ok( same_files( $expected_base, $base), "xml_split $split_opts $test_file");

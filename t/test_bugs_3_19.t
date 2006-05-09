@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_bugs_3.19.t,v 1.2 2005/08/10 14:48:38 mrodrigu Exp $
+# $Id: test_bugs_3_19.t,v 1.5 2006/04/20 16:36:28 mrodrigu Exp $
 
 use strict;
 use Carp;
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 $|=1;
@@ -21,11 +21,8 @@ print "1..$TMAX\n";
 #bug with long CDATA
 
 # get an accented char in iso-8859-1
-my $char_file="t/latin1_accented_char.iso-8859-1";
-open( my $fh, "<$char_file") or die "cannot open $char_file: $!";
-my $latin1_char=<$fh>;
+my $latin1_char= perl_io_layer_used() ? '' : slurp( File::Spec->catfile('t', "latin1_accented_char.iso-8859-1"));
 chomp $latin1_char;
-close $fh;
 
             
 my %cdata=( "01- 1025 chars"                    => 'x' x 1025 . 'a',
@@ -56,6 +53,11 @@ my %cdata=( "01- 1025 chars"                    => 'x' x 1025 . 'a',
 if( $] == 5.008)
   { skip( scalar keys %cdata,   "KNOWN BUG in 5.8.0 with keep_encoding and long (>1024 char) CDATA, "
                               . "see http://rt.cpan.org/Ticket/Display.html?id=14008"
+        );
+  }
+elsif( perl_io_layer_used())
+  { skip( scalar keys %cdata, "cannot test parseurl when UTF8 perIO layer used "
+                            . "(due to PERL_UNICODE or -C option used)\n"
         );
   }
 else

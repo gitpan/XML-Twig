@@ -1,12 +1,12 @@
 #!/bin/perl -w
 
-# $Id: xmlxpath_test1.t,v 1.2 2005/08/10 14:48:38 mrodrigu Exp $
+# $Id: xmlxpath_test1.t,v 1.3 2006/04/20 08:09:51 mrodrigu Exp $
 
 use strict;
 use Carp;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 my $DEBUG=0;

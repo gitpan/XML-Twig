@@ -3,8 +3,8 @@
 use strict;
 use Carp;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 $|=1;
@@ -15,8 +15,8 @@ my $TMAX=3;
 
 print "1..$TMAX\n";
 
-my $xml_file= "t/test_expand_external_entities.xml";
-my $dtd_file= "t/test_expand_external_entities.dtd";
+my $xml_file= File::Spec->catfile( "t", "test_expand_external_entities.xml");
+my $dtd_file= File::Spec->catfile( "t", "test_expand_external_entities.dtd");
 
 my( $xml, $dtd, $xml_expanded, %ent);
 { local undef $/;

@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.6 2005/02/10 12:27:15 mrodrigu Exp $
+# $Id: Makefile.PL,v 1.9 2006/04/21 15:36:37 mrodrigu Exp $
 # tool installation part shamelessly lifted from YAML's Makefile.PL
 
 use ExtUtils::MakeMaker;
@@ -20,7 +20,7 @@ QUERIES
 }
 
 WriteMakefile(
-    NAME	     => 'XML::Twig',
+    NAME	       => 'XML::Twig',
     ABSTRACT     => 'XML, The Perl Way',
     AUTHOR       => 'Michel Rodriguez <mirod@xmltwig.com>',
     EXE_FILES    => [ map {"tools/$_/$_"} @programs],
@@ -29,7 +29,7 @@ WriteMakefile(
     dist         => { COMPRESS    => 'gzip -9f',
                       SUFFIX	     => 'gz',
                     },
-    'depend'     => { 'Twig.pm' => "FORCE\n\techo \"building Twig.pm\"\n\t\$(PERL) speedup Twig.pm.slow > Twig.pm\n\t\$(PERL) check_optional_modules",
+    'depend'     => { 'Twig.pm' => "FORCE\n\t\$(PERL) speedup Twig_pm.slow > Twig.pm\n\t\$(PERL) check_optional_modules",
 		                  'FORCE'   => '',
 									  },
 );

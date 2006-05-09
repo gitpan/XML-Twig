@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_bugs_3.21.t,v 1.6 2005/10/12 19:38:55 mrodrigu Exp $
+# $Id: test_bugs_3.21.t,v 1.7 2006/04/20 08:09:51 mrodrigu Exp $
 
 use strict;
 use Carp;
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 $|=1;

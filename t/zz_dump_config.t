@@ -1,6 +1,6 @@
 #!/bin/perl
 
-# $Id: zz_dump_config.t,v 1.11 2006/01/16 15:42:25 mrodrigu Exp $
+# $Id: zz_dump_config.t,v 1.14 2006/04/20 16:36:28 mrodrigu Exp $
 
 my $ok; # global, true if the last call to version found the module, false otherwise
 use Config;
@@ -15,12 +15,28 @@ print "\n";
 
 warn version( XML::Parser, 'required');
 
-# try getting this info
-my $xmlwf_v= `xmlwf -v`;
-if( $xmlwf_v=~ m{xmlwf using expat_(.*)$}m)
-  { warn format_warn( 'expat', $1, '(required)'); }
-else
-  { warn format_warn( 'expat', '<no version information found>'); }
+# We obviously have expat on VMS, but a symbol/logical might
+# not be set to xmlwf, and when this is the case a
+#   '%DCL-W-IVVERB, unrecognized command verb - check validity and spelling
+#   \XMLWF\'
+# will be returned.
+
+my $skip_xmlwf_test = 0;
+if ($^O eq 'VMS') {
+    if(`write sys\$output "''xmlwf'"` !~ m/[a-z]+/i) {
+        $skip_xmlwf_test = 1;
+        warn format_warn( 'expat', "Skipping expat (version) test as don't have a symbol for 'xmlwf'.");
+    }
+}
+
+if (! $skip_xmlwf_test) 
+  { # try getting this info
+    my $xmlwf_v= `xmlwf -v`;
+    if( $xmlwf_v=~ m{xmlwf using expat_(.*)$}m)
+      { warn format_warn( 'expat', $1, '(required)'); }
+    else
+      { warn format_warn( 'expat', '<no version information found>'); }
+  }
 
 print "\n";
 
@@ -46,7 +62,8 @@ print "\n";
 warn version( LWP, 'for the parseurl method');
 warn version( HTML::Entities, 'for the html_encode filter');
 warn version( Tie::IxHash, 'for the keep_atts_order option');
-warn version( XML::XPath, 'to use XML::Twig::XPath');
+warn version( Tree::XPathEngine, 'to use XML::Twig::XPath');
+warn version( XML::XPath, 'to use XML::Twig::XPath if Tree::XPathEngine not available');
 warn version( HTML::TreeBuilder, 'to use parse_html and parsefile_html');
 warn version( Text::Wrap, 'to use the "wrapped" option for pretty_print');
 
@@ -61,7 +78,8 @@ warn version( XML::SAX::Writer, 'for testing purposes');
 warn version( XML::Filter::BufferText, 'for testing purposes');
 warn version( IO::Scalar, 'for testing purposes');
 
-warn "\n\nPlease add this information to bug reports (you can run t/zz_dump_config.t to get it)\n\n";
+my $zz_dump_config= File::Spec->catfile( t => "zz_dump_config.t");
+warn "\n\nPlease add this information to bug reports (you can run $zz_dump_config to get it)\n\n";
 
 print "1..1\nok 1\n";
 exit 0;

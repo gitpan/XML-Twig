@@ -1,14 +1,14 @@
 #!/bin/perl -w
 
-# $Id: test_additional.t,v 1.138 2006/01/19 17:52:45 mrodrigu Exp $
+# $Id: test_additional.t,v 1.139 2006/04/20 08:09:50 mrodrigu Exp $
 
 # test designed to improve coverage of the module
 
 use strict;
 use Carp;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 $|=1;
@@ -2092,7 +2092,7 @@ is( $out, $doc, 'doc with entities but no DTD');# test 465
   is( _hash( normalize_xml( $t->sprint)), _hash( $doc), 'comment before PI (3 PIs)');# test 528
 }
 
-# returns a string that has all the chars in the input, ordereѕ, to allow
+# returns a string that has all the chars in the input, ordered, to allow
 # comparison of texts without taking the order into consideration
 sub _hash
   { return sort split //, $_[0]; }

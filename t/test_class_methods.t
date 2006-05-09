@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_class_methods.t,v 1.6 2005/08/10 09:32:33 mrodrigu Exp $
+# $Id: test_class_methods.t,v 1.7 2006/04/20 08:09:51 mrodrigu Exp $
 
 # testing methods on class attribute:
 # class set_class add_to_class att_to_class add_att_to_class move_att_to_class
@@ -9,8 +9,8 @@
 use strict;
 use Carp;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 use XML::Twig;

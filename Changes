@@ -1,6 +1,53 @@
-$Id: Changes,v 1.98 2006/01/19 17:52:44 mrodrigu Exp $
+$Id: Changes,v 1.103 2006/04/27 12:07:16 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.24
+
+      added loading the text of entities stored in 
+      separate files (using SYSTEM) when the (awfully
+      named!) expand_external_ents option is used.
+      Thanks to jhx for spotting this.
+
+      changed set_cdata, set_pi and set_comment so that
+      if you call them on an element of the wrong kind,
+      everything works as expected, instead of swallowing
+      silently the data. Bug spotted by cmccutcheon
+
+      fixed a whole bunch of things to make the module 
+      run and the tests pass on VMS, thanks to Peter 
+      (Stig) Edwards who reported bug RT #18655 and 
+      provided a patch.
+
+      fixed bug on get_xpath( '/root[1]') expressions,
+      RT #18789 spotted by memfrob.
+
+      added the add_stylesheet method, that... adds a 
+      stylesheet (xsl type is supported, let me know if
+      other types are needed) to a document.
+
+      allowed pasting PI/Comment elements before or after
+      the root of a document (see discussion at 
+      http://perlmonks.org/index.pl?node_id=538550). 
+      Thanks to rogue90 for noticing the problem, and to
+      Tanktalus for finding the best way to solve it.
+
+      aliased unwrap to erase (eg added the unwrap method
+      to XML::Twig::Elt, identical to the existing erase)
+      suggested by Chris Burbridge.
+
+      fixed bug RT #17522: flushing twice at the end of 
+      the the parse would output the last fragment twice. 
+      Spotted by Harco de Hilster.
+
+      dealt with bug RT #17500: parsing a pipe when using
+      the UTF8 perlIO layer (through PERL_UNICODE or -C)
+      now raises an error, found by Nikolaus Rath.
+
+      made the tests pass when the UTF8 perlIO layer is
+      used. At this point potential problems when parsing 
+      non-UTF8 XML in this configuration are not trapped.
+      
 
 Changes in 3.23
 

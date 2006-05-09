@@ -1,12 +1,12 @@
 #!/bin/perl -w
 
-# $Id: test1.t,v 1.4 2005/08/10 09:32:33 mrodrigu Exp $
+# $Id: test1.t,v 1.5 2006/04/20 08:09:50 mrodrigu Exp $
 
 use strict;
 use Carp;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,'t');
 use tools;
 
 # This just tests a complete twig, no callbacks

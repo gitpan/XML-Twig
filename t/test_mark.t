@@ -1,14 +1,14 @@
 #!/bin/perl -w
 
-# $Id: test_mark.t,v 1.2 2005/08/10 09:32:33 mrodrigu Exp $
+# $Id: test_mark.t,v 1.3 2006/04/20 08:09:51 mrodrigu Exp $
 
 # test the mark method
 
 use strict;
 use Carp;
 
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 #$|=1;

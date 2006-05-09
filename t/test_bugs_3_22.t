@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_bugs_3.22.t,v 1.14 2006/01/23 10:42:58 mrodrigu Exp $
+# $Id: test_bugs_3.22.t,v 1.19 2006/04/20 08:22:56 mrodrigu Exp $
 
 use strict;
 use Carp;
-use FindBin qw($Bin);
-BEGIN { unshift @INC, $Bin; }
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
 $|=1;
@@ -16,7 +16,7 @@ use XML::Twig;
 
 
 
-my $TMAX=177;
+my $TMAX=179;
 print "1..$TMAX\n";
 
 { # testing how well embedded comments and pi's are kept when changing the content
@@ -75,16 +75,19 @@ print "1..$TMAX\n";
 }
   
 { 
-  my $exp= '/foo/1&^%';
+  my $exp= '/foo/1^%';
   eval { XML::Twig->nparse( "<doc/>")->get_xpath( $exp); };
   matches( $@, "^error in xpath expression", "xpath with valid expression then stuff left");
 }
 
 { 
-  my $root = XML::Twig->nparse( "<doc/>")->root;
+  my $t = XML::Twig->nparse( "<doc/>");
+  my $root = $t->root;
   my $elt  =XML::Twig::Elt->new( 'foo');
   foreach my $pos ( qw( before after))
     { eval {  $elt->paste( $pos => $root); }; 
+      matches( $@, "^cannot paste $pos root", "paste $pos root");
+      eval " \$elt->paste_$pos( \$root)";
       matches( $@, "^cannot paste $pos root", "paste $pos root");
     }
 }
@@ -111,7 +114,7 @@ print "1..$TMAX\n";
 
 { my $enc= "a_non_existent_encoding_bwaaahhh";
   eval { XML::Twig->iconv_convert( $enc); };
-  matches( $@, "^(Unsupported encoding: $enc|Text::Iconv not available|Can't locate)", "unsupported encoding");
+  matches( $@, "^(Unsupported|Text::Iconv not available|Can't locate)", "unsupported encoding");
 }
 
 { # test comments handlers
@@ -194,17 +197,23 @@ print "1..$TMAX\n";
 }
 
 { # test parsing of an html string
-  ok( XML::Twig->nparse( '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html>
- <head>
-  <link rel="stylesheet" href="/s/style.css" type="text/css">
-  </head>
-  <body>
-    foo<p>
-    bar<br>
-    &eacute;t&eacute;
-  </body>
-  </html>'), "parsing an html string");
+  eval "require HTML::TreeBuilder";
+  if( $@) 
+    { skip( 1, "need HTML::TreeBuilder for those tests"); }
+  else
+    { import HTML::TreeBuilder;
+      ok( XML::Twig->nparse( '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+    <html>
+     <head>
+      <link rel="stylesheet" href="/s/style.css" type="text/css">
+      </head>
+      <body>
+        foo<p>
+        bar<br>
+        &eacute;t&eacute;
+      </body>
+      </html>'), "parsing an html string");
+    }
 }
 
 { # testing print_to_file
