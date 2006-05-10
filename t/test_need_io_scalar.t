@@ -16,7 +16,7 @@ my $DEBUG=0;
 use XML::Twig;
 
 BEGIN 
-  { eval "require IO::Scalar";
+  { eval "require IO::Scalar 2.0";
     if( $@) 
       { print "1..1\nok 1\n"; 
         warn "skipping, need IO::Scalar\n";
@@ -30,7 +30,7 @@ print "1..1772\n";
 
 { # test autoflush
   my $out=''; 
-  my $fh= new IO::Scalar \$out;  
+  my $fh= IO::Scalar->new( \$out);  
   my $doc= "<doc><elt/></doc>";
   my $t= XML::Twig->nparse( twig_handlers => { elt => sub { $_->flush( $fh) } }, $doc);
   is( $out, $doc, "autoflush, no args");
@@ -274,7 +274,7 @@ package main;
   is( $out, 'recognized_string', 'twig_print_end'); 
 }
 
-XML::Twig::_twig_print_entity; # does nothing!
+XML::Twig::_twig_print_entity(); # does nothing!
 
 { 
   my %ents= ( foo => '"toto"', pile => 'SYSTEM "file.bar" NDATA bar');

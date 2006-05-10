@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w 
-# $Id: test_bugs_3_18.t,v 1.25 2006/04/20 16:36:28 mrodrigu Exp $
+# $Id: test_bugs_3_18.t,v 1.26 2006/05/10 10:36:06 mrodrigu Exp $
 
 use strict;
 use Carp;
@@ -21,10 +21,10 @@ print "1..$TMAX\n";
 
 # get an accented char in iso-8859-1
 my $char_file=File::Spec->catfile('t', "latin1_accented_char.iso-8859-1");
-open( my $fh, "<$char_file") or die "cannot open $char_file: $!";
-my $latin1_char=<$fh>;
+open( CHARFH, "<$char_file") or die "cannot open $char_file: $!";
+my $latin1_char=<CHARFH>;
 chomp $latin1_char;
-close $fh;
+close CHARFH;
 
 my %cdata=( "01- 1023 chars" => 'x' x 1022 . 'a',
             "02- 1024 chars" => 'x' x 1023 . 'a',
@@ -53,8 +53,8 @@ my %cdata=( "01- 1023 chars" => 'x' x 1022 . 'a',
                                                        # but if you do with a higher number, let me know!
             );
 
-if( $] == 5.008)
-  { skip( scalar keys %cdata,   "KNOWN BUG in 5.8.0 with keep_encoding and long (>1024 char) CDATA, "
+if( ($] == 5.008) || ($] < 5.006) )
+  { skip( scalar keys %cdata,   "KNOWN BUG in 5.8.0 and 5.005 with keep_encoding and long (>1024 char) CDATA, "
                               . "see http://rt.cpan.org/Ticket/Display.html?id=14008"
         );
   }
@@ -575,13 +575,13 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
 }
 
 { # test keep_encoding
-  is( XML::Twig::Elt::_keep_encoding, 0, "_keep_encoding not initialized");
+  is( XML::Twig::Elt::_keep_encoding(), 0, "_keep_encoding not initialized");
   XML::Twig->new( keep_encoding => 0);
-  is( XML::Twig::Elt::_keep_encoding, 0, "_keep_encoding initialized (0)");
+  is( XML::Twig::Elt::_keep_encoding(), 0, "_keep_encoding initialized (0)");
   XML::Twig->new( keep_encoding => 1);
-  is( XML::Twig::Elt::_keep_encoding, 1, "_keep_encoding initialized (1)");
+  is( XML::Twig::Elt::_keep_encoding(), 1, "_keep_encoding initialized (1)");
   XML::Twig->new( keep_encoding => 0);
-  is( XML::Twig::Elt::_keep_encoding, 0, "_keep_encoding initialized (0)");
+  is( XML::Twig::Elt::_keep_encoding(), 0, "_keep_encoding initialized (0)");
 }
       
       

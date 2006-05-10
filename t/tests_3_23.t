@@ -1,8 +1,10 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: tests_3_23.t,v 1.3 2006/05/08 16:48:31 mrodrigu Exp $
+# $Id: tests_3_23.t,v 1.4 2006/05/10 10:36:06 mrodrigu Exp $
 use Carp;
+
+use XML::Twig;
 
 use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");

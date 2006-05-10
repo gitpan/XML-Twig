@@ -1,6 +1,8 @@
-# $Id: tools.pm,v 1.6 2006/05/08 16:48:31 mrodrigu Exp $
+# $Id: tools.pm,v 1.8 2006/05/10 10:36:06 mrodrigu Exp $
 
 use strict;
+use Config;
+
 
 my $DEBUG=0;
 
@@ -348,7 +350,11 @@ sub test_get_xpath
   }
 
 sub perl_io_layer_used
-  { return ( ($] >= 5.008) && (${^UNICODE} & 24) ); }
+  { if( $] >= 5.008)
+      { return eval '${^UNICODE} & 24'; } # in a eval to pass tests in 5.005
+    else
+      { return 0; }
+  }
 
 # slurp and discard locale errors
 sub slurp_error
@@ -357,6 +363,11 @@ sub slurp_error
     $error=~ s{^\s$}{}mg;
     $error=~ s{^[^:]+: warning:.*$}{}mg;
     return $error;
+  }
+
+sub used_perl
+  { if( $^O eq 'VMS') { return $Config{perlpath}; } # apparently $^X does not work on VMS
+    else              { return $^X;               } # but $Config{perlpath} does not work in 5.005
   }
 
 __END__

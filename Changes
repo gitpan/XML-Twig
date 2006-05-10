@@ -1,6 +1,12 @@
-$Id: Changes,v 1.103 2006/04/27 12:07:16 mrodrigu Exp $
+$Id: Changes,v 1.105 2006/05/10 11:04:10 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.25
+
+      patched to work with perl 5.005!
+      fixed a bug in xml_pp when pretty printing a 
+      file in place in a different file system
 
 Changes in 3.24
 

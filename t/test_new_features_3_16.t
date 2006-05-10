@@ -42,9 +42,9 @@ my $filled_doc =  q{<doc att1="tata" att2="0" att4="tutu">}
                  .q{</doc>};
 
 {
-open( my $fh, '>', $dtd_file) or die "cannot open dtd file '$dtd': $!";
-print {$fh} $dtd;
-close $fh;
+open( FHDTD, ">$dtd_file") or die "cannot open dtd file '$dtd': $!";
+print FHDTD $dtd;
+close FHDTD;
 my $doc_with_external_dtd= qq{<!DOCTYPE doc SYSTEM "$dtd_file">$doc};
 my $result= XML::Twig->new( error_context => 1, load_DTD => 1)
                      ->parse( $doc_with_external_dtd)
@@ -108,6 +108,9 @@ nok( $t->root->first_child->first_descendant( 'b'), 'first_descendant fails (mat
 }
 
 # test the create_accessors method
+if( $] < 5.006)
+  { skip( 11 => "cannot use create_accessors with perl < 5.006"); }
+else
 { my $doc= '<doc att1="1" att3="foo"/>';
   my $t= XML::Twig->new->parse( $doc);
   $t->create_accessors( qw(att1 att2));
@@ -115,9 +118,9 @@ nok( $t->root->first_child->first_descendant( 'b'), 'first_descendant fails (mat
   is( $root->att1, 1, 'attribute getter');
   $root->att1( 2);
   is( $root->att1, 2, 'attribute setter');
-  $root->att1=3;
+  eval '$root->att1=3'; # eval'ed to keep 5.005 from barfing
   is( $root->att1, 3, 'attribute as lvalue');
-  $root->att1++;
+  eval '$root->att1++'; # eval'ed to keep 5.005 from barfing
   is( $root->att1, 4, 'attribute as lvalue (++)');
   is( $root->att1, $root->att( 'att1'), 'check with regular att method');
   eval { $^W=0;  $root->att3; $^W=1;  };
@@ -130,7 +133,6 @@ nok( $t->root->first_child->first_descendant( 'b'), 'first_descendant fails (mat
   matches( $@, q{^attempt to redefine existing method name using create_accessors }, 'duplicate accessor');
   eval { $t->create_accessors( 'att2'); };
   matches( $@, q{^attempt to redefine existing method att2 using create_accessors }, 'duplicate accessor');
-  
 }
   
 { # test embedded comments/pis

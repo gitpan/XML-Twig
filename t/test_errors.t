@@ -25,25 +25,22 @@ my $need_version= 2.23;
 my $q= ( ($^O eq "MSWin32") || ($^O eq 'VMS') ) ? '"' : "'";
 
 use Config;
-my $secure_perl_path = $Config{perlpath};
-if ($^O ne 'VMS') {
-    $secure_perl_path .= $Config{_exe} unless $secure_perl_path =~ m/$Config{_exe}$/i;
-}
+my $perl= used_perl();
 
 my $version= $need_version - 0.01;
 unlink $error_file if -f $error_file;
 if ($^O eq 'VMS') {
-    system( qq{$secure_perl_path $q-Mblib$q -e$q use vmsish qw(hushed);use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
+    system( qq{$perl $q-Mblib$q -e$q use vmsish qw(hushed);use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
 } else {
-    system( qq{$secure_perl_path $q-Mblib$q -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
+    system( qq{$perl $q-Iblib/lib$q -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
 }
 
 ok( -f $error_file, "error generated for low version of XML::Parser");
-matches( slurp_error( $error_file), "need at least XML::Parser version 2\.23", "error message for low version of XML::Parser");
+matches( slurp_error( $error_file), "need at least XML::Parser version ", "error message for low version of XML::Parser");
 
 $version= $need_version;
 unlink $error_file if -f $error_file;
-system( qq{$secure_perl_path $q-Mblib$q -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
+system( qq{$perl $q-Mblib$q -e$q use XML::Parser; BEGIN { \$XML::Parser::VERSION=$version}; use XML::Twig $q 2> $error_file});
 ok( ! -f $error_file || slurp_error( $error_file)!~ "need at least XML::Parser version",
     "no error generated for proper version of XML::Parser"
   );
@@ -246,7 +243,7 @@ my $init_warn= $SIG{__WARN__};
    matches( $@, "^error in grouped tag a");
 }
 
-{  eval { XML::Twig::Elt->parse( '<e>foo</e>')->subs_text( "foo", '&elt( invalid/0)'); };
+{  eval { XML::Twig::Elt->parse( '<e>foo</e>')->subs_text( "foo", '&elt( 0/0)'); };
    matches( $@, "^invalid replacement expression ");
 }
 
@@ -290,16 +287,15 @@ my $init_warn= $SIG{__WARN__};
 }
 
 { if( ( $] <= 5.008) || ($^O eq 'VMS') )
-    { skip(1, ''); }
+    { skip(1, 'test perl -CSDAL'); }
   else
     { 
       my $infile= File::Spec->catfile('t','test_new_features_3_22.xml');
       my $error=File::Spec->catfile('t','error.log');
       
-      my $secure_perl_path = $Config{perlpath};
-      if ($^O ne 'VMS') { $secure_perl_path .= $Config{_exe} unless $secure_perl_path =~ m/$Config{_exe}$/i; }
+      my $perl = used_perl();
 
-my $cmd= qq{$secure_perl_path "-CSDAL" "-MXML::Twig" -e"close STDERR; open( STDERR, qq{>$error}) or die qq{cannot open $error (for STDERR)}; open( FH, q{'$secure_perl_path' -p -e1 $infile |}) or die $!; XML::Twig->nparse( \\*FH); die qq{OK\n};"};
+my $cmd= qq{$perl "-CSDAL" "-MXML::Twig" -e"close STDERR; open( STDERR, qq{>$error}) or die qq{cannot open $error (for STDERR)}; open( FH, q{'$perl' -p -e1 $infile |}) or die $!; XML::Twig->nparse( \\*FH); die qq{OK\n};"};
       system $cmd;
 
       matches( slurp( $error), "^cannot parse the output of a pipe", 'parse a pipe with perlIO layer set to UTF8 (RT #17500)');

@@ -1,4 +1,4 @@
-# $Id: XPath.pm,v 1.17 2006/03/31 14:01:50 mrodrigu Exp $
+# $Id: XPath.pm,v 1.18 2006/05/09 15:02:43 mrodrigu Exp $
 package XML::Twig::XPath;
 use strict;
 use XML::Twig;
@@ -18,7 +18,7 @@ $VERSION="0.02";
 
 BEGIN
 { package XML::XPath::NodeSet;
-  no warnings; # to avoid the "Subroutine sort redefined" message
+  no warnings; # to avoid the "Subroutine sort redefined" message 
 	# replace the native sort routine by a Twig'd one
   sub sort 
     { my $self = CORE::shift;
@@ -27,7 +27,7 @@ BEGIN
     }
 
   package XML::XPathEngine::NodeSet;
-  no warnings; # to avoid the "Subroutine sort redefined" message
+  no warnings; # to avoid the "Subroutine sort redefined" message 
 	# replace the native sort routine by a Twig'd one
   sub sort 
     { my $self = CORE::shift;

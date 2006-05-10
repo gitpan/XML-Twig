@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_xml_split.t,v 1.9 2006/04/20 16:36:28 mrodrigu Exp $
+# $Id: test_xml_split.t,v 1.10 2006/05/10 10:36:06 mrodrigu Exp $
 use Carp;
 
 use File::Spec;
@@ -14,6 +14,8 @@ my $DEBUG=0;
 # be cautious: run this only on systems I have tested it on
 my %os_ok=( linux => 1, solaris => 1);
 if( !$os_ok{$^O}) { print "1..1\nok 1\n"; warn "skipping, test runs only on some OSs\n"; exit; }
+
+if( $] < 5.006) { print "1..1\nok 1\n"; warn "skipping, xml_merge runs only on perl 5.6 and later\n"; exit; }
 
 print "1..18\n";
 
@@ -81,8 +83,8 @@ sub same_file
 sub slurp_mod
   { my( $file)= @_;
     local undef $/;
-    open( my $fh, "<$file") or return "$file not found:$!";
-    my $content=<$fh>;
+    open( FHSLURP, "<$file") or return "$file not found:$!";
+    my $content=<FHSLURP>;
     $content=~ s{\s}{}g;
     $content=~ s{_expected}{}g;
     return $content;

@@ -1,4 +1,4 @@
-# $Id: Twig_pm.slow,v 1.294 2006/05/08 16:48:31 mrodrigu Exp $
+# $Id: Twig_pm.slow,v 1.296 2006/05/10 10:36:06 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -88,7 +88,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.24';
+$VERSION = '3.25';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -617,16 +617,17 @@ sub new
     return $self;
   }
 
-sub parse
-  { # trap underlying bug in IO::Handle (see RT #17500)
-    # croak if perl 5.8+, -CD (or PERL_UNICODE set to D) and parsing a pipe
-    if( $]>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[1], 'GLOB') && -p $_[1] )
-      { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"
-              . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"
-              . "not to include 'D'";
-      }
-    shift->SUPER::parse( @_);
-  }
+# requires 5.006 at least (or the ${^UNICODE} causes a problem)
+sub parse                                                                                                 # > 5.006
+  { # trap underlying bug in IO::Handle (see RT #17500)                                                   # > 5.006
+    # croak if perl 5.8+, -CD (or PERL_UNICODE set to D) and parsing a pipe                               # > 5.006
+    if( $]>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[1], 'GLOB') && -p $_[1] )               # > 5.006
+      { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"       # > 5.006
+              . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"  # > 5.006
+              . "not to include 'D'";                                                                     # > 5.006
+      }                                                                                                   # > 5.006
+    shift->SUPER::parse( @_);                                                                             # > 5.006
+  }                                                                                                       # > 5.006
   
 sub parseurl
   { my $t= shift;
@@ -1913,20 +1914,18 @@ sub _twig_char
     my ($p, $string)= @_;
     my $t=$p->{twig}; 
 
-    # if keep_encoding was set then use the original string instead of
-    # the parsed (UTF-8 converted) one
-    #if( $t->{twig_keep_encoding} && !$t->{twig_in_cdata})
-    #  { $string= $p->original_string(); }
-
     if( $t->{twig_keep_encoding})
       { if( !$t->{twig_in_cdata})
           { $string= $p->original_string(); }
         else
-          { use bytes;
+          { 
+            use bytes; # > 5.006
             if( length( $string) < 1024)
               { $string= $p->original_string(); }
             else
               { #warn "dodgy case";
+                # TODO original_string does not hold the entire string, but $string is wrong
+                # I believe due to a bug in XML::Parser
               }
           }
       }
@@ -2848,7 +2847,10 @@ sub root
 
 # create accessor methods on attribute names
 sub create_accessors
-  { my $twig_or_class= shift;
+  { 
+    croak "cannot use the create_accessors method with perl 5.005" if( $] < 5.006);
+
+    my $twig_or_class= shift;
     my $elt_class= ref $twig_or_class ? $twig_or_class->{twig_elt_class}
                                       : 'XML::Twig::Elt'
                                       ;
@@ -2856,12 +2858,13 @@ sub create_accessors
     foreach my $att (@_)
       { croak "attempt to redefine existing method $att using create_accessors"
           if( $elt_class->can( $att));
-        *{"$elt_class\::$att"}= 
-            sub :lvalue
-              { my $elt= shift;
-                if( @_) { $elt->{att}->{$att}= $_[0]; }
-                $elt->{att}->{$att}; 
-              };
+
+        *{"$elt_class\::$att"}=                          # > 5.006
+            sub :lvalue                                  # > 5.006
+              { my $elt= shift;                          # > 5.006
+                if( @_) { $elt->{att}->{$att}= $_[0]; }  # > 5.006
+                $elt->{att}->{$att};                     # > 5.006
+              };                                         # > 5.006
      }
   }
 

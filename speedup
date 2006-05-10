@@ -1,6 +1,6 @@
 #!/bin/perl 
 
-# $Id: speedup,v 1.9 2006/05/04 13:30:13 mrodrigu Exp $
+# $Id: speedup,v 1.10 2006/05/09 15:02:43 mrodrigu Exp $
 
 use XML::Parser;
 
@@ -16,7 +16,10 @@ my $var= '(\$[a-z_]+(?:\[\d\])?)';
 while( <>)
   {
     if( $] <= 5.005) { s{qr/(.*?)/}{"$1"} };
-		#if( $] >= 5.006) { s{^\s*#(\s*use\s*bytes)}{$1} };
+    if( $] < 5.006)  { if( m{# > 5.006}) { next; } }
+    
+    if( $] < 5.006)  { s{^(\s*)no warnings;}    {$1# no warnings;}; }
+    else             { s{^(\s*)# no warnings; } {$1no warnings;};   }
 
     s/$var->del_(twig_current|flushed)/delete $1\->{'$2'}/g;
     s/$var->set_(twig_current|flushed)/$1\->{'$2'}=1/g;
@@ -25,7 +28,6 @@ while( <>)
     s/$var->($FIELD)\b(?!\()/$1\->\{$2\}/g;
     s/$var->_($FIELD2)\b(?!\()/$1\->\{$2\}/g;
 
-		#s/$var->set_atts\(([^)]*)\)/$1\->\{'att'\}= $2/g;
     s/$var->(atts)\(([^)]*)\)/$1\->\{att\}/g;
 
     s/$var->append_(pcdata|cdata)\(([^)]*)\)/$1\->\{$2\}.= $3/g;
@@ -46,8 +48,8 @@ while( <>)
     s/$var->set_empty(?:\(([^)]*)\))?(?!_)/"$1\->{empty}= " . ($2 || 1)/ge;
     s/$var->set_not_empty/delete $1\->{empty}/g;
 
-		s/$var->_is_private/( (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 1) eq '#') && (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 9) ne '#default:') )/g;
-		s/_is_private_name\(\s*$var\s*\)/( (substr( $1, 0, 1) eq '#') && (substr( $1, 0, 9) ne '#default:') )/g;
+    s/$var->_is_private/( (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 1) eq '#') && (substr( \$XML::Twig::index2gi\[$1\->{'gi'}\], 0, 9) ne '#default:') )/g;
+    s/_is_private_name\(\s*$var\s*\)/( (substr( $1, 0, 1) eq '#') && (substr( $1, 0, 9) ne '#default:') )/g;
 
     print $_ ;
   }

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_bugs_3_19.t,v 1.5 2006/04/20 16:36:28 mrodrigu Exp $
+# $Id: test_bugs_3_19.t,v 1.6 2006/05/10 10:36:06 mrodrigu Exp $
 
 use strict;
 use Carp;
@@ -50,8 +50,8 @@ my %cdata=( "01- 1025 chars"                    => 'x' x 1025 . 'a',
             '23- 1600 chars with accent and \n' =>  "aaaaaaaa]aaaaaaaaaaaaaaaaaaaaaaaaa\naaaaaaaaaaaaaaa$latin1_char" x 32,
           );
 
-if( $] == 5.008)
-  { skip( scalar keys %cdata,   "KNOWN BUG in 5.8.0 with keep_encoding and long (>1024 char) CDATA, "
+if( ($] == 5.008) || ($] < 5.006) )
+  { skip( scalar keys %cdata,   "KNOWN BUG in 5.8.0 and 5.005 with keep_encoding and long (>1024 char) CDATA, "
                               . "see http://rt.cpan.org/Ticket/Display.html?id=14008"
         );
   }

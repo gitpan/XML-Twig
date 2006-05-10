@@ -6,6 +6,7 @@ Twig_pm.slow
 Twig.pm
 Twig/XPath.pm
 speedup
+filter_for_5.005
 check_optional_modules
 tools/xml_pp/xml_pp
 tools/xml_grep/xml_grep
