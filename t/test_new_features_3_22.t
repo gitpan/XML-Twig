@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_new_features_3_22.t,v 1.12 2006/04/20 16:36:28 mrodrigu Exp $
+# $Id: test_new_features_3_22.t,v 1.14 2006/05/16 13:06:12 mrodrigu Exp $
 use Carp;
 
 use FindBin qw($Bin);
@@ -23,7 +23,7 @@ print "1..20\n";
 
 { # testing parse_html
  
-  if( _use 'HTML::TreeBuilder')
+  if( XML::Twig::_use 'HTML::TreeBuilder', 3.13)
     { my $html= q{<html><head><title>T</title><meta content="mv" name="mn"></head><body>t<br>t2<p>t3</body></html>};
       my $expected= HTML::TreeBuilder->new->parse( $html)->as_XML;
       is_like( XML::Twig->new->parse_html( $html)->sprint, $expected, 'parse_html string using HTML::TreeBuilder');
@@ -37,7 +37,7 @@ print "1..20\n";
       
     }
   else
-    { skip( 3 => 'need  HTML::TreeBuilder to test parse_html'); }
+    { skip( 3 => 'need  HTML::TreeBuilder 3.13+ to test parse_html'); }
 }
 
 { # testing _use
@@ -59,7 +59,7 @@ print "1..20\n";
   is( XML::Twig->nparse( twig_handlers => { doc => sub { $_->set_tag( 'foo'); } }, $doc_file)->sprint, '<foo></foo>', 'nparse file and option');
   unlink $doc_file;
 
-if( _use 'HTML::TreeBuilder')
+if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
   {
       $doc=q{<html><head><title>foo</title></head><body><p>toto</p></body></html>}; 
       is( XML::Twig->nparse( $doc)->sprint, $doc, 'nparse well formed html string');
@@ -75,9 +75,9 @@ if( _use 'HTML::TreeBuilder')
       XML::Twig::_allow_use( 'HTML::TreeBuilder');
   }
 else
-  { skip( 3); }
+  { skip( 3, "need HTML::TreeBuilder 3.13+"); }
 
-  if( _use 'HTML::TreeBuilder')
+if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
     { $doc=q{<html><head><title>foo</title></head><body><p>toto<br>tata</p></body></html>}; 
       (my $expected= $doc)=~ s{<br>}{<br></br>};
       $doc_file="doc.html";
@@ -87,24 +87,24 @@ else
       unlink $doc_file;
     }
   else
-    { skip ( 1); }
+    { skip ( 1, "need HTML::TreeBuilder 3.13+"); }
 }
 
 { 
-  my $file= File::Spec->catfile( "$Bin", "test_new_features_3_22.html");
+  my $file= File::Spec->catfile( $Bin, "test_new_features_3_22.html");
   if( -f $file) 
     { XML::Twig::_disallow_use( 'LWP::Simple');
-      eval { XML::Twig->nparse( "file://$file"); };
+      eval { XML::Twig->nparse( "file:///$file"); };
       matches( $@, "^missing LWP::Simple", "nparse html url without LWP::Simple");
       XML::Twig::_allow_use( 'LWP::Simple');
-      if( XML::Twig::_use( 'LWP::Simple') && XML::Twig::_use( 'HTML::TreeBuilder'))
-        { my $content= XML::Twig->nparse( "file://$file")->sprint;
+      if( XML::Twig::_use( 'LWP::Simple') && XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
+        { my $content= XML::Twig->nparse( "file:///$file")->sprint;
           (my $expected= slurp( $file))=~ s{(<(meta|br)[^>]*>)}{$1</$2>}g;
           $expected=~s{<p>t3}{<p>t3</p>};
           is( $content, $expected, "nparse url");
         }
       else
-        { skip( 1 => "cannot test html url parsing without LWP::Simple and HTML::TreeBuilder"); }
+        { skip( 1 => "cannot test html url parsing without LWP::Simple and HTML::TreeBuilder 3.13+"); }
       
     }
   else
@@ -112,16 +112,16 @@ else
 }
 
 { 
-  my $file= File::Spec->catfile( "$Bin", "test_new_features_3_22.xml");
+  my $file= File::Spec->catfile( $Bin, "test_new_features_3_22.xml");
   if( -f $file) 
     { XML::Twig::_disallow_use( 'LWP::Simple');
-      eval { XML::Twig->nparse( "file://$file"); };
+      eval { XML::Twig->nparse( "file:///$file"); };
       matches( $@, "^missing LWP::Simple", "nparse url without LWP::Simple");
       XML::Twig::_allow_use( 'LWP::Simple');
       if( perl_io_layer_used())
         { skip( 1 => "cannot test url parsing when UTF8 perlIO layer used"); }
       elsif( XML::Twig::_use( 'LWP::Simple'))
-        { my $content= XML::Twig->nparse( "file://$file")->sprint;
+        { my $content= XML::Twig->nparse( "file:///$file")->sprint;
           is( $content, "<doc></doc>", "nparse url");
         }
       else

@@ -1,6 +1,6 @@
 #!/bin/perl
 
-# $Id: zz_dump_config.t,v 1.14 2006/04/20 16:36:28 mrodrigu Exp $
+# $Id: zz_dump_config.t,v 1.15 2006/05/25 11:06:03 mrodrigu Exp $
 
 my $ok; # global, true if the last call to version found the module, false otherwise
 use Config;
@@ -62,7 +62,7 @@ print "\n";
 warn version( LWP, 'for the parseurl method');
 warn version( HTML::Entities, 'for the html_encode filter');
 warn version( Tie::IxHash, 'for the keep_atts_order option');
-warn version( Tree::XPathEngine, 'to use XML::Twig::XPath');
+warn version( XML::XPathEngine, 'to use XML::Twig::XPath');
 warn version( XML::XPath, 'to use XML::Twig::XPath if Tree::XPathEngine not available');
 warn version( HTML::TreeBuilder, 'to use parse_html and parsefile_html');
 warn version( Text::Wrap, 'to use the "wrapped" option for pretty_print');

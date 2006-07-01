@@ -12,6 +12,7 @@ use tools;
 $|=1;
 my $DEBUG=0;
 
+use lib File::Spec->catdir(File::Spec->curdir,"blib/lib");
 use XML::Twig;
 
 
@@ -197,11 +198,8 @@ print "1..$TMAX\n";
 }
 
 { # test parsing of an html string
-  eval "require HTML::TreeBuilder";
-  if( $@) 
-    { skip( 1, "need HTML::TreeBuilder for those tests"); }
-  else
-    { import HTML::TreeBuilder;
+  if( XML::Twig::_use( 'HTML::TreeBuilder',  3.13))
+    { 
       ok( XML::Twig->nparse( '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
     <html>
      <head>
@@ -214,6 +212,8 @@ print "1..$TMAX\n";
       </body>
       </html>'), "parsing an html string");
     }
+  else
+    { skip( 1, "need HTML::TreeBuilder 3.13+ for those tests"); }
 }
 
 { # testing print_to_file

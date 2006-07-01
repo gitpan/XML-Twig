@@ -1,9 +1,9 @@
-# $Id: XPath.pm,v 1.18 2006/05/09 15:02:43 mrodrigu Exp $
+# $Id: XPath.pm,v 1.19 2006/05/25 11:06:02 mrodrigu Exp $
 package XML::Twig::XPath;
 use strict;
 use XML::Twig;
 
-my $XPATH;        # XPath engine (XML::XPath or Tree::XPathEngine);
+my $XPATH;        # XPath engine (XML::XPath or XML::XPathEngine);
 my $XPATH_NUMBER; # <$XPATH>::Number, the XPath number class  
 BEGIN 
   { foreach my $xpath_engine ( qw( XML::XPathEngine XML::XPath) )

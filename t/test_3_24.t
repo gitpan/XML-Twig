@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_bugs_3.22.t,v 1.16 2006/02/09 11:03:33 mrodrigu Exp $
+# $Id: test_3_24.t,v 1.1 2006/05/17 11:20:27 mrodrigu Exp $
 
 use strict;
 use Carp;
@@ -11,7 +11,7 @@ use tools;
 
 $|=1;
 my $DEBUG=0;
-
+ 
 use XML::Twig;
 
 my $TMAX=15;

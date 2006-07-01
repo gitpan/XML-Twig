@@ -18,11 +18,11 @@ my $TMAX=110;
 print "1..$TMAX\n";
 
 my $error_file= File::Spec->catfile('t','test_errors.errors');
+my( $q, $q2) = ( ($^O eq "MSWin32") || ($^O eq 'VMS') ) ? ('"', "'") : ("'", '"');
 
 { # test insufficient version of XML::Parser (not that easy, it is already too late here)
 my $need_version= 2.23;
 
-my $q= ( ($^O eq "MSWin32") || ($^O eq 'VMS') ) ? '"' : "'";
 
 use Config;
 my $perl= used_perl();
@@ -288,14 +288,17 @@ my $init_warn= $SIG{__WARN__};
 
 { if( ( $] <= 5.008) || ($^O eq 'VMS') )
     { skip(1, 'test perl -CSDAL'); }
+  elsif( ! can_check_for_pipes() )
+    { skip( 1, 'your perl cannot check for pipes'); }
   else
     { 
       my $infile= File::Spec->catfile('t','test_new_features_3_22.xml');
+      my $script= File::Spec->catfile('t','test_error_with_unicode_layer');
       my $error=File::Spec->catfile('t','error.log');
       
       my $perl = used_perl();
 
-my $cmd= qq{$perl "-CSDAL" "-MXML::Twig" -e"close STDERR; open( STDERR, qq{>$error}) or die qq{cannot open $error (for STDERR)}; open( FH, q{'$perl' -p -e1 $infile |}) or die $!; XML::Twig->nparse( \\*FH); die qq{OK\n};"};
+      my $cmd= qq{$perl $q-CSDAL$q $script $perl $infile 2>$error};
       system $cmd;
 
       matches( slurp( $error), "^cannot parse the output of a pipe", 'parse a pipe with perlIO layer set to UTF8 (RT #17500)');
@@ -304,3 +307,8 @@ my $cmd= qq{$perl "-CSDAL" "-MXML::Twig" -e"close STDERR; open( STDERR, qq{>$err
 
 exit 0;
 
+sub can_check_for_pipes
+  { my $perl = used_perl();
+    open( FH, qq{$perl -e$q print 1$q |}) or die "error opening pipe: $!";
+    return -p FH;
+  }

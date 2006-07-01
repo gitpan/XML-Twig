@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_xml_split.t,v 1.10 2006/05/10 10:36:06 mrodrigu Exp $
+# $Id: test_xml_split.t,v 1.11 2006/05/17 13:02:05 mrodrigu Exp $
 use Carp;
 
 use File::Spec;
@@ -12,7 +12,7 @@ use Config;
 my $DEBUG=0;
 
 # be cautious: run this only on systems I have tested it on
-my %os_ok=( linux => 1, solaris => 1);
+my %os_ok=( linux => 1, solaris => 1, darwin => 1);
 if( !$os_ok{$^O}) { print "1..1\nok 1\n"; warn "skipping, test runs only on some OSs\n"; exit; }
 
 if( $] < 5.006) { print "1..1\nok 1\n"; warn "skipping, xml_merge runs only on perl 5.6 and later\n"; exit; }

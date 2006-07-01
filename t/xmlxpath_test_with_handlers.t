@@ -1,13 +1,20 @@
 #!/bin/perl -w
-# $Id: xmlxpath_test_with_handlers.t,v 1.5 2004/03/26 16:30:40 mrodrigu Exp $
+# $Id: xmlxpath_test_with_handlers.t,v 1.6 2006/05/25 11:06:03 mrodrigu Exp $
 use strict;
 
 BEGIN 
-  { if( eval( 'require XML::XPath'))
-      { import XML::XPath; require Test; import Test; plan( tests => 7); }
+  { if( eval( 'require XML::Twig::XPath'))
+      { import XML::Twig::XPath; }
+    elsif( $@ =~ m{^cannot use XML::XPath or XML::XPathEngine})
+      { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine or XML::XPath not available\n";
+        exit;
+      }
     else
-      { print "1..1\nok 1\n"; warn "skipping: XML::XPath not available\n"; exit; }
+      { die $@; }
   }
+
+use Test;
+plan( tests => 7);
 
 use XML::Twig::XPath;
 

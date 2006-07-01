@@ -59,14 +59,21 @@ if( @ARGV)
                 $file= $tempfile;
               }
           }
-        $t->parsefile( $file);
+        $t= $t->safe_parsefile( $file);
 
-        if( $opt{load}) { $t->print; }
+        if( $t)
+          { if( $opt{load}) { $t->print; }
 
-        select STDOUT;
-        if( defined $tempfile)
-          { unlink $tempfile or die "cannot unlink temp file $tempfile: $!"; }
-
+            select STDOUT;
+            if( defined $tempfile)
+              { unlink $tempfile or die "cannot unlink temp file $tempfile: $!"; }
+          }
+        else
+          { if( $opt{backup})
+              { my $backup=  backup( $file, $opt{backup});
+                rename( $backup, $file) or die "cannot recover backup file $backup: $!"
+              }
+          }
       }
   }
 else

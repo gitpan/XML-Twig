@@ -1,4 +1,4 @@
-# $Id: Twig_pm.slow,v 1.296 2006/05/10 10:36:06 mrodrigu Exp $
+# $Id: Twig_pm.slow,v 1.303 2006/05/26 08:07:14 mrodrigu Exp $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -88,7 +88,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.25';
+$VERSION = '3.26';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -628,7 +628,37 @@ sub parse                                                                       
       }                                                                                                   # > 5.006
     shift->SUPER::parse( @_);                                                                             # > 5.006
   }                                                                                                       # > 5.006
-  
+
+sub parsefile_inplace      { shift->_parse_inplace( parsefile      => @_); }
+sub parsefile_html_inplace { shift->_parse_inplace( parsefile_html => @_); }
+
+sub _parse_inplace
+  { my( $t, $method, $file, $suffix)= @_;
+    _use( 'File::Temp') || die "need File::Temp to use inplace methods\n";
+    _use( 'File::Basename');
+
+    my $tmpdir= dirname( $file);
+    my( $tmpfh, $tmpfile)= File::Temp::tempfile( DIR => $tmpdir);
+    my $original_fh= select $tmpfh;
+
+    $t->$method( $file);
+
+    select $original_fh;
+    close $tmpfh;
+
+    if( $suffix) 
+      { my $backup;
+        if( $suffix=~ m{\*}) { ($backup = $suffix) =~ s/\*/$file/g; }
+        else                 { $backup= $file . $suffix; }
+          
+        rename( $file, $backup) or die "cannot backup initial file ($file) to $backup: $!"; 
+      }
+    rename( $tmpfile, $file) or die "cannot rename temp file ($tmpfile) to initial file ($file): $!";
+
+    return $t;
+  }
+    
+ 
 sub parseurl
   { my $t= shift;
     $t->_parseurl( 0, @_);
@@ -644,12 +674,14 @@ sub parsefile_html
   { my $t= shift;
     my $file= shift;
     $t->parse( _html2xml( _slurp( $file)), @_);
+    return $t;
   }
 
 sub parse_html
   { my $t= shift;
     my $content= shift;
     $t->parse( _html2xml( UNIVERSAL::isa( $content, 'GLOB') ? _slurp_fh( $content) : $content), @_);
+    return $t;
   }
 
 sub xparse
@@ -695,15 +727,19 @@ sub nparse
 
 sub _html2xml
   { my( $html)= @_;
-    _use( 'HTML::TreeBuilder') or croak "cannot parse HTML: missing HTML::TreeBuilder\n"; 
-    return HTML::TreeBuilder->new->parse( $html)->as_XML;
+    _use( 'HTML::TreeBuilder', '3.13') or croak "cannot parse HTML: missing HTML::TreeBuilder v >= 3.13\n"; 
+    my $tree= HTML::TreeBuilder->new->parse( $html);
+    my $xml= $tree->as_XML;
+    $tree->delete;
+    return $xml;
   }
 
 sub add_stylesheet
   { my( $t, $type, $href)= @_;
+    my %text_type= map { $_ => 1 } qw( xsl css);
     my $ss= $t->{twig_elt_class}->new( '#PI');
-    if( $type eq "xsl") 
-      { $ss->_set_pi( 'xml-stylesheet', qq{type="text/xsl" href="$href"}); }
+    if( $text_type{$type}) 
+      { $ss->_set_pi( 'xml-stylesheet', qq{type="text/$type" href="$href"}); }
     else
       { croak "unsupported style sheet type '$type'"; }
       
@@ -725,10 +761,15 @@ sub add_stylesheet
     }
 
   sub _use
-    { my( $module)= @_;
+    { my( $module, $version)= @_;
+      $version ||= 0;
       if( $disallowed{$module})   { return 0; }
       if( $used{$module})         { return 1; }
-      if( eval "require $module") { import $module; $used{$module}= 1; return 1; }
+      if( eval "require $module") { import $module; $used{$module}= 1; 
+                                    no strict 'refs';
+                                    if( ${"${module}::VERSION"} >= $version ) { return 1; }
+                                    else                                      { return 0;  }
+                                  }
       else                        {                 $used{$module}= 0; return 0; }
     }
 }
@@ -2255,7 +2296,6 @@ sub _twig_entity($$$$$$)
           { if( defined $ent->{val} && ($ent_decl !~ /["']/))
               { my $val=  $ent->{val};
                 $ent_decl .= $val =~ /"/ ? qq{'$val' } : qq{"$val" }; 
-                warn "tested";
               }
             # for my solaris box (perl 5.6.1, XML::Parser 2.31, expat?)
             $t->{twig_doctype}->{internal}=~ s{<!ENTITY\s+$name\s+$}{substr( $ent_decl, 0, -1)}e;
@@ -3761,6 +3801,8 @@ sub getRootNode        { return $_[0]; }
 sub getParentNode      { return undef; }
 sub getChildNodes      { my @children= ($_[0]->root); return wantarray ? @children : \@children; }
 
+sub _weakrefs
+  { return $weakrefs; }
 
 sub _dump
   { my $t= shift;
@@ -3971,6 +4013,7 @@ BEGIN
     *getElementsByTagName= *descendants;
     *find_by_tag_name= *descendants_or_self;
     *unwrap          = *erase;
+    *inner_xml       = *xml_string;
   
     *first_child_is  = *first_child_matches;
     *last_child_is   = *last_child_matches;
@@ -4087,6 +4130,7 @@ sub new
 # additional arguments are passed to new XML::Twig
 sub parse
   { my $class= shift;
+    if( ref( $class)) { $class= ref( $class); }
     my $string= shift;
     my %args= @_;
     my $t= XML::Twig->new(%args);
@@ -4098,7 +4142,34 @@ sub parse
     if( $t->{twig_id_list}) { $elt->{twig_id_list}= $t->{twig_id_list}; }
     return $elt;
   }
-    
+   
+sub set_inner_xml
+  { my( $elt, $xml)= @_;
+    my $new_elt= $elt->parse( "<dummy>$xml</dummy>");
+    $elt->cut_children;
+    $new_elt->paste_first_child( $elt);
+    $new_elt->erase;
+    return $elt;
+  }
+  
+sub set_inner_html
+  { my( $elt, $html)= @_;
+    my $t= XML::Twig->new->parse_html( "<html>$html</html>");
+    my $new_elt= $t->root;
+    if( $elt->tag eq 'head')
+      { $new_elt->first_child( 'head')->unwrap;
+        $new_elt->first_child( 'body')->cut;
+      }
+    elsif( $elt->tag ne 'html')
+      { $new_elt->first_child( 'head')->cut;
+        $new_elt->first_child( 'body')->unwrap;
+      }
+    $new_elt->cut;
+    $elt->cut_children;
+    $new_elt->paste_first_child( $elt);
+    $new_elt->erase;
+    return $elt;
+  }
 
 sub set_gi 
   { my ($elt, $gi)= @_;
@@ -5787,7 +5858,8 @@ sub next_siblings
                           #warn "number predicate '$pos' - generated step '$step'\n";
                         }
                       else
-                        { do
+                        { my $syntax_error=0;
+                          do
                             { if( $pred =~ s{^string\(\s*\)\s*=\s*($REG_STRING)\s*}{}o)  # string()="string" pred
                                 { $test .= "\$_->text eq $1"; }
                              elsif( $pred =~ s{^string\(\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # string()=~/regex/ pred
@@ -5810,8 +5882,10 @@ sub next_siblings
                                 { $test .= qq{$1};           }
                               elsif( $pred=~ s{^\s*(and|or)\s*}{})
                                 { $test .= lc " $1 "; }
+                              else
+                                { $syntax_error=1; }
                              
-                             } while( $pred);
+                             } while( !$syntax_error && $pred);
                            croak "error in xpath expression $original_exp at $pred" if( $pred);
                            $step= " grep { $test } $step ";
                         }
@@ -5872,8 +5946,14 @@ sub cut
     my( $parent, $prev_sibling, $next_sibling, $last_elt);
 
     # you can't cut the root, sorry
-    unless( $parent= $elt->_parent) 
-      { return; }
+    unless( $parent= $elt->_parent) { return; }
+
+    # save the old links, that'll make it easier for some loops
+    foreach my $link ( qw(parent prev_sibling next_sibling) )
+      { $elt->{former}->{$link}= $elt->{$link};
+        weaken( $elt->{former}->{$link}) if( $XML::Twig::weakrefs);
+      }
+
     # it we cut the current element then its parent becomes the current elt
     if( $elt->{twig_current})
       { my $twig_current= $elt->_parent;
@@ -5902,6 +5982,10 @@ sub cut
 
     return $elt;
   }
+
+sub former_next_sibling { return $_[0]->{former}->{next_sibling}; }
+sub former_prev_sibling { return $_[0]->{former}->{prev_sibling}; }
+sub former_parent       { return $_[0]->{former}->{parent};       }
 
 sub cut_children
   { my( $elt, $exp)= @_;
@@ -6660,6 +6744,18 @@ sub merge_text
     return $e1;
   }
 
+sub merge
+  { my( $e1, $e2)= @_;
+    my @e2_children= $e2->children;
+    if(     $e1->last_child && $e1->last_child->is_pcdata
+        &&  @e2_children && $e2_children[0]->is_pcdata
+      )
+      { $e1->last_child->{pcdata} .= $e2_children[0]->{pcdata}; shift @e2_children; }
+    foreach my $e (@e2_children) { $e->move( last_child => $e1); } 
+    $e2->delete;
+    return $e1;
+  }
+
 
 # recursively copy an element and returns the copy (can be huge and long)
 sub copy
@@ -6699,6 +6795,7 @@ sub copy
       }
     return $copy;
   }
+
 
 sub delete
   { my $elt= shift;
@@ -7301,11 +7398,24 @@ BEGIN {
   # returned)
   sub sprint
     { my $elt= shift;
+      my( $old_pretty, $old_empty_tag_style);
+
+      if( $_[0] && UNIVERSAL::isa( $_[0], 'HASH'))
+        { my %args= XML::Twig::_normalize_args( %{shift()}); 
+          if( defined $args{PrettyPrint}) { $old_pretty= set_pretty_print( $args{PrettyPrint}); }
+           if( defined $args{EmptyTags})  { $old_empty_tag_style= set_empty_tag_style( $args{EmptyTags}); }
+        }
+
       $xml_space_preserve= 1 if( ($elt->inherit_att( 'xml:space') || '') eq 'preserve');
       my $sprint= $output_filter ? $output_filter->( $elt->_sprint( @_)) : $elt->_sprint( @_);
       if( $pretty== $WRAPPED && !$xml_space_preserve)
         { $sprint= _wrap_text( $sprint); }
       $xml_space_preserve= 0;
+
+
+      set_pretty_print( $old_pretty) if( defined $old_pretty); 
+      set_empty_tag_style( $old_empty_tag_style) if( defined $old_empty_tag_style); 
+
       return $sprint;
     }
   
@@ -7353,8 +7463,12 @@ BEGIN {
         { $string .= $elt->{extra_data} || '';
              if( $elt->is_pcdata)  { $string .= $elt->pcdata_xml_string; }
           elsif( $elt->is_cdata)   { $string .= $elt->cdata_string;      }
-          elsif( $elt->is_pi)      { $string .= $elt->pi_string;         }
-          elsif( $elt->is_comment) { $string .= $elt->comment_string;    }
+          elsif( $elt->is_pi)      { $string .= $elt->pi_string;
+                                     if( ($pretty >= $INDENTED) && !$elt->parent->{contains_text}) { $string .= "\n"; }
+                                   }
+          elsif( $elt->is_comment) { $string .= $elt->comment_string;    
+                                     if( ($pretty >= $INDENTED) && !$elt->parent->{contains_text}) { $string .= "\n"; }
+                                   }
           elsif( $elt->is_ent)     { $string .= $elt->ent_string;        }
         }
 
@@ -8011,10 +8125,10 @@ sub xpath
 sub _stringify_struct
   { my( $elt, %opt)= @_;
     my $string='';
-    my $pretty_print= XML::Twig::Elt::set_pretty_print( 'none');
+    my $pretty_print= set_pretty_print( 'none');
     foreach my $child ($elt->children)
       { $child->add_id; $string .= $child->start_tag( { escape_gt => 1 }) ||''; }
-    XML::Twig::Elt::set_pretty_print( $pretty_print);
+    set_pretty_print( $pretty_print);
     return $string;
   }
 
@@ -9428,6 +9542,20 @@ A C<die> call is thrown if a parse error occurs. Otherwise it will return
 the twig built by the parse. Use C<safe_parsefile> if you want the parsing
 to return even when an error occurs.
 
+=item parsefile_inplace ( $file, $optional_extension)
+
+Parse and update a file "in place". It does this by creating a temp file,
+selecting it as the default for print() statements (and methods), then parsing
+the input file. If the parsing is successful, then the temp file is 
+moved to replace the input file.
+
+If an extension is given then the original file is backed-up (the rules for
+the extension are the same as the rule for the -i option in perl).
+
+=item parsefile_html_inplace ( $file, $optional_extension)
+
+Same as parsefile_inplace, except that it parses HTML instead of XML 
+
 =item parseurl ($url $optional_user_agent)
 
 Gets the data from C<$url> and parse it. The data is piped to the parser in 
@@ -9441,6 +9569,11 @@ to just C<get> the XML file and then parse it as a string.
   use LWP::Simple;
   my $twig= XML::Twig->new();
   $twig->parse( get( $URL )); # get is exported by LWP::Simple
+
+or
+
+  use XML::Twig;
+  my $twig= XML::Twig->nparse( $URL);
 
 
 If the C<$optional_user_agent> argument is used then it is used, otherwise a
@@ -9867,15 +10000,20 @@ Supported types and options:
 
 =item xsl
 
- option: the url of the stylesheet
+option: the url of the stylesheet
 
- Example:
+Example:
 
   $t->add_stylesheet( xsl => "xsl_style.xsl");
 
 will generate the following PI at the beginning of the document:
 
   <?xml-stylesheet type="text/xsl" href="xsl_style.xsl"?>
+
+=item css
+
+option: the url of the stylesheet
+
 
 =back
 
@@ -10100,6 +10238,15 @@ called on the class:
   my $elt= parse XML::Twig::Elt( "<a> string to parse, with <sub/>
                                   <elements>, actually tons of </elements>
                   h</a>");
+
+=item set_inner_xml ($string)
+
+Sets the content of the element to be the tree created from the string
+
+=item set_inner_html ($string)
+
+Sets the content of the element, after parsing the string with an HTML
+parser (HTML::Parser)
 
 =item print         ($optional_filehandle, $optional_pretty_print_style)
 
@@ -10430,6 +10577,27 @@ You can actually delete several attributes at once:
 
 Cut the element from the tree. The element still exists, it can be copied
 or pasted somewhere else, it is just not attached to the tree anymore.
+
+Note that the "old" links to the parent, previous and next siblings can
+still be accessed using the former_* methods
+
+=item former_next_sibling
+
+Returns the former next sibling of a cut node (or undef if the node has not been cut)
+
+This makes it easier to write loops where you cut elements:
+
+    my $child= $parent->first_child( 'achild');
+    while( $child->att( 'cut')) 
+      { $child->cut; $child= $child->former_next_sibling; }
+
+=item former_prev_sibling
+
+Returns the former previous sibling of a cut node (or undef if the node has not been cut)
+
+=item former_parent
+
+Returns the former parent of a cut node (or undef if the node has not been cut)
 
 =item cut_children ($optional_condition)
 
@@ -11017,6 +11185,10 @@ Set the text for the element: if the element is a C<PCDATA>, just set its
 text, otherwise cut all the children of the element and create a single
 C<PCDATA> child for it, which holds the text.
 
+=item merge ($elt2)
+
+Move the content of C<$elt2> within the element
+
 =item insert         ($tag1, [$optional_atts1], $tag2, [$optional_atts2],...)
 
 For each tag in the list inserts an element C<$tag> as the only child of the 
@@ -11505,6 +11677,10 @@ element, this returns the empty string ('').
 
 Equivalent to C<< $elt->sprint( 1) >>, returns the string for the entire 
 element, excluding the element's tags (but nested element tags are present)
+
+=item inner_xml
+
+Another synonym for xml_string
 
 =item xml_text 
 

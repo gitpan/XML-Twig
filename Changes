@@ -1,6 +1,36 @@
-$Id: Changes,v 1.105 2006/05/10 11:04:10 mrodrigu Exp $
+$Id: Changes,v 1.108 2006/05/26 08:07:13 mrodrigu Exp $
 
 CHANGES
+
+Changes in 3.26
+
+      added argument to -i in the Makefile to prevent
+      problem in win32
+
+      added XML::Twig::Elt former_next_sibling, 
+      former_prev_sibling and former_parent methods
+
+      squashed a memory leak when parsing html
+      (forgot to call delete on the HTML::Tree object)
+
+      fixed bug that caused XML::Twig to hang if
+      there was a syntax error in a predicate
+      (RT#19499, reported by Dan Dascalescu)
+
+      made start_tag and end_tag more consistent: they
+      now both return the empty string for comments,
+      PIs... (reported by Dan Dascalescu)
+
+      added parsefile_inplace and parsefile_html_inplace
+      methods (thanks to GrandFather on perlmonks)
+
+      added support to add css stylesheet in the
+      add_stylesheet method (thanks to Georgi Sotirov)
+
+      patched tests to work on Win32
+
+      added set_inner_xml inner_xml and set_inner_html
+      methods
 
 Changes in 3.25
 

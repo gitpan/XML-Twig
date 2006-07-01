@@ -1,10 +1,12 @@
-# $Id: tools.pm,v 1.8 2006/05/10 10:36:06 mrodrigu Exp $
+# $Id: tools.pm,v 1.9 2006/05/15 13:31:04 mrodrigu Exp $
 
 use strict;
 use Config;
 
 
 my $DEBUG=0;
+
+if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
 { my $test_nb;
   BEGIN { $test_nb=0; }
@@ -127,6 +129,7 @@ my $DEBUG=0;
 
   sub is_like
     { my( $got, $expected, $message) = @_;
+      $message ||='';
       $test_nb++; 
 
       if( clean_sp( $expected) eq clean_sp( $got)) 

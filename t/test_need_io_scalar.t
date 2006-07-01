@@ -16,14 +16,20 @@ my $DEBUG=0;
 use XML::Twig;
 
 BEGIN 
-  { eval "require IO::Scalar 2.0";
+  { eval "require IO::Scalar";
     if( $@) 
       { print "1..1\nok 1\n"; 
         warn "skipping, need IO::Scalar\n";
         exit;
       } 
     else
-      { import IO::Scalar; }
+      { import IO::Scalar; 
+        if( $IO::Scalar::VERSION < 2.0)
+          { print "1..1\nok 1\n"; 
+            warn "skipping, need IO::Scalar v 2.0+\n";
+            exit;
+          } 
+      }
   }
 
 print "1..1772\n";

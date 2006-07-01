@@ -1,4 +1,4 @@
-# $Id: xmlxpath_additional.t,v 1.15 2006/04/20 08:09:51 mrodrigu Exp $
+# $Id: xmlxpath_additional.t,v 1.16 2006/05/25 11:06:03 mrodrigu Exp $
 
 use strict;
 
@@ -6,12 +6,18 @@ use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
 
+
 BEGIN 
-  { if( eval( 'require XML::XPath'))
-      { import XML::XPath; }
+  { if( eval( 'require XML::Twig::XPath'))
+      { import XML::Twig::XPath; }
+    elsif( $@ =~ m{^cannot use XML::XPath or XML::XPathEngine})
+      { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine or XML::XPath not available\n";
+        exit;
+      }
     else
-      { print "1..1\nok 1\n"; warn "skipping: XML::XPath not available\n"; exit; }
+      { die $@; }
   }
+
 
 print "1..74\n"; 
 

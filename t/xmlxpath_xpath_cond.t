@@ -1,10 +1,14 @@
 #!/bin/perl -w
-# $Id: xmlxpath_xpath_cond.t,v 1.7 2004/03/26 16:30:40 mrodrigu Exp $
+# $Id: xmlxpath_xpath_cond.t,v 1.8 2006/05/25 11:06:03 mrodrigu Exp $
 use strict;
 
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,'t');
+use tools;
+
 BEGIN 
-  { unless( eval( 'require XML::XPath'))
-    { print "1..1\nok 1\n"; warn "skipping: XML::XPath not available\n"; exit; }
+  { unless( _use( 'XML::XPath') || _use( 'XML::XPathEngine'))
+    { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine and XML::XPath are not available\n"; exit; }
   }
 
 use XML::Twig::XPath;

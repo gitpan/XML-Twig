@@ -2,11 +2,16 @@
 use strict;
 
 BEGIN 
-  { unless( eval( 'require XML::XPath'))
-    { print "1..1\nok 1\n"; warn "skipping: XML::XPath not available\n"; exit; }
+  { if( eval( 'require XML::Twig::XPath'))
+      { import XML::Twig::XPath; }
+    elsif( $@ =~ m{^cannot use XML::XPath or XML::XPathEngine})
+      { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine or XML::XPath not available\n";
+        exit;
+      }
+    else
+      { die $@; }
   }
 
-use XML::Twig::XPath;
 
 $|=1;
 
