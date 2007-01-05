@@ -1,5 +1,5 @@
 #!/bin/perl -w
-# $Id: xmlxpath_xpath_cond.t,v 1.8 2006/05/25 11:06:03 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/xmlxpath_xpath_cond.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 use strict;
 
 use File::Spec;

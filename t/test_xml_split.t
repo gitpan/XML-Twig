@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_xml_split.t,v 1.11 2006/05/17 13:02:05 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_xml_split.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 use Carp;
 
 use File::Spec;

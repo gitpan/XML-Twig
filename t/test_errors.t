@@ -70,7 +70,7 @@ my $init_warn= $SIG{__WARN__};
 }
 
 { eval {XML::Twig->new->parse( '<doc/>')->root->first_child( 'du,')};
-  matches( $@, "^wrong condition", "invalid navigation expression");
+  matches( $@, "^wrong navigation condition", "invalid navigation expression");
 }
 
 { eval {XML::Twig->new->parse( '<doc/>')->root->first_child( '@val=~/[/')};
@@ -135,7 +135,7 @@ my $init_warn= $SIG{__WARN__};
 { my $t= XML::Twig->new->parse( '<doc/>');
   foreach my $bad_cond ( 'foo bar', 'foo:bar:baz', '.', '..', '...', '**', 'con[@to:ta:ti]')
     { eval { $t->root->first_child( qq{$bad_cond})};
-      matches( $@, "^wrong condition '\Q$bad_cond\E'", "bad navigation condition '$bad_cond'");
+      matches( $@, "^wrong navigation condition '\Q$bad_cond\E'", "bad navigation condition '$bad_cond'");
     }
 }
 
@@ -188,7 +188,7 @@ my $init_warn= $SIG{__WARN__};
   eval { $p1->merge_text( $p2); } ;
   matches( $@, "^invalid merge: can only merge 2 text elements", 'merge non text elts');
   $p1->first_child->merge_text( $p2->first_child);
-  is( $t->sprint, '<doc><p>text1text2</p><p></p></doc>');
+  is( $t->sprint, '<doc><p>text1text2</p><p></p></doc>', 'merge_text');
   my $p3= XML::Twig::Elt->new( '#CDATA' => 'foo');
   eval { $p1->first_child->merge_text( $p3); };
   matches( $@, "^invalid merge: can only merge 2 text elements", 'merge cdata and pcdata elts');
@@ -230,27 +230,27 @@ my $init_warn= $SIG{__WARN__};
   my $elt= $t->root->first_child( 'elt')->cut;
   foreach my $pos ( qw( before after))
     { eval { $elt->paste( $pos => $t->root); };
-      matches( $@, "^cannot paste $pos root");
+      matches( $@, "^cannot paste $pos root", "paste( $pos => root)");
     }
 }
 
 {  my $t= XML::Twig->new->parse( '<doc><a><f1>f1</f1><f2>f2</f2></a></doc>');
    eval { $t->root->simplify( group_tags => { a => 'f1' }); };
-   matches( $@, "^error in grouped tag a");
+   matches( $@, "^error in grouped tag a", "grouped tag error f1");
    eval { $t->root->simplify( group_tags => { a => 'f2' }); };
-   matches( $@, "^error in grouped tag a");
+   matches( $@, "^error in grouped tag a", "grouped tag error f2");
    eval { $t->root->simplify( group_tags => { a => 'f3' }); };
-   matches( $@, "^error in grouped tag a");
+   matches( $@, "^error in grouped tag a", "grouped tag error f3");
 }
 
 {  eval { XML::Twig::Elt->parse( '<e>foo</e>')->subs_text( "foo", '&elt( 0/0)'); };
-   matches( $@, "^invalid replacement expression ");
+   matches( $@, "^(invalid replacement expression |Illegal division by zero)", "invalid replacement expression in subs_text");
 }
 
 { eval { my $t=XML::Twig->new( twig_handlers => { e => sub { $_[0]->parse( "<doc/>") } });
             $t->parse( "<d><e/></d>");
        };
-  matches( $@, "^cannot reuse a twig that is already parsing");
+  matches( $@, "^cannot reuse a twig that is already parsing", "error re-using a twig during parsing");
 }
 
 { ok( XML::Twig->new( twig_handlers => { 'elt[string()="foo"]' => sub {}} ), 'twig_handlers with string condition' );
@@ -258,7 +258,7 @@ my $init_warn= $SIG{__WARN__};
   matches( $@, "^string.. condition not supported on twig_roots option", 'twig_roots with string condition' );
   ok( XML::Twig->new( twig_handlers => { 'elt[string()=~ /foo/]' => sub {}} ), 'twig_handlers with regexp' );
   eval { XML::Twig->new( twig_roots => { 'elt[string()=~ /foo/]' => sub {}} ) };
-  matches( $@, "^regexp condition not supported on twig_roots option", 'twig_roots with regexp condition' );
+  matches( $@, "^string.. condition not supported on twig_roots option", 'twig_roots with regexp condition' );
 
   #ok( XML::Twig->new( twig_handlers => { 'elt[string()!="foo"]' => sub {}} ), 'twig_handlers with !string condition' );
   #eval { XML::Twig->new( twig_roots => { 'elt[string()!="foo"]' => sub {}} ) };

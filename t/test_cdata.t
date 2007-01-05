@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_cdata.t,v 1.3 2004/03/26 16:30:40 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_cdata.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 use XML::Twig;
 

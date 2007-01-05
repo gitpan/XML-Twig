@@ -32,6 +32,7 @@ my @options= ( { },
                { forcearray => 1 },
                { forcearray => [ qw(server) ] },
                { noattr => 1, },
+               { noattr => 0, },
                { content_key => 'mycontent' },
                { content_key => '-mycontent' },
                { var_attr => 'var' },
@@ -66,7 +67,7 @@ foreach my $doc (@doc)
         my $doc_name = $t->root->att( 'doc');
         delete $options_simple->{var_regexp};
         my $simple   = XMLin( $doc, %$options_simple); 
-        my $res=is_deeply( $twig, $simple, "doc: $doc_name - options: $options_text" . Dump( {twig => $twig, simple => $simple}));
+        my $res=is_deeply( $twig, $simple, "doc: $doc_name - options: $options_text" ); #. Dump( {twig => $twig, simple => $simple}));
         exit unless( $res);
       }
   } 
@@ -102,7 +103,7 @@ __DATA__
 
 <doc doc="simple example with variables"><var var="var">foo</var><string>var is ${var}</string></doc>
 
-<doc att=" val  with spaces ">
+<doc doc=" val  with spaces ">
   <item name="n1">text with spaces </item>
   <item name="n2 "> text with spaces</item>
   <item name=" n3 ">text  with  spaces</item>
@@ -110,7 +111,7 @@ __DATA__
   </item>
 </doc>
 
-<doc>
+<doc doc="minimal">
   <f1_ar><f1>f1 1</f1><f1>f1 2</f1></f1_ar>
   <f2_ar><f2>f2 1</f2><f2>f2 2</f2></f2_ar>
 </doc>

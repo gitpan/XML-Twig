@@ -1,10 +1,11 @@
-# $Id: tools.pm,v 1.9 2006/05/15 13:31:04 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/tools.pm 21 2006-09-12T17:31:19.157455Z mrodrigu  $
 
 use strict;
 use Config;
 
 
 my $DEBUG=0;
+if( grep { m{^-d$} } @ARGV) { $DEBUG=1; warn "debug!\n"; }
 
 if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
@@ -15,8 +16,9 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       $test_nb++; 
 
       if( ( !defined( $expected) && !defined( $got) ) || ($expected eq $got) ) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
+        { print "ok $test_nb";
+          print " $message" if( $DEBUG);
+          print "\n";
           return 1;
         }
       else 
@@ -34,8 +36,9 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       $test_nb++; 
 
       if( $expected ne $got) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
+        { print "ok $test_nb";
+          print " $message" if( $DEBUG);
+          print "\n"; 
           return 1;
         }
       else 
@@ -55,8 +58,9 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       $test_nb++; 
 
       if( $got=~ /$expected_regexp/) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
+        { print "ok $test_nb"; 
+          print " $message" if( $DEBUG);
+          print "\n"; 
           return 1;
         }
       else { print "not ok $test_nb\n"; 
@@ -70,8 +74,9 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       $test_nb++; 
 
       if( $cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
+        { print "ok $test_nb"; 
+          print " $message" if( $DEBUG); 
+          print "\n";
           return 1;
         }
       else 
@@ -86,8 +91,9 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       $test_nb++; 
 
       if( !$cond)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
+        { print "ok $test_nb"; 
+          print " $message" if( $DEBUG); 
+          print "\n";
           return 1;
         }
       else 
@@ -102,8 +108,9 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       $test_nb++; 
 
       if( ! defined( $cond)) 
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
+        { print "ok $test_nb"; 
+          print "$message" if( $DEBUG); 
+          print "\n";
           return 1;
         }
       else 
@@ -118,8 +125,9 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       $test_nb++; 
       my $status= system join " ", @_, "2>/dev/null";
       if( !$status)
-        { print "ok $test_nb\n"; 
-          warn "ok $test_nb $message\n" if( $DEBUG); 
+        { print "ok $test_nb"; 
+          print " $message" if( $DEBUG); 
+          print "\n";
         }
       else { print "not ok $test_nb\n"; warn "$message: $!\n"; }
 
@@ -133,8 +141,9 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
       $test_nb++; 
 
       if( clean_sp( $expected) eq clean_sp( $got)) 
-        { print "ok $test_nb\n";
-          warn "ok $test_nb $message\n" if( $DEBUG); 
+        { print "ok $test_nb";
+          print " $message" if( $DEBUG); 
+          print "\n";
           return 1;
         }
       else 

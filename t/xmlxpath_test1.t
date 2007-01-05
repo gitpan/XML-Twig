@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: xmlxpath_test1.t,v 1.4 2006/05/25 11:06:03 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/xmlxpath_test1.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 use strict;
 use Carp;

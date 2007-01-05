@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w 
-# $Id: test_bugs_3_18.t,v 1.26 2006/05/10 10:36:06 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_bugs_3_18.t 18 2006-09-12T11:15:56.089521Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -13,7 +13,7 @@ my $DEBUG=0;
 
 use XML::Twig;
 
-my $TMAX=157;
+my $TMAX=158;
 print "1..$TMAX\n";
 
 {
@@ -330,6 +330,13 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
   is( $res => 'foobar', 'level cond');
 }
 
+{ my $doc=q{<doc><title>title</title><sect><elt>foo</elt><elt>bar</elt></sect></doc>};
+  my $res='';
+  my $t= XML::Twig->new( twig_roots => { 'level(2)' => sub { $res .= $_->text;} })
+                  ->parse( $doc);
+  is( $res => 'foobar', 'level cond');
+}
+
 
 { my $doc=q{<doc><?t1 d1?><elt/><?t2 d2?></doc>};
   my $res='';
@@ -499,7 +506,7 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
 { my $t=XML::Twig->new->parse( '<doc><p>toto</p></doc>');
   my $pcdata= $t->first_elt( '#PCDATA');
   $pcdata->split_at( 2);
-  is( $t->sprint => '<doc><p>toto</p></doc>');
+  is( $t->sprint => '<doc><p>toto</p></doc>', 'split_at');
 }
 
 { my $doc= q{<doc>tototata<e>tu</e></doc>};
@@ -554,7 +561,7 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
   my $t= XML::Twig->new->parse( '<doc><e id="e1"/><e id="e2">foo <f id="oo"/></e></doc>');
   $t->root->first_child->cut->DESTROY;
   $t->root->first_child->cut->DESTROY;
-  is( $t->sprint, '<doc></doc>');
+  is( $t->sprint, '<doc></doc>', 'DESTROY');
   $XML::Twig::weakrefs=$save;
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_3_26.t,v 1.5 2006/05/26 08:07:15 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_3_26.t 8 2006-08-21T13:40:39.468774Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -14,7 +14,10 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=13;
+my $DECL=qq{<?xml version="1.0" encoding="iso-8859-1"?>\n};
+$DECL='';
+
+my $TMAX=18;
 print "1..$TMAX\n";
 
 { # testing set_inner_xml
@@ -52,12 +55,12 @@ print "1..$TMAX\n";
 
       $inner= q{<p>just a p</p>};
       $t->root->set_inner_html( $inner);
-      $expected= qq{<html><head></head><body>$inner</body></html>};
+      $expected= qq{$DECL<html><head></head><body>$inner</body></html>};
       is( $t->sprint, $expected, "set_inner_html (all doc)");
 
       $inner= q{the content of the <br/> body};
       $t->first_elt( 'body')->set_inner_html( $inner);
-      $expected= qq{<html><head></head><body>$inner</body></html>};
+      $expected= qq{$DECL<html><head></head><body>$inner</body></html>};
       is( $t->sprint, $expected, "set_inner_html (body)");
     }
   
@@ -89,12 +92,45 @@ print "1..$TMAX\n";
     }
 }
 
+{ if( !XML::Twig::_use( "File::Temp"))
+    { skip( 5, "File::Temp not available"); }
+  elsif( !XML::Twig::_use( "HTML::TreeBuilder"))
+    { skip( 5, "HTML::TreeBuilder not available"); }
+  else
+    {
+      # parsefile_html_inplace
+      my $file= "test_3_26.html";
+      spit( $file, q{<html><head><title>foo</title><body><p>this is it</p></body></html>>});
+      XML::Twig->new( twig_handlers => { p => sub { $_->set_tag( 'h1')->flush; }})
+               ->parsefile_html_inplace( $file);
+      matches( slurp( $file), qr/<h1>/, "parsefile_html_inplace");
+
+      XML::Twig->new( twig_handlers => { h1 => sub { $_->set_tag( 'blockquote')->flush; }}, error_context => 6)
+               ->parsefile_html_inplace( $file, '.bak');
+      matches( slurp( $file), qr/<blockquote>/, "parsefile_html_inplace (with backup, checking file)");
+      matches( slurp( "$file.bak"), qr/<h1>/, "parsefile_html_inplace (with backup, checking backup)");
+      unlink( "$file.bak");
+    
+      XML::Twig->new( twig_handlers => { blockquote => sub { $_->set_tag( 'div')->flush; }})
+               ->parsefile_html_inplace( $file, 'bak_*');
+      matches( slurp( $file), qr/<div>/, "parsefile_html_inplace (with complex backup, checking file)");
+      matches( slurp( "bak_$file"), qr/<blockquote>/, "parsefile_html_inplace (with complex backup, checking backup)");
+      unlink( "bak_$file");
+      unlink $file;
+    }
+}
+
+
 { use Cwd;
-  my $file = "test_uri";
-  my $uri  = sprintf( "file://%s/%s", getcwd, $file);
-  my $content= "ok";
-  spit( test_uri => $content);
-  is( XML::Twig::_slurp_uri( $uri), $content, "testing _slurp_uri");
+  if(  XML::Twig::_use( "LWP::Simple"))
+    { my $file = "test_uri";
+      my $uri  = sprintf( "file://%s/%s", getcwd, $file);
+      my $content= "ok";
+      spit( test_uri => $content);
+      is( XML::Twig::_slurp_uri( $uri), $content, "testing _slurp_uri");
+    }
+  else
+    { skip( 1, "LWP::Simple not available"); }
 }
 
 { # test syntax error in XPath predicate (RT #19499)

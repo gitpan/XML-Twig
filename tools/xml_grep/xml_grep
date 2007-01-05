@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl -w
-# $Id: xml_grep,v 1.14 2005/10/27 12:27:53 mrodrigu Exp $
+# $Id: /xmltwig/trunk/tools/xml_grep/xml_grep 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 use strict;
 
 use Getopt::Long;

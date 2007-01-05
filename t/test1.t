@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test1.t,v 1.5 2006/04/20 08:09:50 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test1.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 use strict;
 use Carp;

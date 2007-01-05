@@ -190,19 +190,21 @@ stest( $doc, $s, "&quot; in attribute");
 #stest( $doc, $s, "PI");
 
 
-my ($a, $ba, $rba);
+my (@called);
 $t= XML::Twig->new( 
       twig_handlers =>
-        {  a     => sub { $a++; 1; },
-          'b/a'  => sub { $ba++; 1;},
-          '/b/a' => sub { $rba++; 1;},
+        {  a     => sub { push @called, 'a';    1; },
+          'b/a'  => sub { push @called, 'b/a';  1; },
+          '/b/a' => sub { push @called, '/b/a'; 1; },
+          '/a'   => sub { push @called, '/a'; 1; },
         },
                   );
 
 $t->parse( '<b><a/></b>');
-my $calls= ($a || '_') . ($ba || '_') . ($rba || '_');
-if( $calls eq '111') { print "ok 19\n"; }
-else                 { print "not ok 19\n"; warn "\n$calls instead of 111\n"; }
+my $calls= join( ':', @called);
+my $expected=  "/b/a:b/a:a";
+if( $calls eq $expected) { print "ok 19\n"; }
+else                     { print "not ok 19\n"; warn "\n[$calls] instead of [$expected]\n"; }
 
 exit 0;
 

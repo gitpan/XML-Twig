@@ -87,7 +87,7 @@ nok( $t->root->first_child->first_descendant( 'b'), 'first_descendant fails (mat
   my $t= XML::Twig->new( index => { target => 't' })->parse( $doc);
   is( $t->index( 'target', 0)->text, 't1', 'index');
   is( $t->index( 'target', 1)->text, 't2', 'index');
-  is_undef( $t->index( 'target', 2), undef, 'index');
+  is_undef( $t->index( 'target', 2), 'index');
   is( $t->index( 'target', -1)->text, 't2', 'index');
  
   my $index= $t->index( 'target');

@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_mark.t,v 1.3 2006/04/20 08:09:51 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_mark.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 # test the mark method
 

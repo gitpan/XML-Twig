@@ -1,7 +1,7 @@
-#!/usr/bin/perl -w
+# !/usr/bin/perl -w
 use strict;
 
-# $Id: test_new_features_3_22.t,v 1.14 2006/05/16 13:06:12 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_new_features_3_22.t 25 2006-10-20T09:00:05.351266Z mrodrigu  $
 use Carp;
 
 use FindBin qw($Bin);
@@ -23,17 +23,21 @@ print "1..20\n";
 
 { # testing parse_html
  
-  if( XML::Twig::_use 'HTML::TreeBuilder', 3.13)
+  if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13) && XML::Twig::_use( 'LWP::Simple'))
     { my $html= q{<html><head><title>T</title><meta content="mv" name="mn"></head><body>t<br>t2<p>t3</body></html>};
       my $expected= HTML::TreeBuilder->new->parse( $html)->as_XML;
       is_like( XML::Twig->new->parse_html( $html)->sprint, $expected, 'parse_html string using HTML::TreeBuilder');
 
       my $html_file= File::Spec->catfile( "t", "test_new_features_3_22.html");
       spit( $html_file => $html);
-      is_like( XML::Twig->new->parsefile_html( $html_file)->sprint, $expected, 'parsefile_html using HTML::TreeBuilder');
+      if( -f $html_file)
+        { is_like( XML::Twig->new->parsefile_html( $html_file)->sprint, $expected, 'parsefile_html using HTML::TreeBuilder'); 
 
-      open( HTML, "<$html_file") or die "cannot open HTML file '$html_file': $!";
-      is_like( XML::Twig->new->parse_html( \*HTML)->sprint, $expected, 'parse_html fh using HTML::TreeBuilder');
+          open( HTML, "<$html_file") or die "cannot open HTML file '$html_file': $!";
+          is_like( XML::Twig->new->parse_html( \*HTML)->sprint, $expected, 'parse_html fh using HTML::TreeBuilder');
+        }
+      else
+        { skip( 2, "could not write HTML file in t directory, check permissions"); }
       
     }
   else
@@ -41,10 +45,10 @@ print "1..20\n";
 }
 
 { # testing _use
-  ok( XML::Twig::_use( 'XML::Parser'));
-  ok( XML::Twig::_use( 'XML::Parser')); # second time tests the caching
-  nok( XML::Twig::_use( 'I::HOPE::THIS::MODULE::NEVER::MAKES::IT::TO::CPAN'));
-  nok( XML::Twig::_use( 'I::HOPE::THIS::MODULE::NEVER::MAKES::IT::TO::CPAN'));
+  ok( XML::Twig::_use( 'XML::Parser'), '_use XML::Parser');
+  ok( XML::Twig::_use( 'XML::Parser'), '_use XML::Parser (2cd time)'); # second time tests the caching
+  nok( XML::Twig::_use( 'I::HOPE::THIS::MODULE::NEVER::MAKES::IT::TO::CPAN'), '_use non-existent-module');
+  nok( XML::Twig::_use( 'I::HOPE::THIS::MODULE::NEVER::MAKES::IT::TO::CPAN'), '_use non-existent-module (2cd time)');
 }
 
 { # testing auto-new features
@@ -121,8 +125,13 @@ if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
       if( perl_io_layer_used())
         { skip( 1 => "cannot test url parsing when UTF8 perlIO layer used"); }
       elsif( XML::Twig::_use( 'LWP::Simple'))
-        { my $content= XML::Twig->nparse( "file:///$file")->sprint;
-          is( $content, "<doc></doc>", "nparse url");
+        { my $url= "file:///$file";
+          if( LWP::Simple::get( $url))
+            { my $content= XML::Twig->nparse( $url)->sprint;
+              is( $content, "<doc></doc>", "nparse url");
+            }
+          else
+            { skip( 1 => "it looks like your LWP::Simple's get cannot handle '$url'"); } 
         }
       else
         { skip( 1 => "cannot test url parsing without LWP"); }

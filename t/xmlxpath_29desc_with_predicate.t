@@ -1,4 +1,4 @@
-# $Id: xmlxpath_29desc_with_predicate.t,v 1.7 2006/05/25 11:06:03 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/xmlxpath_29desc_with_predicate.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 BEGIN 
   { if( eval( 'require XML::Twig::XPath'))

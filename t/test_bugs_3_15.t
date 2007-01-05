@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_bugs_3.15.t,v 1.4 2004/08/30 18:24:28 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_bugs_3_15.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -39,7 +39,7 @@ print "1..$TMAX\n";
   else
     { if( $@=~ m{^Can't locate Text/Iconv.pm} || $@=~ m{^Text::Iconv not available} )
         { skip( 1, "Text::Iconv not available"); }
-      elsif( $@=~ m{^Unsupported encoding: utf8})
+      elsif( $@=~ m{^Unsupported (encoding|conversion): utf8})
         { skip( 1, "your version of iconv does not support utf8"); }
       else
         { skip( 1, "odd error creating filter with iconv: $@"); }

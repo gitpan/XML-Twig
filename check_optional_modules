@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: check_optional_modules,v 1.2 2003/09/24 13:35:07 mrodrigu Exp $
+# $Id: /xmltwig/trunk/check_optional_modules 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 use strict;
 

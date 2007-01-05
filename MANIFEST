@@ -113,6 +113,7 @@ t/test_new_features_3_22.html
 t/tests_3_23.t
 t/test_3_24.t
 t/test_3_26.t
+t/test_3_27.t
 t/test_memory.t
 t/test_wrapped.t
 t/test_xml_split.t

@@ -1,4 +1,4 @@
-# $Id: xmlxpath_21allnodes.t,v 1.7 2006/05/25 11:06:02 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/xmlxpath_21allnodes.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 BEGIN 
   { if( eval( 'require XML::Twig::XPath'))
@@ -12,7 +12,7 @@ BEGIN
   }
 
 use Test;
-plan( tests => 11);
+plan( tests => 13);
  
 
 use XML::Twig::XPath;
@@ -32,6 +32,8 @@ ok(@nodes, 3);
 @nodes = $t->findnodes( '//GGG/following::*');
 ok(@nodes, 3);
 ok($nodes[0]->getName, "VVV");
+ok($nodes[1]->getName, "CCC");
+ok($nodes[2]->getName, "DDD");
 
 @nodes = $t->findnodes( '//GGG/preceding::*');
 ok(@nodes, 5);

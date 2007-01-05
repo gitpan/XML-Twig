@@ -1,13 +1,14 @@
 #!/bin/perl -w
 use strict;
 use Carp;
+use File::Spec;
+use lib File::Spec->catdir(File::Spec->curdir,"t");
+use tools;
 
 # test for the various conditions in navigation methods
 
 use XML::Twig;
 
-
-my $i=1;
 
 my $t= XML::Twig->new;
 $t->parse( 
@@ -36,10 +37,7 @@ my %result= map { chomp; split /\s*=>\s*/} @data;
 my $nb_tests= keys %result;
 print "1..$nb_tests\n";
 
-#push @data,  qr/^el/, qr/^.*2$/, qr/^2$/;
-#push @data, sub { return $_[0] if( $_[0]->text eq "text"); };
-
-foreach my $cond ( keys %result)
+foreach my $cond ( sort keys %result)
   { my $expected_result= $result{$cond};
     my $result;
     my $res= $root->first_child( $cond);
@@ -51,14 +49,7 @@ foreach my $cond ( keys %result)
 	              }
       }
     else              { $result= 'none';  }
-    if( $result eq $expected_result)
-      { print "ok $i\n"; }
-    else
-      { print "not ok $i\n";
-        print STDERR "$cond: expected $expected_result - real $result\n";
-	die;
-      }
-    $i++;
+    is( $result => $expected_result, "$cond");
   }
 
 exit 0;
@@ -106,7 +97,7 @@ elt2[text(subelt)="text}"] => elt2-3
 elt2[text()="text}"]       => none
 elt2[text(subelt)='text"'] => elt2-3
 elt2[text(subelt)="text'"] => elt2-3
-##[text(subelt)="text}"]     => elt2-3
+[text(subelt)="text}"]     => elt2-3
 [text(subelt)="text1"]     => elt-1
 [text(subelt)="text 2"]    => elt2-3
 *[text(subelt)="text1"]     => elt-1
@@ -130,7 +121,7 @@ elt2[text(subelt)=~/tex/]  => elt2-3
 elt2[text(subelt)=~/^et/]  => none
 elt2[text(subelt)=~/^et}/]  => none
 /ELT/i                     => elt-1
-##elt2[text(subelt)="text\""] => elt2-3
+elt2[text(subelt)='text"'] => elt2-3
 elt[@val>'1']                => elt-2
 @val>"1"                     => elt-2
 elt[@val<"2"]                => elt-1

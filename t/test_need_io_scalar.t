@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id$
+# $Id: /xmltwig/trunk/t/test_need_io_scalar.t 21 2006-09-12T17:31:19.157455Z mrodrigu  $
 
 # tests that require IO::Scalar to run
 use strict;
@@ -103,7 +103,7 @@ print "1..1772\n";
                        );
   $t->{twig_autoflush}=0;
   $t->parse( $doc);
-  is( $out => q{<doc><link /><link></link><script></script><script></script><elt>foo</elt><elt></elt>}, 'flush with a pretty_print arg');
+  is( $out => q{<doc><link /><link /><script></script><script></script><elt>foo</elt><elt></elt>}, 'flush with a pretty_print arg');
   is( $t->sprint => qq{<doc>\n  <elt2></elt2>\n  <link></link>\n  <link></link>\n  <script></script>\n  <script></script>\n</doc>\n},
       'flush with a pretty_print arg (checking that option values are properly restored)'
     );
@@ -123,7 +123,7 @@ print "1..1772\n";
   $t->{twig_autoflush}=0;
   $t->parse( $doc);
   select STDOUT;
-  is( $out => q{<doc><link /><link></link><script></script><script></script><elt>foo</elt><elt></elt>}, 'flush with a pretty_print arg (default fh)');
+  is( $out => q{<doc><link /><link /><script></script><script></script><elt>foo</elt><elt></elt>}, 'flush with a pretty_print arg (default fh)');
   is( $t->sprint => qq{<doc>\n  <elt2></elt2>\n  <link></link>\n  <link></link>\n  <script></script>\n  <script></script>\n</doc>\n},
       'flush with a pretty_print arg (checking that option values are properly restored) (default fh)'
     );

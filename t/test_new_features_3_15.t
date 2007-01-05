@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_new_features_3.15.t,v 1.2 2004/08/30 17:39:56 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_new_features_3_15.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 # test designed to improve coverage of the module
 

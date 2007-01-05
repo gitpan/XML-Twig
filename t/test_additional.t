@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_additional.t,v 1.139 2006/04/20 08:09:50 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_additional.t 18 2006-09-12T11:15:56.089521Z mrodrigu  $
 
 # test designed to improve coverage of the module
 
@@ -415,7 +415,7 @@ ok( scalar $elt1->contains_only( 'elt2'), "\$elt1->contains_only( 'elt2')");# te
 nok( $elt1->contains_only( 'elt'), "\$elt1->contains_only( 'elt') is false");# test 122
 ok( scalar $elt2->contains_only( 'elt2'), "\$elt2->contains_only( 'elt2')");# test 123
 nok( $elt3->contains_only( 'elt2'), "\$elt3->contains_only( 'elt2') is false");# test 124
-ok( $elt4->contains_only( 'elt2'), "\$elt4->contains_only( 'elt2')");# test 125
+ok( $elt4->contains_only( 'elt2'), "elt4->contains_only( 'elt2')");# test 125
 
 is( $elt1->next_sibling_text, $elt2->text, "next_sibling_text");# test 126
 is( $elt1->next_sibling_text, $elt2->text, "next_sibling_text using the cache");# test 127
@@ -525,7 +525,7 @@ is( $t->sprint, '<doc><elt att="v3">val 1</elt><elt att="v2">val 3</elt><elt att
     "sort_children_on_att (reverse)");
 
 $t->root->set_text( "fini fini");
-is( $t->sprint, '<doc>fini fini</doc>');# test 185
+is( $t->sprint, '<doc>fini fini</doc>', 'set_text on root');# test 185
 my $p= $t->root->insert( 'p');
 my $new_p= $p->split_at( 4);
 is( $t->sprint, '<doc><p>fini</p><p> fini</p></doc>', "split_at");# test 186
@@ -797,12 +797,12 @@ is( $alt_root->sprint, '<doc>text<b att="y">xx</b>more text<b att="y">xx</b>end<
 
 {
 my $t= XML::Twig->new->parse( '<doc att="foo"/>');
-is( $t->sprint, '<doc att="foo"/>');# test 277
+is( $t->sprint, '<doc att="foo"/>', "before save_global_state");# test 277
 $t->save_global_state;
 $t->set_quote( 'single');
-is( $t->sprint, "<doc att='foo'/>");# test 278
+is( $t->sprint, "<doc att='foo'/>", "after set_global_state");# test 278
 $t->restore_global_state;
-is( $t->sprint, '<doc att="foo"/>');# test 279
+is( $t->sprint, '<doc att="foo"/>', "after restore_global_state");# test 279
 }
 
 {
@@ -1056,7 +1056,7 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
   is( $t->next_n_elt( 3)->gi, "e2", "next_n_elt(3)");# test 323
   is( $t->next_n_elt( 1, "e3")->gi, "e3", "next_n_elt(1, e3)");# test 324
   nok( $t->next_n_elt( 2, "e3"), "next_n_elt(2, e3)");# test 325
-  is( join(':', map { $_->gi } $t->_children), 'doc', "$t->_children");# test 326
+  is( join(':', map { $_->gi } $t->_children), 'doc', "\$t->_children");# test 326
 }
 
 # test dtd_print

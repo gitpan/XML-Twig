@@ -1,4 +1,4 @@
-# $Id: xmlxpath_additional.t,v 1.16 2006/05/25 11:06:03 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/xmlxpath_additional.t 18 2006-09-12T11:15:56.089521Z mrodrigu  $
 
 use strict;
 
@@ -22,7 +22,7 @@ BEGIN
 print "1..74\n"; 
 
 use XML::Twig::XPath;
-ok(1);
+ok(1, "loading");
 
 {
 my $t= XML::Twig::XPath->new->parse( '<doc>5</doc>');
@@ -49,7 +49,9 @@ is( $t->findnodes_as_string( '//p'), '<p>p1</p><p>:p2</p>', "findnodes_as_string
 is( $t->root->findnodes_as_string( '//p'), '<p>p1</p><p>:p2</p>', "findnodes_as_string");
 is( $t->root->findnodes_as_string( 'p'), '<p>p1</p><p>:p2</p>', "findnodes_as_string (from root)");
 
-if( $XML::XPath::VERSION >= 1.13)
+if( defined( $XML::XPathEngine::VERSION) ||
+    ( $XML::XPath::VERSION && (($XML::XPath::VERSION  eq '1.13.1') || $XML::XPath::VERSION >= 1.13) )
+  )
   { ok( $t->root->exists( '//p'), "exists //p (on root)");  
     ok( $t->exists( '//p'), "exists //p (on root)"); 
   }
@@ -58,7 +60,7 @@ else
 
 my $p= $t->first_elt( 'p');
 ok( $p->matches( 'p'), "\$p->matches( 'p')");
-ok( $t->matches( 'p', $p), "\$p->matches( 'p') (from the twig)");
+ok( $t->matches( '//p', $p), "\$p->matches( 'p') (from the twig)");
 my $p2_set= $t->root->find( 'p[text()= ":p2"]');
 is( $p2_set->size, 1, "find 1 node");
 is( $p2_set->to_literal, ':p2', 'p2 text');

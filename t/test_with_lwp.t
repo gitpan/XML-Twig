@@ -54,13 +54,13 @@ if ($^O ne 'VMS') {
     $t = XML::Twig->new->safe_parseurl( 'file:test_with_lwp_no_file.xml');
 }
 ok( !$t, "no file");
-ok( $@=~ m{^no element found}, "no file, error message");
+matches( $@, '^\s*no element found', "no file, error message");
 }
 
 {
 my $t= XML::Twig->new->safe_parseurl( 'file:test_with_lwp_not_wf.xml');
 ok( !$t, "not well-formed");
-ok( $@=~ m{^no element found}, "not well-formed, error message");
+matches( $@, '^\s*mismatched tag', "not well-formed, error message");
 }
 
 {
@@ -76,13 +76,13 @@ is( $t->sprint, '<doc><elt>text</elt></doc>', "parseurl");
 {
 my $t= XML::Twig->new->safe_parsefile( 'test_with_lwp_no_file.xml');
 ok( !$t, "no file");
-ok( $@=~ m{^no element found}, "no file, error message");
+matches( $@, '^\s*Couldn', "no file, error message");
 }
 
 {
 my $t= XML::Twig->new->safe_parsefile( 'test_with_lwp_not_wf.xml');
 ok( !$t, "not well-formed");
-ok( $@=~ m{^no element found}, "not well-formed, error message");
+matches( $@, '^\s*mismatched tag', "not well-formed, error message");
 }
 
 exit 0;

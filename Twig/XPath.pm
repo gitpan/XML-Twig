@@ -1,4 +1,4 @@
-# $Id: XPath.pm,v 1.19 2006/05/25 11:06:02 mrodrigu Exp $
+# $Id: /xmltwig/trunk/Twig/XPath.pm 18 2006-09-12T11:15:56.089521Z mrodrigu  $
 package XML::Twig::XPath;
 use strict;
 use XML::Twig;
@@ -68,7 +68,7 @@ sub findnodes_as_string { my( $t, $path)= @_; return $t->{twig_xp}->findnodes_as
 sub findvalue           { my( $t, $path)= @_; return $t->{twig_xp}->findvalue(           $path, $t); }
 sub exists              { my( $t, $path)= @_; return $t->{twig_xp}->exists(              $path, $t); }
 sub find                { my( $t, $path)= @_; return $t->{twig_xp}->find(                $path, $t); }
-sub matches             { my( $t, $path)= @_; return $t->{twig_xp}->matches( $t, $path, $t); }
+sub matches             { my( $t, $path, $node)= @_; $node ||= $t; return $t->{twig_xp}->matches( $node, $path, $t) || 0; }
 
 1;
 
@@ -133,7 +133,7 @@ sub findnodes_as_string { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->fi
 sub findvalue           { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findvalue(           $path, $elt); }
 sub exists              { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->exists(              $path, $elt); }
 sub find                { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->find(                $path, $elt); }
-sub matches             { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->matches( $elt, $path, $elt->getParentNode); }
+sub matches             { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->matches( $elt, $path, $elt->getParentNode) || 0; }
 
 
 1;

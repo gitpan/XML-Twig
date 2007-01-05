@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: xml_pp,v 1.3 2006/05/10 11:04:10 mrodrigu Exp $
+# $Id: /xmltwig/trunk/tools/xml_pp/xml_pp 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 use strict;
 
 use XML::Twig;
@@ -43,21 +43,9 @@ if( @ARGV)
       { print STDERR "$file\n" if( $opt{verbose});
         my $tempfile;
         if( $opt{in_place})
-          { my $backup;
-            if( $opt{backup})  
-              { $backup= backup( $file, $opt{backup});
-                rename( $file, $backup) or die "cannot create backup file $backup: $!";
-                open( OUTPUT, ">$file") or die "cannot update file $file: $!";
-                select OUTPUT;
-                $file= $backup;
-              }
-            else
-              { (undef, $tempfile)= tempfile( DIR => dirname( $file));
-                rename( $file, $tempfile) or die "cannot create tempfile file $tempfile: $!";
-                open( OUTPUT, ">$file") or die "cannot update file $file: $!";
-                select OUTPUT;
-                $file= $tempfile;
-              }
+          { (undef, $tempfile)= tempfile( DIR => dirname( $file));
+            open( OUTPUT, ">$tempfile") or die "cannot create tempfile $tempfile: $!";
+            select OUTPUT;
           }
         $t= $t->safe_parsefile( $file);
 
@@ -65,14 +53,20 @@ if( @ARGV)
           { if( $opt{load}) { $t->print; }
 
             select STDOUT;
-            if( defined $tempfile)
-              { unlink $tempfile or die "cannot unlink temp file $tempfile: $!"; }
+
+            if( $opt{in_place})
+              { if( $opt{backup})  
+                  { my $backup= backup( $file, $opt{backup});
+                    rename( $file, $backup) or die "cannot create backup file $backup: $!"; 
+                  }
+                rename( $tempfile, $file) or die "cannot overwrite file $file: $!";
+              }
+
           }
         else
-          { if( $opt{backup})
-              { my $backup=  backup( $file, $opt{backup});
-                rename( $backup, $file) or die "cannot recover backup file $backup: $!"
-              }
+          { if( defined $tempfile)
+              { unlink $tempfile or die "cannot unlink temp file $tempfile: $!"; }
+            die $@;
           }
       }
   }

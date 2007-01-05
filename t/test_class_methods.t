@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: test_class_methods.t,v 1.7 2006/04/20 08:09:51 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_class_methods.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 # testing methods on class attribute:
 # class set_class add_to_class att_to_class add_att_to_class move_att_to_class

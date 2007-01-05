@@ -1,6 +1,91 @@
-$Id: Changes,v 1.108 2006/05/26 08:07:13 mrodrigu Exp $
+$Id: /xmltwig/trunk/Changes 25 2006-10-20T09:00:05.351266Z mrodrigu  $
 
 CHANGES
+
+Changes in 3.28
+
+      now builds on Windows and OS2
+
+      refactored the code that triggers handlers, 
+      more complex expressions can now be handled,
+      such as '/doc/section[@def="1"]/title'
+
+      COMPATIBILITY WARNING
+
+      Up to version 3.26, you could change the attribute
+      of a parent of a node on which you had a handler,
+      and be able to trigger a handler on that parent node
+      based on the new attribute value:
+      XML::Twig->new( twig_handlers =>
+        { 'sect/title'          => sub { $_->parent->set_att( has_title => 1)},
+          'sect[@has_title="1"]'=> sub { ... }, # called for any sect that has
+        }                                       # a title
+                    );
+      This won't work now. The trigger expression ('sect[@has_title="1"]')
+      is evaluated strictly against the input XML. This is more logical and
+      consistent (if you changed the element name, the new name was never
+      used in the evaluation of the trigger).
+      The only exception to that rule is if you use "private attributes": 
+      attributes which name starts with a '#'. By definition this in an invalid
+      XML name, so it can't be in the input, and has to have been created . In 
+      that case the code that evaluates the trigger looks at the attribute in 
+      the element in the tree in memory (if it exists). 
+      So in the example above, if you replace 'has_title' by '#has_title', 
+      everything will work fine. Note that private attributes are not output 
+      when using the print/sprint/xml_string... methods.    
+     
+      fixed xml_pp so it does not leave a tempfile
+      and a broken original file all when the original
+      file is not well-formed.
+      
+      added the nparse_pp method that does an nparse
+      with pretty_print set to 'indented', nparse_e
+      that sets error_context, and nparse_ppe that 
+      does both
+    
+      added XML::Twig::Elt tag_to_span and tag_to_div
+      methods (turn an element into a span/div and 
+      set its class to the old tag name)
+
+      added the quote option for XML::Twig new, which 
+      sets the output quote character for attributes
+      ('single' or 'double')
+
+      added the text_only and xml_text_only methods
+      that return the text of the element, but not of 
+      the sub-elements. 
+
+      added outer_xml method (synonym for sprint)
+
+      fixed bug where entity names were not matched
+      properly (RT #22854, spotted by Bob Faist)
+
+      fixed bug  on some DOCTYPE config with 
+      twig_print_outside_roots
+ 
+      fixed bug in set_keep_encoding (the method, 
+      not the option).
+
+      fixed bug in simplify: the code attempted to
+      replace variables in attribute values even if no
+      option required it, spotted by Klaus Rush
+
+      clean-up and fixed bugs in ignore: the method
+      can now be called from a regular handler (it
+      always could but the docs did not say so, 
+      thanks to kudra for noticing this). It can
+      also be called to ignore a parent of the current 
+      element. There were bugs there, and the tree 
+      was not built properly
+
+      added error message when an XPath query with
+      a leading / is used on a node that does not
+      belong to a whole twig (because it's been cut
+      or because the twig itself went out of scope)
+
+      when parsing HTML with error_context set, the
+      HTML is indented, in order to give better error
+      report
 
 Changes in 3.26
 
@@ -412,6 +497,7 @@ Changes in 3.14
       Namespace processing has been enhanced and should work fine now,
       as long as twig_roots is not used.
 
+      COMPATIBILITY WARNING:
       Potentially uncompatible change: the behaviour of simplify has
       been changed to mimic as exactly as possible XML::Simple's XMLin
 
@@ -486,6 +572,7 @@ Changes in 3.12
       fixed bug when keep_atts_order on and using set_att on an element
       with no existing attribute (spotted by scharloi) 
 
+      COMPATIBILITY WARNING:
       WARNING - potentially incompatible changes -
       when using finish_print, the document used to be flushed. This is no
       longer the case, you will have to do it before calling finish_print. 
@@ -566,6 +653,7 @@ Changes in 3.10
       Added the XML::Twig::Elt strip_add method that deletes an attribute
       from an element and its descendants
 
+      COMPATIBILITY WARNING
       Fixed a quasi-bug in set_att where the hash passed in reference was
       used directly, which makes it a problem when the same reference is
       passed several times: all the elements share the same attributes.
@@ -807,6 +895,7 @@ Changes in 3.06
 
     Changed in 3.00
 
+      COMPATIBILITY WARNING
       WARNING: THIS CHANGE IS NOT BACKWARD COMPATIBLE
 
       But it is The Right Thing To Do

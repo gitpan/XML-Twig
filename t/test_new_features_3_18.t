@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_new_features_3.18.t,v 1.7 2006/04/20 08:09:51 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_new_features_3_18.t 18 2006-09-12T11:15:56.089521Z mrodrigu  $
 use Carp;
 
 use File::Spec;
@@ -77,7 +77,7 @@ print "1..44\n";
   is( result( $t->root->last_descendant( 'e3')), 'e3', 'last_descendant( e3)');
   is( result( $t->root->first_child( 'e3')->last_descendant( 'e3')), 'e3', 'last_descendant( e3) (on e3)');
   is( result( $t->root->first_child( 'e3')->last_descendant()), 't_e_3', 'last_descendant() (on e3)');
-  is_undef( $t->root->last_child->last_descendant( 'e3'));
+  is_undef( $t->root->last_child->last_descendant( 'e3'), 'last_descendant (no result)');
 
   is( result( $t->root->first_child( 'e4')->last_descendant( 'e4')), 'e4', 'last_descendant( e4) (on e4)');
   is( result( $t->root->first_child( 'e4')->last_descendant( )), 'e4', 'last_descendant( ) (on e4)');

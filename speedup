@@ -1,6 +1,6 @@
 #!/bin/perl 
 
-# $Id: speedup,v 1.10 2006/05/09 15:02:43 mrodrigu Exp $
+# $Id: /xmltwig/trunk/speedup 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 
 use XML::Parser;
 

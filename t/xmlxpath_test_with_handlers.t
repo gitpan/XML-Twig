@@ -1,5 +1,5 @@
 #!/bin/perl -w
-# $Id: xmlxpath_test_with_handlers.t,v 1.6 2006/05/25 11:06:03 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/xmlxpath_test_with_handlers.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
 use strict;
 
 BEGIN 
