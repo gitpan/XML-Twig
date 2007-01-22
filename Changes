@@ -2,6 +2,11 @@ $Id: /xmltwig/trunk/Changes 25 2006-10-20T09:00:05.351266Z mrodrigu  $
 
 CHANGES
 
+Changes in 3.29
+
+      fixed a bug in the handling of handlers after an ignore (RT #24392, 
+      reported by Robert Eden).
+
 Changes in 3.28
 
       now builds on Windows and OS2

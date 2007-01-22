@@ -95,7 +95,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.28';
+$VERSION = '3.29';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -3315,6 +3315,11 @@ sub _twig_ignore_end
         $t->{twig_ignore_elt}->cut;  # there could possibly be a memory leak here (delete would avoid it,
                                      # but could also delete elements that should not be deleted)
 
+        # restore the saved stack to the current level
+        #warn "splicing the stack at ", $p->depth + 1, " - gi: '$gi'\n";
+        splice( @{$t->{_twig_context_stack}}, $p->depth+ 1 );
+        #warn "stack: ", _dump_stack( $t->{_twig_context_stack}), "\n";
+
         $p->setHandlers( @{$t->{twig_saved_handlers}});
         # test for handlers
         if( $t->{twig_endtag_handlers})
@@ -3324,20 +3329,30 @@ sub _twig_ignore_end
             foreach my $handler ( @handlers)
               { $last_handler_res= $handler->($t, $gi) || last; }
           }
+        pop @{$t->{_twig_context_stack}};
       };
+  }
+
+sub _dump_stack
+  { my( $stack)= @_;
+    return join( ":", map { $_->{_tag} } @$stack);
   }
     
 sub ignore
-  { my $t= shift;
+  { my( $t, $elt)= @_;
     my $current= $t->{twig_current};
-    my $elt= ( $_[0] && isa( $_[0], 'XML::Twig::Elt')) ? shift() : $current;
+
+    if( ! ($elt && isa( $elt, 'XML::Twig::Elt'))) { $elt= $current; }
+
+    #warn "ignore:  current = ", $current->tag, ", elt = ", $elt->tag, ")\n";
 
     # we need the ($elt == $current->_last_child) test because the current element is set to the
     # parent _before_ handlers are called (and I can't figure out how to fix this)
     unless( ($elt == $current) || ($current->_last_child && ($elt == $current->_last_child)) || $current->in( $elt)) 
       { croak "element to be ignored must be ancestor of current element"; }
 
-    $t->{twig_ignore_level}= $current->level - $elt->level + 1;
+    $t->{twig_ignore_level}= $current == $elt ? 1 : $t->_level_in_stack( $current) - $t->_level_in_stack($elt) + 1;
+    #warn "twig_ignore_level:  $t->{twig_ignore_level} (current: ", $current->tag, ", elt: ", $elt->tag, ")\n";
     $t->{twig_ignore_elt}  = $elt;     # save it, so we can delete it later
 
     my $action= shift || 1; 
@@ -3355,6 +3370,17 @@ sub ignore
 
     $t->{twig_saved_handlers}= \@saved_handlers;        # save current handlers
   }
+
+sub _level_in_stack
+  { my( $t, $elt)= @_;
+    my $level=1;
+    foreach my $elt_in_stack ( @{$t->{_twig_context_stack}} )
+      { if( $elt_in_stack->{_elt} && ($elt == $elt_in_stack->{_elt})) { return $level }
+        $level++;
+      }
+  }
+
+
 
 # select $t->{twig_output_fh} and store the current selected fh 
 sub _set_fh_to_twig_output_fh
@@ -3950,6 +3976,8 @@ BEGIN
     *isComment          = *is_comment;
     *isCommentNode      = *is_comment;
     *getTarget          = *target;
+    *getFirstChild      = *_first_child;
+    *getLastChild      = *_last_child;
 
     # try using weak references
     # test whether we can use weak references

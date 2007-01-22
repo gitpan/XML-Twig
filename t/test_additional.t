@@ -26,7 +26,7 @@ BEGIN
       { $open= eval( 'sub { open( $_[0], $_[1], $_[2]) }'); }
   }
 
-my $TMAX=647; 
+my $TMAX=663; 
 
 print "1..$TMAX\n";
 
@@ -1587,6 +1587,49 @@ $t= XML::Twig->new(    force_end_tag_handlers_usage => 1,
                 ->parse( '<doc><p>text <x>text <n/> </x> more <x/> text</p><n/></doc>');
 is( $out, 'sesen', 'end_tag_handlers with ignore and force_end_tag_handlers_usage');# test 398
 
+}
+
+{ my @doc=( "<root><l1><lignore><l2/></lignore><foo/></l1><foo/></root>",
+            "<root><l1><l2><lignore><l3/></lignore><foo/></l2></l1><foo/></root>",
+            "<root><l1><l2><lignore><l3/></lignore></l2></l1><foo/></root>",
+            "<root><l1><l2><lignore><l3/></lignore></l2><foo/></l1><foo/></root>",
+          );
+
+my( @r1, @r2, @r3, @r4);
+my $t1= XML::Twig->new( ignore_elts   => { lignore => 1 },
+                        twig_handlers => { root    => sub { push @r1, $_->tag; },
+	                                       l1      => sub { push @r1, $_->tag; },
+	                                     }
+                     );
+my $t2= XML::Twig->new( twig_handlers => { root    => sub { push @r2, $_->tag; },
+                                           lignore => sub { $_->parent( 'l1')->ignore; },
+	                                     },
+                     );
+my $t3= XML::Twig->new( 
+                        twig_handlers => { root    => sub { push @r3, $_->tag; },
+                                           lignore => sub { $_->parent( 'l1')->ignore; },
+	                                     },
+	                    end_tag_handlers => { l1   => sub { push @r3, $_[1]; }, },
+                        force_end_tag_handlers_usage => 1
+                     );
+my $t4= XML::Twig->new( twig_roots => { l1    => sub { push @r4, 'l1 from roots handler'; },
+                                        lignore => sub { $_->parent( 'l1')->ignore; },
+	                                  },
+	                    end_tag_handlers => { 'root/l1'   => sub { push @r4, 'l1 from end_tag_handler'; }, },
+                     );
+my $i=0;
+foreach my $doc (@doc)
+  { @r1=(); @r2=(); @r3=(); @r4=();
+    $i++;
+    $t1->parse( $doc);
+    is( join( ':', @r1), "l1:root", "ignore_elt with twig_handlers $i (checking that stack is properly resized)");
+    $t2->parse( $doc);
+    is( join( ':', @r2), "root", "ignore_elt on ancestor with twig_handlers $i (checking that stack is properly resized)");
+    $t3->parse( $doc);
+    is( join( ':', @r3), "l1:root", "ignore_elt on ancestor with twig_handlers and end_tag_handlers $i (checking that stack is properly resized)");
+    $t4->parse( $doc);
+    is( join( ':', @r4), "l1 from end_tag_handler", "ignore_elt on ancestor with twig_roots and end_tag_handlers $i (checking that stack is properly resized)");
+  }
 }
 
 
