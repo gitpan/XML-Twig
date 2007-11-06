@@ -47,14 +47,16 @@ is( $t->sprint, '<doc><elt>text</elt></doc>', "parseurl");
 {
 warn "\n\n### warning is normal here ###\n\n";
 my $t=0;
-if ($^O ne 'VMS') {
-    # On VMS we get '%SYSTEM-F-ABORT, abort' and an exit when a file does not exist
+if ($^O ne 'VMS')
+  { # On VMS we get '%SYSTEM-F-ABORT, abort' and an exit when a file does not exist
     # Behaviour is probably different on VMS due to it not having 'fork' to do the
     # LWP::UserAgent request and (safe) parse of that request not happening in a child process.
     $t = XML::Twig->new->safe_parseurl( 'file:test_with_lwp_no_file.xml');
-}
-ok( !$t, "no file");
-matches( $@, '^\s*no element found', "no file, error message");
+    ok( !$t, "no file");
+    matches( $@, '^\s*no element found', "no file, error message");
+  }
+else
+  { skip( 2 => "running on VMS, cannot test error message for non-existing file"); }
 }
 
 {
@@ -87,13 +89,3 @@ matches( $@, '^\s*mismatched tag', "not well-formed, error message");
 
 exit 0;
 
-{
-my $warning_handler;
-sub warnings_off
-  { $warning_handler= $SIG{__WARN__};
-    $SIG{__WARN__} = sub { };
-  }
-sub warnings_on
-  { $SIG{__WARN__}= $warning_handler if( $warning_handler);
-  }
-}

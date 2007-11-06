@@ -129,10 +129,11 @@ else
   $root->att2( 'bar');
   is( $root->att2, "bar", 'get non-existent att');
   is( $t->sprint, '<doc att1="4" att2="bar" att3="foo"/>', 'final output');
-  eval { $t->create_accessors( 'name'); };
-  matches( $@, q{^attempt to redefine existing method name using create_accessors }, 'duplicate accessor');
-  eval { $t->create_accessors( 'att2'); };
-  matches( $@, q{^attempt to redefine existing method att2 using create_accessors }, 'duplicate accessor');
+  eval { $t->create_accessors( 'tag'); };
+  matches( $@, q{^attempt to redefine existing method tag using create_accessors }, 'duplicate accessor');
+  $@='';
+  eval { XML::Twig->create_accessors( 'att2'); };
+  is( $@, '', 'redefining existing accessor');
 }
   
 { # test embedded comments/pis

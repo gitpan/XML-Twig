@@ -1,6 +1,6 @@
-#!/bin/perl
+#!/usr/bin/perl
 
-# $Id: /xmltwig/trunk/t/zz_dump_config.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/zz_dump_config.t 23 2007-06-21T08:52:17.136221Z mrodrigu  $
 
 my $ok; # global, true if the last call to version found the module, false otherwise
 use Config;
@@ -81,7 +81,7 @@ warn version( IO::Scalar, 'for testing purposes');
 my $zz_dump_config= File::Spec->catfile( t => "zz_dump_config.t");
 warn "\n\nPlease add this information to bug reports (you can run $zz_dump_config to get it)\n\n";
 warn "if you are upgrading the module from a previous version, make sure you read the\n",
-     "Changes file for bug fixes, new features and the ocasional COMPATIBILITY WARNING\n\n";
+     "Changes file for bug fixes, new features and the occasional COMPATIBILITY WARNING\n\n";
 
 print "1..1\nok 1\n";
 exit 0;

@@ -1,4 +1,4 @@
-# $Id: /xmltwig/trunk/t/pod_coverage.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/pod_coverage.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 eval "use Test::Pod::Coverage 1.00 tests => 1";
 if( $@)

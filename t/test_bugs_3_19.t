@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: /xmltwig/trunk/t/test_bugs_3_19.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_bugs_3_19.t 25 2007-07-17T15:29:09.659907Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -77,14 +77,14 @@ else
   my $t= XML::Twig->new->parse( $doc);
   my $dump= q{document
 |-doc
-| |- (not a node) '<!-- comment -->
 | |-elt att="xyz"
+| |-- (cpi before) '<!-- comment -->'
 | | |-PCDATA:  'foo'
 | |-elt
 | | |-PCDATA:  'bar'
 | | |-CDATA:   'baz'
-| |- (not a node) '<?t pi?>
 | |-elt2
+| |-- (cpi before) '<?t pi?>'
 | | |-PCDATA:  'toto'
 | | |-b
 | | | |-PCDATA:  'tata'
@@ -96,7 +96,7 @@ else
 
   is( $t->_dump( { extra => 1 }), $dump, "_dump with extra on");
 
-  (my $no_extra= $dump)=~ s{^.*not a node.*\n}{}gm;
+  (my $no_extra= $dump)=~ s{^.*cpi before.*\n}{}gm;
   is( $t->_dump( ), $no_extra, "_dump without extra");
 
   (my $no_att= $no_extra)=~ s{ att=.*}{}g;

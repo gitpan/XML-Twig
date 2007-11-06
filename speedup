@@ -1,15 +1,13 @@
 #!/bin/perl 
 
-# $Id: /xmltwig/trunk/speedup 3 2006-08-16T15:53:26.215012Z mrodrigu  $
-
-use XML::Parser;
+# $Id: /xmltwig/trunk/speedup 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 
 $FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|ent|data|target|cdata|pcdata|comment|flushed";
 $FIELD2="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|comment"; # _set_$field is inlined
 $SET_FIELD="first_child|next_sibling|ent|data|target|comment|flushed";
 # depending on the version of perl use either qr or ""
-print STDERR "perl version is $] XML::Parser version is $XML::Parser::VERSION\n";
+print STDERR "perl version is $]\n";
 
 my $var= '(\$[a-z_]+(?:\[\d\])?)';
 

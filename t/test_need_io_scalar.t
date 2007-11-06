@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: /xmltwig/trunk/t/test_need_io_scalar.t 21 2006-09-12T17:31:19.157455Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_need_io_scalar.t 6 2007-03-22T21:35:57.338766Z mrodrigu  $
 
 # tests that require IO::Scalar to run
 use strict;
@@ -46,7 +46,7 @@ print "1..1772\n";
   my $fh= new IO::Scalar \$out;  
   my $doc= "<doc><elt/></doc>";
   my $t= XML::Twig->nparse( twig_handlers => { elt => sub { $_->flush( $fh, empty_tags => "expand") } }, $doc);
-  is( $out, "<doc><elt></elt></doc>", "autoflush, no args");
+  is( $out, "<doc><elt></elt></doc>", "autoflush, no args, expand empty tags");
 }
 
 { # test bug on comments after the root element RT #17064

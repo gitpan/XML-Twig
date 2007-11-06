@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl -w
-# $Id: /xmltwig/trunk/tools/xml_grep/xml_grep 3 2006-08-16T15:53:26.215012Z mrodrigu  $
+# $Id: /xmltwig/trunk/tools/xml_grep/xml_grep 27 2007-08-30T08:07:25.079327Z mrodrigu  $
 use strict;
 
 use Getopt::Long;
@@ -10,7 +10,9 @@ my $VERSION="0.7";
 
 # options (all used globally in the script)
 my( $help, $man, @roots, @paths, $files, $count, $nb_results, $encoding, @exclude,
-    $wrap, $nowrap, $descr, $group, $pretty_print, $version, $text_only, $date);
+    $wrap, $nowrap, $descr, $group, $pretty_print, $version, $text_only, $date, 
+    $html, $verbose, $strict
+  );
 
 # used to check if the wrapping tags need to be output
 my $results      = 0;
@@ -38,13 +40,16 @@ GetOptions( 'help'            => \$help,
             'pretty_print:s'  => \$pretty_print,
             'text_only'       => \$text_only,
             'date!'           => \$date,
+            'strict'          => \$strict,
+            'html'            => \$html,
+            'verbose'         => \$verbose,
     ) or pod2usage(2);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 if( $version) { warn "$0 version $VERSION\n"; exit; }
 
-
+binmode STDOUT, ':utf8';
 
 # case where options are given, but no root or path, assume the
 # first arg is a path
@@ -114,7 +119,12 @@ my $t= create_twig( %options);
 if( @ARGV)
   { foreach my $file (@ARGV)
       { $current_file= $file;
-        my $ok= ($current_file=~ m{^(http|ftp|file)://}) ? $t->safe_parseurl( $file) : $t->safe_parsefile( $file);
+        if( $verbose) { warn "parsing '$file'\n"; }
+        my $ok= $html && ($current_file=~ m{^(http|ftp|file)://}) ? $t->safe_parseurl_html( $file) 
+              : ($current_file=~ m{^(http|ftp|file)://})          ? $t->safe_parseurl( $file) 
+              : $html                                             ? $t->safe_parsefile_html( $file)
+              :                                                     $t->safe_parsefile( $file);
+
         if( !$ok)
           { if( $@ =~ m{XMLGREP: FOUND}) 
               { # in files mode
@@ -129,26 +139,29 @@ if( @ARGV)
               }
             else
               { $@ ||= 'unknown cause';
-                die $@; 
+                if( $strict) { die $@; } 
+                warn $@;
+                if( !$count) { print "<!-- error parsing file '$file' -->\n"; }
               }
           }
-        else
-         { if( $count)    
-             { print "$current_file: $count_file\n";
-               $count_total += $count_file;
-               $count_file=0;
-             }
-           elsif( @roots) { print file_result_end() if( $file_results); }
-           elsif( $count) { print "$count_total matches\n"; }
-         }
+
+        if( $count)    
+          { print "$current_file: $count_file\n";
+            $count_total += $count_file;
+            $count_file=0;
+          }
+        elsif( @roots) { print file_result_end() if( $file_results); }
+        elsif( $count) { print "$count_total matches\n"; }
       }
+
     if( $count) { print "total: $count_total\n"; }
     print result_end() if( $results);
   }
 else
   { $file_results=0;
     my $ok= $t->safe_parse( \*STDIN);
-    die $@ if( !$ok and ( $@ !~ m{^XMLGREP: NB_RESULT_REACHED}));
+    if( !$ok and ( $@ !~ m{^XMLGREP: NB_RESULT_REACHED}))
+      { if( !$strict) { warn $@; } else { die $@; } }
     if( $count) { print "$count_total matches\n"; }
     else        { print result_end();             }
   }
@@ -336,6 +349,11 @@ return only the number of matches in each file
 usage of this option precludes using any of the options that define the XML output:
 C<--roots>, C<--encoding>, C<--wrap>, C<--group_by_file> or C<--pretty_print>
 
+=item B<--strict>
+
+without this option parsing errors are reported to STDOUT and the file skipped
+
+
 =item B<--date>
 
 when on (by default) the wrapping element get a C<date> attribute that gives
@@ -366,7 +384,7 @@ same as using C<--wrap ''>: the xml result is not wrapped.
 
 attributes of the wrap tag (defaults to C<< version="<VERSION>" date="<date>" >>)
 
-=item B<--file_wrap> <optional_tag>
+=item B<--group_by_file> <optional_tag>
 
 wrap results for each files into a separate element. By default that element 
 is named C<file>. It has an attribute named C<filename> that gives the name of the 

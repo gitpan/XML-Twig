@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: /xmltwig/trunk/t/test_even_more_coverage.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_even_more_coverage.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 # test designed to improve coverage of the module
 

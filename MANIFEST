@@ -114,9 +114,11 @@ t/tests_3_23.t
 t/test_3_24.t
 t/test_3_26.t
 t/test_3_27.t
+t/test_3_30.t
 t/test_memory.t
 t/test_wrapped.t
 t/test_xml_split.t
+t/test_xml_split_g.t
 t/test_xml_split.xml
 t/test_xml_split_entities.xml
 t/test_xml_split/test_xml_split_expected-1-00.xml
@@ -165,6 +167,7 @@ t/test_xml_split/test_xml_split_expected-7-02.xml
 t/test_xml_split/test_xml_split_expected-8-00.xml
 t/test_xml_split/test_xml_split_expected-8-01.xml
 t/test_xml_split/test_xml_split_expected-8-02.xml
+t/test_autoencoding_conversion.t
 t/tools.pm
 t/zz_dump_config.t
 META.yml                                Module meta-data (added by MakeMaker)

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: /xmltwig/trunk/tools/xml_merge/xml_merge 3 2006-08-16T15:53:26.215012Z mrodrigu  $
+# $Id: /xmltwig/trunk/tools/xml_merge/xml_merge 12 2007-04-22T06:04:54.627880Z mrodrigu  $
 use strict;
 
 use XML::Twig;
@@ -67,7 +67,9 @@ sub spit
     if( $opt->{v} && $opt->{file}) { warn "merging $opt->{file} (no parsing)\n"; }
     open( my $in, '<', $opt->{file}) or die "cannot open sub document '$opt->{file}': $!";
     while( <$in>)
-      { if( $opt->{o}) { print {$opt->{fh}} $_; } else { print $_; } }
+      { next if( m{^\Q<?xml version} || m{^</?xml_split:root\b});
+        if( $opt->{o}) { print {$opt->{fh}} $_; } else { print $_; } 
+      }
     close $in;
   }
 

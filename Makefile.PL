@@ -1,4 +1,4 @@
-# $Id: /xmltwig/trunk/Makefile.PL 25 2006-10-20T09:00:05.351266Z mrodrigu  $
+# $Id: /xmltwig/trunk/Makefile.PL 15 2007-05-28T12:15:34.346294Z mrodrigu  $
 # tool installation part shamelessly lifted from YAML's Makefile.PL
 
 use ExtUtils::MakeMaker;
@@ -20,7 +20,9 @@ elsif( $ARGV[0] eq "-y")
 elsif( $ARGV[0] eq "-d")
   { @programs= map { $_->[0] if( $_->[1] eq 'y') } @prompts; }
 else
-  { foreach my $prompt (@prompts)
+  { print "run 'perl Makefile.PL -y' to install all tools,\n",
+          "    'perl Makefile.PL -n' to skip installation\n";
+    foreach my $prompt (@prompts)
       { my ($program, $default, $description) = @$prompt;
         if( prompt("Do you want to install '$program' ($description)?", $default) =~ /^y/)
           { push(@programs, $program); }

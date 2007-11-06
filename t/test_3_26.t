@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: /xmltwig/trunk/t/test_3_26.t 8 2006-08-21T13:40:39.468774Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_3_26.t 20 2007-06-06T14:03:20.149289Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -51,6 +51,7 @@ print "1..$TMAX\n";
       $t->first_elt( 'head')->set_inner_html( $inner);
       $inner=~ s{>$}{/>};
       $expected=~ s{<head>.*</head>}{<head>$inner</head>};
+      $expected=~ s{(<meta[^>]*)(/>)}{$1 $2}g;
       is( $t->sprint, $expected, "set_inner_html (in head)");
 
       $inner= q{<p>just a p</p>};
@@ -61,6 +62,7 @@ print "1..$TMAX\n";
       $inner= q{the content of the <br/> body};
       $t->first_elt( 'body')->set_inner_html( $inner);
       $expected= qq{$DECL<html><head></head><body>$inner</body></html>};
+      $expected=~ s{<br/>}{<br />}g;
       is( $t->sprint, $expected, "set_inner_html (body)");
     }
   

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w 
-# $Id: /xmltwig/trunk/t/test_bugs_3_18.t 18 2006-09-12T11:15:56.089521Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_bugs_3_18.t 14 2007-05-16T08:23:32.675787Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -53,9 +53,9 @@ my %cdata=( "01- 1023 chars" => 'x' x 1022 . 'a',
                                                        # but if you do with a higher number, let me know!
             );
 
-if( ($] == 5.008) || ($] < 5.006) )
-  { skip( scalar keys %cdata,   "KNOWN BUG in 5.8.0 and 5.005 with keep_encoding and long (>1024 char) CDATA, "
-                              . "see http://rt.cpan.org/Ticket/Display.html?id=14008"
+if( ($] == 5.008) || ($] < 5.006) || ($XML::Parser::VERSION <= 2.27) )
+  { skip( scalar keys %cdata,   "KNOWN BUG in 5.8.0 and 5.005 or with XML::Parser 2.27 with keep_encoding and long (>1024 char) CDATA, "
+                              . "see RT #14008 at http://rt.cpan.org/Ticket/Display.html?id=14008"
         );
   }
 elsif( perl_io_layer_used())
@@ -567,7 +567,7 @@ sub fid { my $elt= $_[0]->elt_id( $_[1]) or return "unknown";
 
 { # test _keep_encoding even with perl > 5.8.0
   if( $] < 5.008)
-    { skip( 2 => "need perl 5.8.0 to test utf8 flag mongering"); }
+    { skip( 2 => "testing utf8 flag mongering only needed in perl 5.8.0"); }
   else
     { require Encode; import Encode;
       my $s="a";

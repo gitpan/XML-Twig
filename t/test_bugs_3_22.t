@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: /xmltwig/trunk/t/test_bugs_3_22.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_bugs_3_22.t 25 2007-07-17T15:29:09.659907Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -94,7 +94,7 @@ print "1..$TMAX\n";
 }
 
 { is( XML::Twig->nparse( comments => "process", pi => "process", "<doc><!-- c --><?t data?><?t?></doc>")->_dump,
-     "document\n|-doc\n| |-COMMENT: '<!-- c -->'\n| |-PI: 't' - 'data'\n| |-PI: 't' - ''\n",
+     "document\n|-doc\n| |-COMMENT: '<!-- c -->'\n| |-PI:      't' - 'data'\n| |-PI:      't' - ''\n",
      "_dump PI/comment"
     );
 }
@@ -200,7 +200,7 @@ print "1..$TMAX\n";
 { # test parsing of an html string
   if( XML::Twig::_use( 'HTML::TreeBuilder',  3.13))
     { 
-      ok( XML::Twig->nparse( '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+      ok( XML::Twig->nparse_e( '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
     <html>
      <head>
       <link rel="stylesheet" href="/s/style.css" type="text/css">

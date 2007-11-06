@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: test_3_26.t,v 1.5 2006/05/26 08:07:15 mrodrigu Exp $
+# $Id: /xmltwig/trunk/t/test_3_27.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -228,22 +228,33 @@ print "1..$TMAX\n";
 }
 
 if( _use( 'HTML::TreeBuilder') )
-  {
-    { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p>\</body></html>};
+  { { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p>\</body></html>};
       eval { XML::Twig->nparse( $doc); };
-      matches( $@, qr{^\s*not well-formed}s, "error in html (normal mode)");
+      if( $HTML::TreeBuilder::VERSION <= 3.23)
+        { matches( $@, qr{^\s*not well-formed}s, "error in html (normal mode)"); } 
+      else
+        { nok( $@, "html with wrong attribute (normal mode)"); }
       eval { XML::Twig->nparse_e( $doc); };
-      matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode)");
+      if( $HTML::TreeBuilder::VERSION <= 3.23)
+        { matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode)"); } 
+      else
+        { nok( $@, "html with wrong attribute (nparse_e mode)"); }
     }
     
     { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a">dummy</p></body></html>};
       eval { XML::Twig->nparse_e( $doc); };
-      matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode)");
+      if( $HTML::TreeBuilder::VERSION <= 3.23)
+        { matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode 2)"); }
+      else
+        { nok( $@, "html with wrong attribute (nparse_e mode 2)"); }
     }
     
     { my $doc=qq{<html><head></head><body><![CDATA[  <foo> bar </foo>  ]]>\n\n<p 1="a">dummy</p></body>\n</html>};
       eval { XML::Twig->nparse_e( $doc); };
-      matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode)");
+      if( $HTML::TreeBuilder::VERSION <= 3.23)
+        { matches( $@, qr{^\s*not well-formed}s, "error in html (nparse_e mode 3)"); }
+      else
+        { nok( $@, "html with wrong attribute (nparse_e mode 3)"); }
     }
   }
 else

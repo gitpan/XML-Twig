@@ -1,4 +1,4 @@
-# $Id: /xmltwig/trunk/Twig/XPath.pm 18 2006-09-12T11:15:56.089521Z mrodrigu  $
+# $Id: /xmltwig/trunk/Twig/XPath.pm 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 package XML::Twig::XPath;
 use strict;
 use XML::Twig;

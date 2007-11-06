@@ -1,4 +1,4 @@
-# $Id: /xmltwig/trunk/t/xmlxpath_25scope.t 3 2006-08-16T15:53:26.215012Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/xmlxpath_25scope.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
 use strict;
 

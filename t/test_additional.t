@@ -1,6 +1,6 @@
 #!/bin/perl -w
 
-# $Id: /xmltwig/trunk/t/test_additional.t 18 2006-09-12T11:15:56.089521Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_additional.t 25 2007-07-17T15:29:09.659907Z mrodrigu  $
 
 # test designed to improve coverage of the module
 
@@ -723,7 +723,7 @@ is( $ent3->sysid, "ent3.png", "entity sysid");# test 251
 nok( $ent3->pubid, "entity pubid (none)");# test 252
 is( $ent3->ndata, "PNG", "entity ndata");# test 253
 
-my $doctype= qq{<!DOCTYPE doc SYSTEM "dummy.dtd" [\n<!ENTITY ent1 "toto">\n<!ENTITY ent2 "<p>tata</p>">\n<!ENTITY ent3 SYSTEM "ent3.png" NDATA PNG> \n]>};
+my $doctype= qq{<!DOCTYPE doc SYSTEM "dummy.dtd" [\n<!ENTITY ent1 "toto">\n<!ENTITY ent2 "<p>tata</p>">\n<!ENTITY ent3 SYSTEM "ent3.png" NDATA PNG>\n]>\n};
 is( $t->doctype, $doctype, "doctype");# test 254
 
 my $ent4= $t->entity_list->add_new_ent( ent4 =>  "ent 4")->ent( 'ent4');
@@ -751,7 +751,6 @@ $t->entity_list->delete( 'ent3');
 is( join( ':', sort $t->entity_names), "ent1:ent2:ent4:ent5", "entity_names");# test 260
 $t->entity_list->delete( ($t->entity_list->list)[0]);
 is( join( ':', sort $t->entity_names), "ent2:ent4:ent5", "entity_names");# test 261
-
 }
 
 {
@@ -815,8 +814,8 @@ my $elt= $t->root->first_child;
 my $bold= $elt->first_child( 'b');
 $bold->erase;
 is( $t->sprint, "<doc><elt>text bold text more text and text </elt><elt> even more text</elt></doc>", "erase");# test 282
-$elt->first_child->merge_text( $elt->child( 1));
-is( $elt->first_child_text, "text bold text", "merge_text");# test 283
+$elt->merge( $elt->next_sibling);
+is( $elt->first_child_text, "text bold text more text and text  even more text", "merge_text");# test 283
 }
 
 # more tests on subs_text
@@ -1020,7 +1019,7 @@ is( $t->sprint, '<doc><elt1/><elt3><elt4/></elt3></doc>', "setIgnoreEltsHandler"
   is( $t->sprint, qq{<!DOCTYPE doc SYSTEM "doc.dtd">\n<doc/>}, "set_doctype");# test 316
   $t->set_doctype( doc => "doc.dtd", "-//public id/");
   is( $t->sprint, qq{<!DOCTYPE doc PUBLIC "-//public id/" "doc.dtd">\n<doc/>}, "set_doctype");# test 317
-  $t->set_doctype( doc => "doc.dtd", undef, qq{[<!ENTITY toto "foo">]});
+  $t->set_doctype( doc => "doc.dtd", '', qq{[<!ENTITY toto "foo">]});
   is( $t->sprint, qq{<!DOCTYPE doc SYSTEM "doc.dtd" [\n<!ENTITY toto "foo">\n]>\n<doc/>}, "set_doctype");# test 318
 #set_doctype ($name, $system, $public, $internal)
 }
