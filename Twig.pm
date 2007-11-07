@@ -94,7 +94,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.30';
+$VERSION = '3.31';
 
 use XML::Parser;
 my $needVersion = '2.23';

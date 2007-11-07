@@ -44,7 +44,7 @@ else
 
 if( $XML::Parser::VERSION > 2.27)
   { my $test_dir= "ent_test";
-    mkdir $test_dir or die "cannot create $test_dir: $!" unless( -d $test_dir);
+    mkdir( $test_dir, 0777) or die "cannot create $test_dir: $!" unless( -d $test_dir);
     my $xml_file_base = "test.xml"; 
     my $xml_file= File::Spec->catfile( $test_dir => $xml_file_base);
     my $ent_file_base  = "ent.xml"; 
@@ -221,7 +221,7 @@ else
   matches( $@, qr{zzent},       "missing SYSTEM entity: entity info in the error message ($@)");
 }
 
-{ if( _use( 'HTML::TreeBuilder'), 3.13)
+{ if( _use( 'HTML::TreeBuilder', 3.13))
     { XML::Twig->set_pretty_print( 'none');
 
       my $html=q{<html><body><h1>Title</h1><p>foo<br>bar</p>};
@@ -306,6 +306,7 @@ else
 }
 
 { my $doc=q{<d><e>e</e><e1>e1</e1><e1>e1-2</e1></d>};
+  XML::Twig::Elt->init_global_state(); # depending on which modules are available, the state could have been modified
   my $tmp= "tmp";
   open( TMP, ">$tmp") or die "cannot create temp file";
   XML::Twig->parse( twig_roots => { e1 => sub { $_->flush( \*TMP) } }, twig_print_outside_roots => \*TMP, $doc);
