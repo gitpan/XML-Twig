@@ -1,6 +1,21 @@
-$Id: /xmltwig/trunk/Changes 27 2007-08-30T08:07:25.079327Z mrodrigu  $
+$Id: /xmltwig/trunk/Changes 30 2007-11-13T18:10:03.393214Z mrodrigu  $
 
 CHANGES
+
+version: 3.32
+date: $Date: 2007-11-13T18:10:03.393214Z $
+# minor maintenance release with a bug fix
+fix:  change to the regexp that parses XPath-like conditions so
+      it can accept leading non-ascii letters ([^\W\d] does not 
+      work), not used in perl 5.005
+fix:  set use utf8 (except in 5.005), which gets rid of the dreaded
+      "SWASHNEW" error in 5.6. fixed things that then broke in 5.6.
+      
+
+version: 3.31
+# minor maintenance release, fixing some tests
+tests: fixes to stop tests from failing in various configurations
+    
 
 Changes in 3.30
 
@@ -8,6 +23,9 @@ Changes in 3.30
       fixed a couple of bugs in namespace handling, spotted by
       Shlomo Yonas (see https://rt.cpan.org/Ticket/Display.html?id=27617
       and http://www.perlmonks.org/?node_id=624830)
+
+      added the XML::Twig::Elt fields method which returns a list of
+      fields 
 
       added the normalize method in XML::Twig and XML::Twig::Elt,
       which merge together consecutive pcdata elements. As much as 

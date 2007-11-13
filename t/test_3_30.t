@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-# $Id: /xmltwig/trunk/t/test_3_30.t 27 2007-08-30T08:07:25.079327Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_3_30.t 28 2007-11-12T14:33:13.251322Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -59,7 +59,7 @@ if( $XML::Parser::VERSION > 2.27)
     is( XML::Twig->parse( pretty_print => 'none', $xml_file)->root->sprint, $expected, 'entity resolving when file is in a subdir');
     unlink $xml_file or die "cannot remove $xml_file: $!";
     unlink $ent_file or die "cannot remove $ent_file: $!";
-    rmdir  $test_dir      or die "cannot remove $test_dir: $!";
+    rmdir  $test_dir or die "cannot remove $test_dir: $!";
   }
 else
   { skip( 1 => "known bug with old XML::Parser versions: base uri not taken into account,\n"
@@ -255,11 +255,15 @@ else
   is( $dump, q{name => 'foo' - val => 'bar'}, "entity dump");
 }
 
-{ my $t= XML::Twig->parse( q{<!DOCTYPE d [ <!ENTITY afoo "bar"> <!ENTITY % bfoo "baz">]><d>&afoo;</d>});
-  my $non_param_ent= $t->entity( 'afoo');
-  nok( $non_param_ent->param, 'param on a non-param entity');
-  my $param_ent= $t->entity( 'bfoo');
-  ok( $param_ent->param, 'param on a parameter entity');
+{ if( $XML::Parser::VERSION > 2.27)
+    { my $t= XML::Twig->parse( q{<!DOCTYPE d [ <!ENTITY afoo "bar"> <!ENTITY % bfoo "baz">]><d>&afoo;</d>});
+      my $non_param_ent= $t->entity( 'afoo');
+      nok( $non_param_ent->param, 'param on a non-param entity');
+      my $param_ent= $t->entity( 'bfoo');
+      ok( $param_ent->param, 'param on a parameter entity');
+    }
+  else
+    { skip( 2, "cannot use the param method with XML::Parser 2.27"); }
 }
 
 { my $entity_file  = "test_3_30.t.ent";

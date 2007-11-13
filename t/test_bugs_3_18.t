@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w 
-# $Id: /xmltwig/trunk/t/test_bugs_3_18.t 14 2007-05-16T08:23:32.675787Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_bugs_3_18.t 30 2007-11-13T18:10:03.393214Z mrodrigu  $
 
 use strict;
 use Carp;
@@ -84,7 +84,12 @@ else
    is( $t->sprint, $expected, "subs_text on string with \n");
    $expected=~ s{ }{&nbsp;}g;
    $t->subs_text( qr{ }, q{&ent( "&nbsp;")} );
-   is( $t->sprint, $expected, "subs_text on string with \n");
+   if( 0 && $] =~ m{^5.006})
+     { skip( 1, "known bug in perl 5.6.*: subs_text with an entity matches line returns\n"
+              . "  this bug is under investigation\n");
+     }
+   else   
+     { is( $t->sprint, $expected, "subs_text on string with \n"); }
 }
 
 # testing ID processing

@@ -53,7 +53,7 @@ if ($^O ne 'VMS')
     # LWP::UserAgent request and (safe) parse of that request not happening in a child process.
     $t = XML::Twig->new->safe_parseurl( 'file:test_with_lwp_no_file.xml');
     ok( !$t, "no file");
-    matches( $@, '^\s*no element found', "no file, error message");
+    matches( $@, '^\s*(no element found|Ran out of memory for input buffer)', "no file, error message");
   }
 else
   { skip( 2 => "running on VMS, cannot test error message for non-existing file"); }

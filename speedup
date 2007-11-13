@@ -1,6 +1,6 @@
 #!/bin/perl 
 
-# $Id: /xmltwig/trunk/speedup 4 2007-03-16T12:16:25.259192Z mrodrigu  $
+# $Id: /xmltwig/trunk/speedup 31 2007-11-13T19:55:41.920709Z mrodrigu  $
 
 
 $FIELD="parent|first_child|last_child|prev_sibling|next_sibling|pcdata|cdata|ent|data|target|cdata|pcdata|comment|flushed";
@@ -14,7 +14,8 @@ my $var= '(\$[a-z_]+(?:\[\d\])?)';
 while( <>)
   {
     if( $] <= 5.005) { s{qr/(.*?)/}{"$1"} };
-    if( $] < 5.006)  { if( m{# > 5.006}) { next; } }
+    if( $] < 5.006)       { if( m{# > perl 5.5}) { next; } }
+    if( $] !~ m{^5.006})  { if( m{# = perl 5.6}) { next; } }
     
     if( $] < 5.006)  { s{^(\s*)no warnings;}    {$1# no warnings;}; }
     else             { s{^(\s*)# no warnings; } {$1no warnings;};   }

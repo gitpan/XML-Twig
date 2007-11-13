@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict; 
 
-# $Id: /xmltwig/trunk/t/test_safe_encode.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
+# $Id: /xmltwig/trunk/t/test_safe_encode.t 31 2007-11-13T19:55:41.920709Z mrodrigu  $
 
 use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");
@@ -13,8 +13,10 @@ my $DEBUG=0;
 
 print "1..8\n";
 
+if( $] >= 5.006) { eval "use utf8;"; } 
+
 # suitable for perl 5.6.*
-my $doc='<doc><élément att="été">été</élément></doc>';
+my $doc=q{<doc><élément att="été">été</élément></doc>};
 (my $safe_xml_doc= $doc)=~ s{é}{&#233;}g;
 (my $safe_hex_doc= $doc)=~ s{é}{&#xe9;}g;
 (my $text_safe_xml_doc= $doc)=~ s{été}{&#233;t&233;}g;

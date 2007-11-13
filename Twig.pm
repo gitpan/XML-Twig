@@ -1,4 +1,4 @@
-# $Id: /xmltwig/trunk/Twig_pm.slow 27 2007-08-30T08:07:25.079327Z mrodrigu  $
+# $Id: /xmltwig/trunk/Twig_pm.slow 30 2007-11-13T18:10:03.393214Z mrodrigu  $
 #
 # Copyright (c) 1999-2004 Michel Rodriguez
 # All rights reserved.
@@ -20,7 +20,9 @@ package XML::Twig;
 ######################################################################
 
 require 5.004;
-use strict; 
+use strict;
+
+use utf8; # > perl 5.5
 
 use vars qw($VERSION @ISA %valid_option);
 use Carp;
@@ -58,8 +60,17 @@ my %base_ent;   # base entity character => replacement
 # flag, set to true if the weaken sub is available
 use vars qw( $weakrefs);
 
-my $REG_NAME       = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*)};     # xml name (leading # allowed)
-my $REG_NAME_W     = q{(?:(?:[^\W\d_]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # name or wildcard (* or '') (leading # allowed)
+
+
+# xml name (leading # allowed)
+# first line is for perl 5.005, second line for modern perl, that accept character classes
+my $REG_NAME       = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*)};     # does not work for leading non-ascii letters
+   $REG_NAME       = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
+
+# name or wildcard (* or '') (leading # allowed)
+my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
+   $REG_NAME_W     = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
+
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_REGEXP_EXP = q{(?:(?:[^\\/]|\\.)*)};                          # content of a regexp
 my $REG_REGEXP_MOD = q{(?:[eimso]*)};                                 # regexp modifiers
@@ -94,7 +105,7 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 BEGIN
 { 
-$VERSION = '3.31';
+$VERSION = '3.32';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -110,7 +121,7 @@ if( $] >= 5.008)
 # test whether we can use weak references
 # set local empty signal handler to trap error messages
 { local $SIG{__DIE__};
-  if( eval( 'require Scalar::Util') && defined( &Scalar::Util::weaken) ) 
+  if( eval( 'require Scalar::Util') && defined( \&Scalar::Util::weaken)) 
     { import Scalar::Util( 'weaken'); $weakrefs= 1; }
   elsif( eval( 'require WeakRef')) 
     { import WeakRef; $weakrefs= 1;                 }
@@ -447,7 +458,7 @@ sub new
       { $self->set_expand_external_entities( 0); }
 
     if( !$args{NoLWP} && ! _use( 'URI') && ! _use( 'URI::File') && ! _use( 'LWP'))
-      { $self->{twig_ext_ent_handler}= \&XML::Parser::lwp_ext_ent_handler }
+      { $self->{twig_ext_ent_handler}= \&XML::Parser::initial_ext_ent_handler }
     else
       { $self->{twig_ext_ent_handler}= \&XML::Parser::file_ext_ent_handler }
 
@@ -636,14 +647,14 @@ sub parse
     # if called as a class method, calls nparse, which creates the twig then parses it
     if( !ref( $t) || !isa( $t, 'XML::Twig')) { return $t->nparse( @_); }
 
-    # requires 5.006 at least (or the ${^UNICODE} causes a problem)                                       # > 5.006
-    # trap underlying bug in IO::Handle (see RT #17500)                                                   # > 5.006
-    # croak if perl 5.8+, -CD (or PERL_UNICODE set to D) and parsing a pipe                               # > 5.006
-    if( $]>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[0], 'GLOB') && -p $_[0] )               # > 5.006
-      { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"       # > 5.006
-              . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"  # > 5.006
-              . "not to include 'D'";                                                                     # > 5.006
-      }                                                                                                   # > 5.006
+    # requires 5.006 at least (or the ${^UNICODE} causes a problem)                                       # > perl 5.5
+    # trap underlying bug in IO::Handle (see RT #17500)                                                   # > perl 5.5
+    # croak if perl 5.8+, -CD (or PERL_UNICODE set to D) and parsing a pipe                               # > perl 5.5
+    if( $]>=5.008 && ${^UNICODE} && (${^UNICODE} & 24) && isa( $_[0], 'GLOB') && -p $_[0] )               # > perl 5.5
+      { croak   "cannot parse the output of a pipe when perl is set to use the UTF8 perlIO layer\n"       # > perl 5.5
+              . "set the environment variable PERL_UNICODE or use the -C option (see perldoc perlrun)\n"  # > perl 5.5
+              . "not to include 'D'";                                                                     # > perl 5.5
+      }                                                                                                   # > perl 5.5
     $t= eval { $t->SUPER::parse( @_); }; 
     return _checked_parse_result( $t, $@);
   }
@@ -2018,7 +2029,7 @@ sub _twig_char
           { $string= $p->original_string(); }
         else
           { 
-            use bytes; # > 5.006
+            use bytes; # > perl 5.5
             if( length( $string) < 1024)
               { $string= $p->original_string(); }
             else
@@ -3029,15 +3040,15 @@ sub create_accessors
       { _croak( "attempt to redefine existing method $att using create_accessors")
           if( $elt_class->can( $att) && !$accessor{$att});
 
-        if( !$accessor{$att})                                # > 5.006
-          { *{"$elt_class\::$att"}=                          # > 5.006
-                sub :lvalue                                  # > 5.006
-                  { my $elt= shift;                          # > 5.006
-                    if( @_) { $elt->{att}->{$att}= $_[0]; }  # > 5.006
-                    $elt->{att}->{$att};                     # > 5.006
-                  };                                         # > 5.006
-            $accessor{$att}=1;                               # > 5.006
-          }                                                  # > 5.006
+        if( !$accessor{$att})                                # > perl 5.5
+          { *{"$elt_class\::$att"}=                          # > perl 5.5
+                sub :lvalue                                  # > perl 5.5
+                  { my $elt= shift;                          # > perl 5.5
+                    if( @_) { $elt->{att}->{$att}= $_[0]; }  # > perl 5.5
+                    $elt->{att}->{$att};                     # > perl 5.5
+                  };                                         # > perl 5.5
+            $accessor{$att}=1;                               # > perl 5.5
+          }                                                  # > perl 5.5
       }
     return $twig_or_class;
   }
@@ -3898,7 +3909,8 @@ sub html_encode
 sub safe_encode
   {   my $str= shift;
       if( $] < 5.008)
-        { $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
+        { # the no utf8 makes the regexp work in 5.6
+          $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
                    {_XmlUtf8Decode($1)}egs; 
         }
       else
@@ -3909,7 +3921,8 @@ sub safe_encode
 sub safe_encode_hex
   {   my $str= shift;
       if( $] < 5.008)
-        { $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
+        { # the no utf8 makes the regexp work in 5.6
+          $str =~ s{([\xC0-\xDF].|[\xE0-\xEF]..|[\xF0-\xFF]...)}
                    {_XmlUtf8Decode($1, 1)}egs; 
         }
       else
@@ -6898,7 +6911,8 @@ sub mark
               $text_elt->set_text( $text);
            }
           else
-            { my $replace_sub= ( $replace_sub{$replace} ||= _install_replace_sub( $replace)); 
+            { 
+              my $replace_sub= ( $replace_sub{$replace} ||= _install_replace_sub( $replace)); 
               my $text= $text_elt->text;
               my $pos=0;  # used to skip text that was previously matched
               while( my( $pre_match_string, $match_string, @var)= ($text=~ m{(.*?)($regexp)}sg))
@@ -8664,6 +8678,8 @@ sub _dump
       { 
         if( (exists $elt->{'pcdata'}))
           { $dump .= "$indent|-PCDATA:  '"  . _short_text( $elt->{pcdata}, $short_text) . "'\n" }
+        elsif( (exists $elt->{'ent'}))
+          { $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->{ent}, $short_text) . "'\n" }
         elsif( (exists $elt->{'cdata'}))
           { $dump .= "$indent|-CDATA:   '" . _short_text( $elt->{cdata}, $short_text) . "'\n" }
         elsif( (exists $elt->{'comment'}))
