@@ -1,4 +1,4 @@
-# !/usr/bin/perl -w
+#!/usr/bin/perl -w
 use strict;
 
 # $Id: /xmltwig/trunk/t/test_new_features_3_22.t 23 2007-06-21T08:52:17.136221Z mrodrigu  $
@@ -23,7 +23,7 @@ print "1..20\n";
 
 { # testing parse_html
  
-  if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13) && XML::Twig::_use( 'LWP::Simple'))
+  if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13) && XML::Twig::_use( 'LWP::Simple') && XML::Twig::_use( 'LWP::UserAgent'))
     { my $html= q{<html><head><title>T</title><meta content="mv" name="mn"></head><body>t<br>t2<p>t3</body></html>};
       my $expected= HTML::TreeBuilder->new->parse( $html)->as_XML;
       $expected=~ s{></(meta|br)}{ /}g;
@@ -42,7 +42,7 @@ print "1..20\n";
       
     }
   else
-    { skip( 3 => 'need  HTML::TreeBuilder 3.13+ to test parse_html'); }
+    { skip( 3 => 'need  HTML::TreeBuilder 3.13+ and LWP to test parse_html'); }
 }
 
 { # testing _use
@@ -65,7 +65,7 @@ print "1..20\n";
   is( XML::Twig->nparse( twig_handlers => { doc => sub { $_->set_tag( 'foo'); } }, $doc_file)->sprint, '<foo></foo>', 'nparse file and option');
   unlink $doc_file;
 
-if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
+if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13) && XML::Twig::_use( 'LWP::Simple') && XML::Twig::_use( 'LWP::UserAgent'))
   {
       $doc=q{<html><head><title>foo</title></head><body><p>toto</p></body></html>}; 
       is( XML::Twig->nparse( $doc)->sprint, $doc, 'nparse well formed html string');
@@ -83,7 +83,7 @@ if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
 else
   { skip( 3, "need HTML::TreeBuilder 3.13+"); }
 
-if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
+if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13) && XML::Twig::_use( 'LWP::Simple') && XML::Twig::_use( 'LWP::UserAgent'))
     { $doc=q{<html><head><title>foo</title></head><body><p>toto<br>tata</p></body></html>}; 
       (my $expected= $doc)=~ s{<br>}{<br />};
       $doc_file="doc.html";
@@ -103,7 +103,7 @@ if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
       eval { XML::Twig->nparse( "file://$file"); };
       matches( $@, "^missing LWP::Simple", "nparse html url without LWP::Simple");
       XML::Twig::_allow_use( 'LWP::Simple');
-      if( XML::Twig::_use( 'LWP::Simple') && XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
+      if( XML::Twig::_use( 'LWP::Simple')  && XML::Twig::_use( 'LWP::UserAgent') && XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
         { my $url= "file://$file";
           $url=~ s{\\}{/}g; # we need a URL, not a file name
            my $content= XML::Twig->nparse( $url)->sprint;
@@ -129,7 +129,7 @@ if( XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
       XML::Twig::_allow_use( 'LWP::Simple');
       if( perl_io_layer_used())
         { skip( 1 => "cannot test url parsing when UTF8 perlIO layer used"); }
-      elsif( XML::Twig::_use( 'LWP::Simple'))
+      elsif( XML::Twig::_use( 'LWP::Simple') && XML::Twig::_use( 'LWP::UserAgent'))
         { my $url= "file://$file";
           $url=~ s{\\}{/}g; # we need a URL, not a file name 
           if( LWP::Simple::get( $url))

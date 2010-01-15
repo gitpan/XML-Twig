@@ -38,6 +38,9 @@ print "1..$TMAX\n";
   if( !XML::Twig::_use( 'HTML::TreeBuilder', 3.13))
     { skip( 4 => "need HTML::TreeBuilder 3.13+ to use set_inner_html method");
     }
+  elsif( !XML::Twig::_use( 'LWP'))
+    { skip( 4 => "need LWP to use set_inner_html method");
+    }
   else
     {
       my $doc= '<html><head><title>a title</title></head><body>par 1<p>par 2<br>after the break</body></html>';
@@ -98,6 +101,11 @@ print "1..$TMAX\n";
     { skip( 5, "File::Temp not available"); }
   elsif( !XML::Twig::_use( "HTML::TreeBuilder"))
     { skip( 5, "HTML::TreeBuilder not available"); }
+  elsif( !XML::Twig::_use( "LWP"))
+    { skip( 5, "LWP not available"); }
+  elsif( !XML::Twig::_use( "LWP::UserAgent"))
+    { skip( 5, "LWP::UserAgent not available"); }
+
   else
     {
       # parsefile_html_inplace
@@ -124,7 +132,7 @@ print "1..$TMAX\n";
 
 
 { use Cwd;
-  if(  XML::Twig::_use( "LWP::Simple"))
+  if(  XML::Twig::_use( "LWP::Simple") && XML::Twig::_use( "LWP::UserAgent"))
     { my $file = "test_uri";
       my $uri  = sprintf( "file://%s/%s", getcwd, $file);
       my $content= "ok";
@@ -132,7 +140,7 @@ print "1..$TMAX\n";
       is( XML::Twig::_slurp_uri( $uri), $content, "testing _slurp_uri");
     }
   else
-    { skip( 1, "LWP::Simple not available"); }
+    { skip( 1, "LWP::Simple or LWP::UserAgent not available"); }
 }
 
 { # test syntax error in XPath predicate (RT #19499)

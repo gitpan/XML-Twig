@@ -9,6 +9,7 @@ use Getopt::Std;
 import xml_split::state::parser;
 import xml_split::state::twig;
 
+undef $Getopt::Std::STANDARD_HELP_VERSION;
 $Getopt::Std::STANDARD_HELP_VERSION=1; # to stop processing after --help or --version
 
 use vars qw( $VERSION $USAGE);
@@ -32,8 +33,8 @@ if( $opt->{V}) { print "xml_split version $VERSION\n"; exit; }
 my %factor=( ' ' => 1, K => 1000, M => 1_000_000, G => 1_000_000_000);
 if( $opt->{s}) { if( $opt->{c}) { die "cannot use -c and -s at the same time\n"; }
 
-                 if( $opt->{s}=~ m{^\s*(\d+)\s*(G[bo]?|M[bo]?|K[bo]?\s*)?$})
-                   { my( $size, $unit)= ($1, substr( $2 || ' ', 0, 1));
+                 if( $opt->{s}=~ m{^\s*(\d+)\s*(G[bo]?|M[bo]?|K[bo]?\s*)?$}i)
+                   { my( $size, $unit)= ($1, uc substr( $2 || ' ', 0, 1));
                      $opt->{s}= $size * $factor{$unit};
                    }
                  else
@@ -187,6 +188,7 @@ sub parser_start_tag_level
         warn "generating $file_name\n" if( $state->{verbose});
         open( my $out, '>', $file_name) or die "cannot create output file '$file_name': $!";
         $state->{current_fh}= $out;
+        if( $state->{xml_declaration}) { print {$state->{current_fh}} $state->{xml_declaration}, "\n"; }
         # output pi
         unless( $state->{no_pi})
           { print {$state->{main_fh}} $state->include( $file_name) ; }
@@ -234,15 +236,17 @@ sub parser_start_tag_size
           { print {$state->{main_fh}} $state->include( $file_name) ; }
         $state->{store_size}=1;
       }
-    $state->{current_size} += length( $p->original_string) if( $state->{store_size});
-    print {$state->{current_fh}} $p->original_string if( $state->{current_fh});
+    my $original_string= $p->original_string;
+    $state->{current_size} += length( $original_string) if( $state->{store_size});
+    print {$state->{current_fh}} $original_string if( $state->{current_fh});
   }
   
 sub parser_end_tag_size
   { my( $state, $p)= @_;
-    $state->{current_size} += length( $p->original_string) if( $state->{store_size});
+    my $original_string= $p->original_string;   
+    $state->{current_size} += length( $original_string) if( $state->{store_size});
     if( $p->depth == $state->{level} && $state->{current_size} > $state->{size})
-      { print {$state->{current_fh}} $p->original_string if( $state->{current_fh});
+      { print {$state->{current_fh}} $original_string if( $state->{current_fh});
         end_file_with_size( $state); 
       }
     else
@@ -264,11 +268,12 @@ sub end_file_with_size
 
 sub parser_default_size
   { my( $state, $p)= @_;
+    my $string= $p->original_string;
     if( $state->{store_size})
-      { $state->{current_size} += length( $p->original_string);
+      { $state->{current_size} += length( $string);
         if( $p->depth < $state->{level}) { end_file_with_size( $state); }
       }
-    print {$state->{current_fh}} $p->original_string if( $state->{current_fh});
+    print {$state->{current_fh}} $string if( $state->{current_fh});
   }
 
 ###################################################################################
@@ -335,12 +340,13 @@ sub char_parser
 
 sub parser_declaration
   { my( $state, $p)= @_;
-    $state->{xml_declaration}= $p->original_string || '';
-    # avoid calling 
-    if( !$state->{xml_declaration} || $state->{xml_declaration}=~ m{encoding\s*=\s*["']utf-?8["']}i)
-      { $state->{utf8_encoded}=1;
-        $p->setHandlers( Char => \&char_parser);
-      }
+    my $decl= $p->original_string || $p->recognized_string;
+    $state->{xml_declaration}= $decl || '';
+    # avoid calling original_string if not needed
+    #if( !$state->{xml_declaration} || $state->{xml_declaration}=~ m{encoding\s*=\s*["']utf-?8["']}i)
+    #  { $state->{utf8_encoded}=1;
+    #    $p->setHandlers( Char => \&char_parser);
+    #  }
   } 
 
 
@@ -398,6 +404,8 @@ sub dump_elt
       
     $fragment->set_root( $elt);
     open( my $out, '>', $file_name) or die "cannot create output file '$file_name': $!";
+    #if( $state->{xml_declaration}) { warn "c1"; print {$out} $state->{xml_declaration}, "\n"; }
+    #if( $fragment->{xml_decl}) { warn "c2"; print {$out} $fragment->xml_decl, "\n"; }
     $fragment->set_keep_encoding( 1);
     $fragment->print( $out);
     close $out;
@@ -427,6 +435,7 @@ sub file_name
   { my( $state)= @_;
     my $nb= sprintf( "%0$state->{nb_digits}d", $state->{seq_nb});
     my $file_name= "$state->{base}-$nb$state->{ext}";
+    $file_name =~ s{\\}{/}g; 
     return $file_name;
   }
 
@@ -606,14 +615,6 @@ XML::Twig, xml_merge
 =head1 TODO
 
 =over 4
-
-=item test
-
-At the moment this is really alpha code, tested only on small, simple 
-documents.
-
-It would be a good idea to first check that indeed the whole document is not
-loaded in memory!
 
 =item optimize the code
 

@@ -1,15 +1,83 @@
-$Id: /xmltwig/trunk/Changes 30 2007-11-13T18:10:03.393214Z mrodrigu  $
+$Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
 
+version: 3.33
+date: 2008-01-18
+# minor maintenance release, bug fixes
+added: XML::Twig::Elt method att_exists which returns true if the attribute
+       exists in the XML
+added: XML::Twig::Elt method lc_attnames which lower cases the names
+      of all the attribute of the element
+added: better error message if find_nodes or get_xpath are called instead
+      of findnodes when using XML::Twig::XPath (suggested by Zed Pobre)
+added: indented_close_tag pretty_print option (suggested by H.Merijn Brand)
+added: RT #49692 xml_split test on win 32 systems. Patch sent through RT 
+       http://rt.cpan.org/Ticket/Display.html?id=49692
+added: using position selector (eg foo[2]) in handler triggers now raises 
+      an error, spotted by Selvakumar
+added: you can use css like selectors for class in navigation: 'p.title' will
+      select p elements with a class that contains title. 
+      In order to preserve backward compatibility and to allow the use of
+      elements with a dot in their name, if there are already parsed elements
+      with a tag name of 'p.title' then they will be selected instead
+added: you can also use css class selectors in trigger handlers. 
+fix:  avoids expat (and XML::Parser) "Ran out of memory for input buffer"
+      error, and instead reports an "empty file" error (and does not attempt
+      to parse the file).
+fix:  RT #51432 attributes containing quote character don't escape properly
+      found, and patch provided by Jeremy Kahn
+      https://rt.cpan.org/Ticket/Display.html?id=51432
+fix:  RT #48616 handler condition of foo/* crashed the module
+      reported by Osfameron
+      http://rt.cpan.org/Public/Bug/Display.html?id=48616
+fix:  xml_grep bug: warning when --count is used and no match is found
+      https://rt.cpan.org/Ticket/Display.html?id=33269 
+      found by Hermann Peifer
+fix:  xml_split bug when using an XML declaration and a utf8 encoding. Spotted
+      by Chris Price.
+fix:  xml_pp bug, pod2text command to display help was not properly quoted.
+      Spotted by Chris Price. 
+fix:  failing tests when LWP::UserAgent is not available
+fix:  RT #41147: use of uninitialized value in eval when attribute isn't found
+      reported by Zed Pobre
+      http://rt.cpan.org/Ticket/Display.html?id=41147
+fix:  memory leak when the XML included id's
+fix:  XML::Twig::Elt->set_content fails when argument is 'XML::Twig::Elt'
+      (or the name of a subclass of XML::Twig::Elt)
+      http://rt.cpan.org/Ticket/Display.html?id=40399
+fix:  bug RT #39849, set_output_encoding( 'utf-8') did not work quite right
+      on filehandles that were already open in >:utf-8 mode
+      spotted by Zed Pobre
+      http://rt.cpan.org/Ticket/Display.html?id=39849
+fix:  xml_pp now accepts all formating options available in XML::Twig
+fix:  RT #31664, element attributes are not preserving their order when
+      using elt->copy spotted, and fix provided by jbubbabrown
+fix:  RT #31832, wrapped link to xmltwig.com in L< > tag in the doc
+      spotted by Slaven Srezic
+      http://rt.cpan.org/Ticket/Display.html?id=31832
+fix:  RT #31833 doc fix, spotted by Slaven Srezic
+fix:  Makefile.PL doesn't nag the poor tester anymore when running with
+      $AUTOMATED_TESTING set
+fix:  bug calling set_text when using XML::Twig::XPath, spotted by Ted Sung
+fix:  improved speed when parsing big elements, RT#35672, reported by Seth 
+      Viebrock (fi is to explicitely return null from the character handler,
+      instead of the text already parsed... a few hundred thousand times)
+      http://rt.cpan.org/Ticket/Display.html?id=35672
+fix:  RT #47257, minor doc bug, spotted by David Steinbrunner
+      http://rt.cpan.org/Ticket/Display.html?id=47257
+fix:  bug in navigation conditions of the form elt[text()=~ /text with 'or' or 'and'/] 
+improved: speed, somewhat
+      put the project on github: http://github.com/mirod/xmltwig
+
 version: 3.32
-date: $Date: 2007-11-13T18:10:03.393214Z $
+date: 
 # minor maintenance release with a bug fix
 fix:  change to the regexp that parses XPath-like conditions so
       it can accept leading non-ascii letters ([^\W\d] does not 
       work), not used in perl 5.005
 fix:  set use utf8 (except in 5.005), which gets rid of the dreaded
-      "SWASHNEW" error in 5.6. fixed things that then broke in 5.6.
+      "SWASHNEW" error in 5.6.*, fixed things that then broke in 5.6.
       
 
 version: 3.31

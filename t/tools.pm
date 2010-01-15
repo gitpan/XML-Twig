@@ -120,10 +120,11 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
         }
     }
 
+  my $devnull = File::Spec->devnull;
   sub sys_ok
     { my $message=pop;
       $test_nb++; 
-      my $status= system join " ", @_, "2>/dev/null";
+      my $status= system join " ", @_, "2>$devnull";
       if( !$status)
         { print "ok $test_nb"; 
           print " $message" if( $DEBUG); 
@@ -351,9 +352,13 @@ sub string_ent_text
   1;
 
 sub _use
-  { my( $module)= @_;
-    if( eval "require $module") { import $module; return 1; }
-    else                        { return;                }
+  { my( $module, $version)= @_;
+    $version ||= 0;
+    if( eval "require $module") { import $module; 
+                                  no strict 'refs';
+                                  if( ${"${module}::VERSION"} >= $version ) { return 1; }
+                                  else                                      { return 0; }
+                                }
   }
 
 sub test_get_xpath
@@ -381,6 +386,7 @@ sub used_perl
   { if( $^O eq 'VMS') { return $Config{perlpath}; } # apparently $^X does not work on VMS
     else              { return $^X;               } # but $Config{perlpath} does not work in 5.005
   }
+
 
 __END__
 

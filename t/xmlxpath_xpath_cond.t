@@ -1,17 +1,12 @@
-#!/bin/perl -w
+#!/usr/bin/perl -w
 # $Id: /xmltwig/trunk/t/xmlxpath_xpath_cond.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 use strict;
 
 use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,'t');
 use tools;
+use FindBin qw($Bin); BEGIN { unshift @INC, $Bin; } use xmlxpath_tools;
 
-BEGIN 
-  { unless( _use( 'XML::XPath') || _use( 'XML::XPathEngine'))
-    { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine and XML::XPath are not available\n"; exit; }
-  }
-
-use XML::Twig::XPath;
 
 $|=1;
 

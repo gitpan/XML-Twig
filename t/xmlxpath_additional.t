@@ -1,17 +1,20 @@
-# $Id: /xmltwig/trunk/t/xmlxpath_additional.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
+#!/usr/bin/perl -w
+
+use strict;
 
 use strict;
 
 use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
+use FindBin qw($Bin); BEGIN { unshift @INC, $Bin; } use xmlxpath_tools;
 
 
 BEGIN 
   { if( eval( 'require XML::Twig::XPath'))
       { import XML::Twig::XPath; }
     elsif( $@ =~ m{^cannot use XML::XPath or XML::XPathEngine})
-      { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine or XML::XPath not available\n";
+      { print "1..1\nok 1\n"; warn no_xpath_engine();
         exit;
       }
     else
@@ -19,7 +22,7 @@ BEGIN
   }
 
 
-print "1..74\n"; 
+print "1..75\n"; 
 
 use XML::Twig::XPath;
 ok(1, "loading");
@@ -156,6 +159,11 @@ is( $back_to_root->gi, 'doc' , 'findnodes returning the root through the documen
   is( $ns->getData, 'uri', 'getData');
 }
 
+# check that set_text works also with XML::Twig::XPath
+{ my $elt= XML::Twig::XPath::Elt->new( p => "foo");
+  $elt->set_text( "bar");
+  ok( 1, "set_text using XML::Twig::XPath");
+}
 
 exit 0;
 

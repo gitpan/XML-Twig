@@ -1,4 +1,4 @@
-#!/bin/perl -w
+#!/usr/bin/perl -w
 
 # $Id: /xmltwig/trunk/t/xmlxpath_test1.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
 
@@ -8,19 +8,9 @@ use Carp;
 use File::Spec;
 use lib File::Spec->catdir(File::Spec->curdir,"t");
 use tools;
+use FindBin qw($Bin); BEGIN { unshift @INC, $Bin; } use xmlxpath_tools;
 
 my $DEBUG=0;
-
-BEGIN 
-  { if( eval( 'require XML::Twig::XPath'))
-      { import XML::Twig::XPath; }
-    elsif( $@ =~ m{^cannot use XML::XPath or XML::XPathEngine})
-      { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine or XML::XPath not available\n";
-        exit;
-      }
-    else
-      { die $@; }
-  }
 
 print "1..114\n";
 

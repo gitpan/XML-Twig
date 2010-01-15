@@ -1,4 +1,4 @@
-# $Id: /xmltwig/trunk/Twig/XPath.pm 4 2007-03-16T12:16:25.259192Z mrodrigu  $
+# $Id: /xmltwig/trunk/Twig/XPath.pm 32 2008-01-18T13:11:52.128782Z mrodrigu  $
 package XML::Twig::XPath;
 use strict;
 use XML::Twig;
@@ -8,7 +8,7 @@ my $XPATH_NUMBER; # <$XPATH>::Number, the XPath number class
 BEGIN 
   { foreach my $xpath_engine ( qw( XML::XPathEngine XML::XPath) )
       { if(  XML::Twig::_use( $xpath_engine) ) { $XPATH= $xpath_engine; last; } }
-    unless( $XPATH) { die "cannot use XML::XPath or XML::XPathEngine: $!"; }
+    unless( $XPATH) { die "cannot use XML::Twig::XPath: neither XML::XPathEngine 0.09+ nor XML::XPath are available"; }
     $XPATH_NUMBER= "${XPATH}::Number";
   }
 
@@ -19,7 +19,7 @@ $VERSION="0.02";
 BEGIN
 { package XML::XPath::NodeSet;
   no warnings; # to avoid the "Subroutine sort redefined" message 
-	# replace the native sort routine by a Twig'd one
+  # replace the native sort routine by a Twig'd one
   sub sort 
     { my $self = CORE::shift;
       @$self = CORE::sort { $a->node_cmp( $b) } @$self;
@@ -28,7 +28,7 @@ BEGIN
 
   package XML::XPathEngine::NodeSet;
   no warnings; # to avoid the "Subroutine sort redefined" message 
-	# replace the native sort routine by a Twig'd one
+  # replace the native sort routine by a Twig'd one
   sub sort 
     { my $self = CORE::shift;
       @$self = CORE::sort { $a->node_cmp( $b) } @$self;
@@ -44,15 +44,18 @@ sub to_number { return $XPATH_NUMBER->new( $_[0]->root->text); }
 
 sub new
   { my $class= shift;
-		my $t= XML::Twig->new( elt_class => 'XML::Twig::XPath::Elt', @_);
+    my $t= XML::Twig->new( elt_class => 'XML::Twig::XPath::Elt', @_);
     $t->{twig_xp}= $XPATH->new();
-		bless $t;
-		return $t;
+    bless $t, $class;
+    return $t;
   }
 
-	
-sub node_cmp($$)       { return $_[1] == $_[0] ? 0 : -1; } # document is before anything but itself
-sub set_namespace      { my $t= shift; $t->{twig_xp}->set_namespace( @_); }
+
+sub set_namespace         { my $t= shift; $t->{twig_xp}->set_namespace( @_); }
+sub set_strict_namespaces { my $t= shift; $t->{twig_xp}->set_strict_namespaces( @_); }
+
+sub node_cmp($$)          { return $_[1] == $_[0] ? 0 : -1; } # document is before anything but itself
+
 sub isElementNode   { 0 }
 sub isAttributeNode { 0 }
 sub isTextNode      { 0 }
@@ -86,38 +89,38 @@ sub to_number { return $XPATH_NUMBER->new( $_[0]->text); }
 sub getAttributes
   { my $elt= shift;
     my $atts= $elt->atts;
-		# alternate, faster but less clean, way
-		my @atts= map { bless( { name => $_, value => $atts->{$_}, elt => $elt }, 
-		                       'XML::Twig::XPath::Attribute') 
-		              }
-		               sort keys %$atts; 
-		# my @atts= map { XML::Twig::XPath::Attribute->new( $elt, $_) } sort keys %$atts; 
+    # alternate, faster but less clean, way
+    my @atts= map { bless( { name => $_, value => $atts->{$_}, elt => $elt }, 
+                           'XML::Twig::XPath::Attribute') 
+                  }
+                   sort keys %$atts; 
+    # my @atts= map { XML::Twig::XPath::Attribute->new( $elt, $_) } sort keys %$atts; 
     return wantarray ? @atts : \@atts;
   }
 
 sub getNamespace
   { my $elt= shift;
-	  my $prefix= shift() || $elt->ns_prefix;
-		if( my $expanded= $elt->namespace( $prefix))
-		  { return XML::Twig::XPath::Namespace->new( $prefix, $expanded); }
-		else
-		  { return XML::Twig::XPath::Namespace->new( $prefix, ''); }
+    my $prefix= shift() || $elt->ns_prefix;
+    if( my $expanded= $elt->namespace( $prefix))
+      { return XML::Twig::XPath::Namespace->new( $prefix, $expanded); }
+    else
+      { return XML::Twig::XPath::Namespace->new( $prefix, ''); }
   }
 
 sub node_cmp($$) 
   { my( $a, $b)= @_;
     if( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Elt')) 
       { # 2 elts, compare them
-				return $a->cmp( $b);
-	    }
+        return $a->cmp( $b);
+      }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath::Attribute'))
       { # elt <=> att, compare the elt to the att->{elt}
-				# if the elt is the att->{elt} (cmp return 0) then -1, elt is before att
+        # if the elt is the att->{elt} (cmp return 0) then -1, elt is before att
         return ($a->cmp( $b->{elt}) ) || -1 ;
       }
     elsif( UNIVERSAL::isa( $b, 'XML::Twig::XPath'))
       { # elt <=> document, elt is after document
-				return 1;
+        return 1;
       } 
     else
       { die "unknown node type ", ref( $b); }
@@ -127,7 +130,7 @@ sub getParentNode
   { return $_[0]->_parent 
         || $_[0]->twig;
   }
-	
+  
 sub findnodes           { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findnodes(           $path, $elt); }
 sub findnodes_as_string { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findnodes_as_string( $path, $elt); }
 sub findvalue           { my( $elt, $path)= @_; return $elt->twig->{twig_xp}->findvalue(           $path, $elt); }
@@ -146,7 +149,7 @@ package XML::Twig::XPath::Attribute;
 sub new
   { my( $class, $elt, $att)= @_;
     return bless { name => $att, value => $elt->att( $att), elt => $elt }, $class;
-	}
+  }
 
 sub getValue     { return $_[0]->{value}; }
 sub getName      { return $_[0]->{name} ; }
@@ -164,14 +167,14 @@ sub toString { return qq{$_[0]->{name}="$_[0]->{value}"}; }
 
 sub getNamespace
   { my $att= shift;
-	  my $prefix= shift();
-		if( ! defined( $prefix))
-	    { if($att->{name}=~ m{^(.*):}) { $prefix= $1; }
-		    else                         { $prefix='';  }
+    my $prefix= shift();
+    if( ! defined( $prefix))
+      { if($att->{name}=~ m{^(.*):}) { $prefix= $1; }
+        else                         { $prefix='';  }
       }
 
-		if( my $expanded= $att->{elt}->namespace( $prefix))
-		  { return XML::Twig::XPath::Namespace->new( $prefix, $expanded); }
+    if( my $expanded= $att->{elt}->namespace( $prefix))
+      { return XML::Twig::XPath::Namespace->new( $prefix, $expanded); }
   }
 
 sub node_cmp($$) 
@@ -201,8 +204,8 @@ package XML::Twig::XPath::Namespace;
 
 sub new
   { my( $class, $prefix, $expanded)= @_;
-		bless { prefix => $prefix, expanded => $expanded }, $class;
-	}
+    bless { prefix => $prefix, expanded => $expanded }, $class;
+  }
 
 sub isNamespaceNode { 1; }
 

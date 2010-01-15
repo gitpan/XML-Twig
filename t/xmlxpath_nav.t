@@ -1,17 +1,8 @@
-#!/bin/perl -w
+#!/usr/bin/perl -w
+
 use strict;
 
-BEGIN 
-  { if( eval( 'require XML::Twig::XPath'))
-      { import XML::Twig::XPath; }
-    elsif( $@ =~ m{^cannot use XML::XPath or XML::XPathEngine})
-      { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine or XML::XPath not available\n";
-        exit;
-      }
-    else
-      { die $@; }
-  }
-
+use FindBin qw($Bin); BEGIN { unshift @INC, $Bin; } use xmlxpath_tools;
 
 $|=1;
 

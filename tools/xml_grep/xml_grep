@@ -81,7 +81,9 @@ if( !defined( $descr) and (@roots or @paths))
   } 
 
 # some globals
-my( $current_file, $count_file, $count_total);
+my $current_file;
+my $count_file  = 0;
+my $count_total = 0;
 
 # will be used to create the twig
 my %options;  
@@ -200,7 +202,7 @@ sub create_twig
           { # in this case add the proper twig_roots option
             my $cond= (keys %{$options{twig_roots}})[0];
             (my $root= $cond)=~ s{\[[^\]]*\]$}{};
-            warn "cond: '$cond' - root: '$root'\n";
+            #warn "cond: '$cond' - root: '$root'\n";
             delete $options{twig_roots};
             delete $options{twig_handlers};
             @paths= ($cond);
@@ -276,7 +278,7 @@ sub file_result_start
 
 sub file_result_end
   { $file_results=0;
-    return if( $text_only);
+    return '' if( $text_only);
     return qq{\n</$group>\n};
   }
 

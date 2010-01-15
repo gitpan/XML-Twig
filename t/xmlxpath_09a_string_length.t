@@ -1,15 +1,8 @@
-# $Id: /xmltwig/trunk/t/xmlxpath_09a_string_length.t 4 2007-03-16T12:16:25.259192Z mrodrigu  $
+#!/usr/bin/perl -w
 
-BEGIN 
-  { if( eval( 'require XML::Twig::XPath'))
-      { import XML::Twig::XPath; }
-    elsif( $@ =~ m{^cannot use XML::XPath or XML::XPathEngine})
-      { print "1..1\nok 1\n"; warn "skipping: XML::XPathEngine or XML::XPath not available\n";
-        exit;
-      }
-    else
-      { die $@; }
-  }
+use strict;
+
+use FindBin qw($Bin); BEGIN { unshift @INC, $Bin; } use xmlxpath_tools;
 
 use Test;
 plan( tests => 5);

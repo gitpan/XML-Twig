@@ -1,14 +1,14 @@
 #!/usr/bin/perl -w
-# $Id: /xmltwig/trunk/tools/xml_pp/xml_pp 4 2007-03-16T12:16:25.259192Z mrodrigu  $
+# $Id: /xmltwig/trunk/tools/xml_pp/xml_pp 32 2008-01-18T13:11:52.128782Z mrodrigu  $
 use strict;
 
 use XML::Twig;
 use File::Temp qw/tempfile/;
 use File::Basename qw/dirname/;
 
-my @styles= qw( none nsgmls nice indented record record_c); # from XML::Twig
-my $styles= join '|', @styles;                              # for usage
-my %styles= map { $_ => 1} @styles;                         # to check option
+my @styles= XML::Twig->_pretty_print_styles; # from XML::Twig
+my $styles= join '|', @styles;               # for usage
+my %styles= map { $_ => 1} @styles;          # to check option
 
 my $DEFAULT_STYLE= 'indented';
 
@@ -113,7 +113,7 @@ sub process_options
            push @ARGV, files_from( $file);
           }
         elsif( ($opt eq '-h') || ($opt eq '--help'))  
-         { system pod2text, $0; exit; }
+         { system "pod2text", $0; exit; }
         elsif( $opt eq '--')  
          { last;       }
         else

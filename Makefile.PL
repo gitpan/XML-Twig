@@ -1,4 +1,4 @@
-# $Id: /xmltwig/trunk/Makefile.PL 15 2007-05-28T12:15:34.346294Z mrodrigu  $
+# $Id: /xmltwig/trunk/Makefile.PL 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 # tool installation part shamelessly lifted from YAML's Makefile.PL
 
 use ExtUtils::MakeMaker;
@@ -13,12 +13,16 @@ my @prompts=(
 
 my @programs;
 
-if( $ARGV[0] eq "-n")
+my $opt= $ARGV[0] ? $ARGV[0] : '';
+
+if(    $opt eq "-n")
   { @programs=(); }
-elsif( $ARGV[0] eq "-y")
+elsif( $opt eq "-y")
   { @programs= map { $_->[0] } @prompts; }
-elsif( $ARGV[0] eq "-d")
+elsif( $opt eq "-d")
   { @programs= map { $_->[0] if( $_->[1] eq 'y') } @prompts; }
+elsif( $ENV{AUTOMATED_TESTING})
+  { @programs=(); }
 else
   { print "run 'perl Makefile.PL -y' to install all tools,\n",
           "    'perl Makefile.PL -n' to skip installation\n";
@@ -29,19 +33,22 @@ else
       }
   }
 
+(my $EUMM= $ExtUtils::MakeMaker::VERSION)=~ tr/_//d;
+my @license = $EUMM > 6.30 ? qw(LICENSE perl) : ();
+
 WriteMakefile(
-    NAME	       => 'XML::Twig',
+    NAME	 => 'XML::Twig',
     ABSTRACT     => 'XML, The Perl Way',
     AUTHOR       => 'Michel Rodriguez <mirod@xmltwig.com>',
+     @license,
     EXE_FILES    => [ map {"tools/$_/$_"} @programs],
-    VERSION_FROM => 'Twig.pm', # finds $VERSION
+    VERSION_FROM => 'Twig.pm', 
     PREREQ_PM    => { 'XML::Parser' => '2.23' },
     dist         => { COMPRESS    => 'gzip -9f',
                       SUFFIX	     => 'gz',
                     },
     depend       => { 'Twig.pm' => "FORCE\n\t\$(PERL) speedup Twig_pm.slow > Twig.pm\n\t\$(PERL) -i_bak -p filter_for_5.005 Twig.pm Twig/XPath.pm\n\t\$(PERL) check_optional_modules",
-		                  'FORCE'   => '',
-    license      => 'perl',
+    'FORCE'   => '',
 									  },
 );
 
