@@ -2,7 +2,7 @@ use strict;
 use warnings; # > perl 5.5
 
 # This is created in the caller's space
-# I realize (now!) that it's not clean, but it's been there for 10 years...
+# I realize (now!) that it's not clean, but it's been there for 10+ years...
 BEGIN
 { sub ::PCDATA { '#PCDATA' }  ## no critic (Subroutines::ProhibitNestedSubs);
   sub ::CDATA  { '#CDATA'  }  ## no critic (Subroutines::ProhibitNestedSubs);
@@ -28,12 +28,6 @@ use File::Spec;
 use File::Basename;
 
 *isa= *UNIVERSAL::isa;
-
-# used to store the gi's
-my %gi2index;   # gi => index
-my @index2gi;   # list of gi's
-my $SPECIAL_GI; # first non-special gi;
-#my %base_ent;   # base entity character => replacement
 
 # flag, set to true if the weaken sub is available
 use vars qw( $weakrefs);
@@ -90,12 +84,18 @@ my( $FB_HTMLCREF, $FB_XMLCREF);
 
 my $NO_WARNINGS= $] >= 5.006 ? 'no warnings' : 'local $^W=0';
 
+# default namespaces, both ways
+my %DEFAULT_NS= ( xml   => "http://www.w3.org/XML/1998/namespace",
+                  xmlns => "http://www.w3.org/2000/xmlns/",
+                );
+my %DEFAULT_URI2NS= map { $DEFAULT_NS{$_} => $_ } keys %DEFAULT_NS;
+
 # constants
 my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
 BEGIN
 { 
-$VERSION = '3.34';
+$VERSION = '3.35';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -441,6 +441,7 @@ sub new
       }
 
     $self->{twig_elt_class}= $args{EltClass} || 'XML::Twig::Elt';
+    if( defined( $args{EltClass}) && $args{EltClass} ne 'XML::Twig::Elt') { $self->{twig_alt_elt_class}=0; }
     if( exists( $args{EltClass})) { delete $args{EltClass}; }
 
     if( exists( $args{MapXmlns}))
@@ -888,32 +889,42 @@ sub _html2xml
             { $$xml=~ s{<\?xml version.*\?>}{}; 
               #warn " fixed xml declaration in the wrong place\n";
             }
+          elsif( $@=~ m{^\s*undefined entity}m)
+            { $$xml=~ s{&(amp;)?Amp;}{&amp;}g; # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped
+              if( _use( 'HTML::Entities::Numbered'))
+                { $$xml=name2hex_xml( $$xml); 
+                }
+            }
           elsif( $@=~ m{^\s*not well-formed \(invalid token\)})
-            { my $encoding= _encoding_from_meta( $tree);
-              unless( keys %xml_parser_encoding) { %xml_parser_encoding= _xml_parser_encodings(); }
+            { if( $$xml=~ m{<img "="&#34;" }) 
+                { $$xml=~ s{<img "="&#34;" }{<img }g; } # happens with <img src="foo.png"" ...
+              else
+                { my $encoding= _encoding_from_meta( $tree);
+                  unless( keys %xml_parser_encoding) { %xml_parser_encoding= _xml_parser_encodings(); }
 
-              if( ! $add_decl)
-                { if( $xml_parser_encoding{$encoding})
-                    { $add_decl=1; }
-                  elsif( $encoding eq 'euc-jp' && $xml_parser_encoding{'x-euc-jp-jisx0221'})
-                    { $encoding="x-euc-jp-jisx0221"; $add_decl=1;}
-                  elsif( $encoding eq 'shift-jis' && $xml_parser_encoding{'x-sjis-jisx0221'})
-                    { $encoding="x-sjis-jisx0221";   $add_decl=1;}
+                  if( ! $add_decl)
+                    { if( $xml_parser_encoding{$encoding})
+                        { $add_decl=1; }
+                      elsif( $encoding eq 'euc-jp' && $xml_parser_encoding{'x-euc-jp-jisx0221'})
+                        { $encoding="x-euc-jp-jisx0221"; $add_decl=1;}
+                      elsif( $encoding eq 'shift-jis' && $xml_parser_encoding{'x-sjis-jisx0221'})
+                        { $encoding="x-sjis-jisx0221";   $add_decl=1;}
 
-                  if( $add_decl) 
-                    { $$xml=~ s{^(<\?xml.*?\?>)?}{<?xml version="1.0" encoding="$encoding"?>}s;
-                      #warn "  added decl (encoding $encoding)\n";
+                      if( $add_decl) 
+                        { $$xml=~ s{^(<\?xml.*?\?>)?}{<?xml version="1.0" encoding="$encoding"?>}s;
+                          #warn "  added decl (encoding $encoding)\n";
+                        }
+                      else
+                        { $$xml=~ s{^(<\?xml.*?\?>)?}{}s;
+                          #warn "  converting to utf8 from $encoding\n";
+                          $$xml= _to_utf8( $encoding, $$xml);
+                        }
                     }
                   else
                     { $$xml=~ s{^(<\?xml.*?\?>)?}{}s;
                       #warn "  converting to utf8 from $encoding\n";
                       $$xml= _to_utf8( $encoding, $$xml);
                     }
-                }
-              else
-                { $$xml=~ s{^(<\?xml.*?\?>)?}{}s;
-                  #warn "  converting to utf8 from $encoding\n";
-                  $$xml= _to_utf8( $encoding, $$xml);
                 }
             }
       }
@@ -1761,7 +1772,7 @@ sub _twig_start
 
         $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
         unless( $parent->{first_child}) { $parent->{first_child}=  $elt; } 
-         delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+         $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
       }
     else 
       { # processing root
@@ -1810,7 +1821,7 @@ sub _twig_start
     if( $t->{twig_ignore_elts_handlers})
       { my @handlers= _handler( $t, $t->{twig_ignore_elts_handlers}, $gi);
         # only the first handler counts, it contains the action (discard/print/string)
-        if( @handlers) { my $action= shift @handlers; $t->ignore( $action); }
+        if( @handlers) { my $action= shift @handlers; $t->ignore( $elt, $action); }
       }
 
     if( $elt->{'att'}->{'xml:space'} && (  $elt->{'att'}->{'xml:space'} eq 'preserve')) { $t->{twig_preserve_space}++; }
@@ -2067,7 +2078,7 @@ sub _replace_prefix
     # this should probably be an option
     if( !$uri and( $name!~/^xml/)) { $uri= $p->expand_ns_prefix( '#default'); }
     if( $uri)
-      { if (my $mapped_prefix= $t->{twig_map_xmlns}->{$uri})
+      { if (my $mapped_prefix= $t->{twig_map_xmlns}->{$uri} || $DEFAULT_URI2NS{$uri})
           { return "$mapped_prefix:$name"; }
         else
           { my $prefix= _a_proper_ns_prefix( $p, $uri);
@@ -2164,7 +2175,7 @@ sub _twig_cdatastart
         $twig_current->{next_sibling}=  $cdata;
         my $parent= $twig_current->{parent};
         $cdata->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $cdata->{parent});} ;
-         delete $parent->{empty}; $parent->{last_child}=$cdata; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+         $parent->{empty}=0; $parent->{last_child}=$cdata; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
         $t->{twig_in_pcdata}=0;
       }
     else
@@ -2181,7 +2192,7 @@ sub _twig_cdatastart
           }
         else
           { $twig_current->{first_child}=  $cdata; }
-         delete $twig_current->{empty}; $twig_current->{last_child}=$cdata; if( $XML::Twig::weakrefs) { weaken( $twig_current->{last_child});} ;
+         $twig_current->{empty}=0; $twig_current->{last_child}=$cdata; if( $XML::Twig::weakrefs) { weaken( $twig_current->{last_child});} ;
       
       }
 
@@ -2399,8 +2410,14 @@ sub _insert_pcdata
   { my( $t, $string)= @_;
     # create a new PCDATA element
     my $parent= $t->{twig_current};    # always defined
-    my $elt=  $t->{twig_elt_class}->new( $PCDATA);
-    $elt->_set_pcdata( $string);
+    my $elt;
+    if( exists $t->{twig_alt_elt_class})
+      { $elt=  $t->{twig_elt_class}->new( $PCDATA);
+        $elt->_set_pcdata( $string);
+      }
+    else
+      { $elt= bless( { gi => $XML::Twig::gi2index{$PCDATA}, pcdata => $string }, 'XML::Twig::Elt'); }
+
     my $prev_sibling= $parent->{last_child};
     if( $prev_sibling) 
       { $prev_sibling->{next_sibling}=  $elt; 
@@ -2410,7 +2427,7 @@ sub _insert_pcdata
       { $parent->{first_child}=  $elt; }
 
     $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
-     delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+     $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
     $t->{twig_stored_spaces}='';
     return $elt;
   }
@@ -2672,7 +2689,7 @@ sub _twig_insert_ent
         $twig_current->{next_sibling}=  $ent;
         my $parent= $twig_current->{parent};
         $ent->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $ent->{parent});} ;
-         delete $parent->{empty}; $parent->{last_child}=$ent; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+         $parent->{empty}=0; $parent->{last_child}=$ent; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
         # the twig_current is now the parent
         delete $twig_current->{'twig_current'};
         $t->{twig_current}= $parent;
@@ -2688,7 +2705,7 @@ sub _twig_insert_ent
           }
         else
           { if( $twig_current) { $twig_current->{first_child}=  $ent; } }
-        if( $twig_current) {  delete $twig_current->{empty}; $twig_current->{last_child}=$ent; if( $XML::Twig::weakrefs) { weaken( $twig_current->{last_child});} ; }
+        if( $twig_current) {  $twig_current->{empty}=0; $twig_current->{last_child}=$ent; if( $XML::Twig::weakrefs) { weaken( $twig_current->{last_child});} ; }
       }
 
     # meant to trigger entity handler, does not seem to be activated at this time
@@ -3025,7 +3042,11 @@ sub flush
     $t->set_empty_tag_style( $old_empty_tag_style) if( defined $old_empty_tag_style); 
 
     if( my $ids= $t->{twig_id_list}) 
-      { while( my ($id, $elt)= each %$ids) { if( ! defined $elt) { delete $t->{twig_id_list}->{$id} } } }
+      { while( my ($id, $elt)= each %$ids) 
+          { if( ! defined $elt) 
+             { delete $t->{twig_id_list}->{$id} } 
+          }
+      }
 
     return $t;
   }
@@ -3461,7 +3482,7 @@ sub DESTROY
     undef $t->{twig_root}->{twig} if( $t->{twig_root});
     undef $t->{twig_parser};
     
-    $t={}; # prevents memory leaks (especially when using mod_perl)
+    undef %$t;# prevents memory leaks (especially when using mod_perl)
     undef $t;
   }        
 
@@ -3720,16 +3741,37 @@ sub _twig_pi_check_roots
   }
 
 
+sub _output_ignored
+  { my( $t, $p)= @_;
+    my $action= $t->{twig_ignore_action};
+
+    my $get_string= $t->{twig_keep_encoding} ? 'original_string' : 'recognized_string';
+
+    if( $action eq 'print' ) { print $p->$get_string; }
+    else
+      { my $string_ref;
+        if( $action eq 'string') 
+          { $string_ref= \$t->{twig_buffered_string}; }
+        elsif( ref( $action) && ref( $action) eq 'SCALAR')
+          { $string_ref= $action; }
+        else
+          { _croak( "wrong ignore action: $action"); }
+
+        $$string_ref .= $p->$get_string;
+      }
+  }
+     
+        
+
 sub _twig_ignore_start
    { # warn " in _twig_ignore_start...\n"; # DEBUG handler
     
     my( $p, $gi)= @_;
     my $t= $p->{twig};
     $t->{twig_ignore_level}++;
-    my $action= $t->{twig_ignore_action};
-    if( $action eq 'print' ) { _twig_print_original( @_); }
-#    elsif( $action eq 'string' )
-#      { $t->{twig_buffered_string} .= $p->original_string(); }
+    my $action= $t->{twig_ignore_action}; 
+
+    $t->_output_ignored( $p) unless $action eq 'discard';
     return;    
   }
 
@@ -3740,11 +3782,7 @@ sub _twig_ignore_end
     my $t= $p->{twig};
 
     my $action= $t->{twig_ignore_action};
-
-    if( $action eq 'print')
-      { _twig_print_original( $p, $gi); }
-#    elsif( $action eq 'string')
-#      { $t->{twig_buffered_string} .= $p->original_string(); }
+    $t->_output_ignored( $p) unless $action eq 'discard';
 
     $t->{twig_ignore_level}--;
 
@@ -3777,7 +3815,7 @@ sub _twig_ignore_end
 #sub _dump_stack { my( $stack)= @_; return join( ":", map { $_->{_tag} } @$stack); }
     
 sub ignore
-  { my( $t, $elt)= @_;
+  { my( $t, $elt, $action)= @_;
     my $current= $t->{twig_current};
 
     if( ! ($elt && ref( $elt) && isa( $elt, 'XML::Twig::Elt'))) { $elt= $current; }
@@ -3793,18 +3831,36 @@ sub ignore
     #warn "twig_ignore_level:  $t->{twig_ignore_level} (current: ", $current->tag, ", elt: ", $elt->tag, ")\n";
     $t->{twig_ignore_elt}  = $elt;     # save it, so we can delete it later
 
-    my $action= shift || 1; 
+    $action ||= 'discard'; 
+    if( !($action eq 'print' || $action eq 'string' || ( ref( $action) && ref( $action) eq 'SCALAR')))
+      { $action= 'discard'; }
+   
     $t->{twig_ignore_action}= $action;
 
     my $p= $t->{twig_parser};
     my @saved_handlers= $p->setHandlers( %twig_handlers_ignore); # set handlers
-    if( $action eq 'print')
-      { $p->setHandlers( Default => \&_twig_print_original); }
-#    elsif( $action eq 'string')
-#      { # not used at the moment
-#        $t->{twig_buffered_string}='';
-#        $p->setHandlers( Default => \&twig_buffer_original);
-#      }
+   
+    my $get_string= $t->{twig_keep_encoding} ? 'original_string' : 'recognized_string';
+
+    my $default_handler;
+
+    if( $action ne 'discard')
+      { if( $action eq 'print')
+          { $p->setHandlers( Default => sub { print $_[0]->$get_string; }); }
+        else
+          { my $string_ref;
+            if( $action eq 'string') 
+              { if( ! exists $t->{twig_buffered_string}) { $t->{twig_buffered_string}=''; }
+                $string_ref= \$t->{twig_buffered_string}; 
+              }
+            elsif( ref( $action) && ref( $action) eq 'SCALAR')
+              { $string_ref= $action; }
+    
+            $p->setHandlers( Default =>  sub { $$string_ref .= $_[0]->$get_string; });
+          }
+        $t->_output_ignored( $p, $action);
+      }
+
 
     $t->{twig_saved_handlers}= \@saved_handlers;        # save current handlers
   }
@@ -4604,33 +4660,26 @@ sub _local_name
     return $local;
   }
 
-BEGIN 
-  { my %DEFAULT_NS= ( xml   => "http://www.w3.org/XML/1998/namespace",
-                      xmlns => "http://www.w3.org/2000/xmlns/",
-                    );
- 
-    #sub get_namespace
-    sub namespace ## no critic (Subroutines::ProhibitNestedSubs);
-      { my $elt= shift;
-        my $prefix= defined $_[0] ? shift() : $elt->ns_prefix;
-        my $ns_att= $prefix ? "xmlns:$prefix" : "xmlns";
-        my $expanded= $DEFAULT_NS{$prefix} || $elt->_inherit_att_through_cut( $ns_att) || '';
-        return $expanded;
+#sub get_namespace
+sub namespace ## no critic (Subroutines::ProhibitNestedSubs);
+  { my $elt= shift;
+    my $prefix= defined $_[0] ? shift() : $elt->ns_prefix;
+    my $ns_att= $prefix ? "xmlns:$prefix" : "xmlns";
+    my $expanded= $DEFAULT_NS{$prefix} || $elt->_inherit_att_through_cut( $ns_att) || '';
+    return $expanded;
+  }
+
+sub declare_missing_ns ## no critic (Subroutines::ProhibitNestedSubs);
+  { my $root= shift;
+    my %missing_prefix;
+    my $map= $root->_current_ns_prefix_map;
+
+    foreach my $prefix (keys %$map)
+      { my $prefix_att= $prefix eq '#default' ? 'xmlns' : "xmlns:$prefix";
+        if( ! $root->{'att'}->{$prefix_att}) 
+          { $root->set_att( $prefix_att => $map->{$prefix}); }
       }
-
-    sub declare_missing_ns ## no critic (Subroutines::ProhibitNestedSubs);
-      { my $root= shift;
-        my %missing_prefix;
-        my $map= $root->_current_ns_prefix_map;
-
-        foreach my $prefix (keys %$map)
-          { my $prefix_att= $prefix eq '#default' ? 'xmlns' : "xmlns:$prefix";
-            if( ! $root->{'att'}->{$prefix_att}) 
-              { $root->set_att( $prefix_att => $map->{$prefix}); }
-          }
-        return $root;
-      }
-
+    return $root;
   }
 
 sub _current_ns_prefix_map
@@ -4909,8 +4958,7 @@ sub _pos_offset
   }
 
 sub append_pcdata
-  { delete $_[0]->{empty};
-    $_[0]->{'pcdata'}.= $_[1];
+  { $_[0]->{'pcdata'}.= $_[1];
     return $_[0]; 
   }
 
@@ -4951,7 +4999,7 @@ sub set_pi
   }
 
 sub _set_pi
-  { $_[0]->{target}=  $_[1];
+  { $_[0]->set_target( $_[1]);
     $_[0]->{data}=  $_[2];
     return $_[0]; 
   }
@@ -4974,7 +5022,15 @@ sub set_comment
 
 sub _set_comment   { $_[0]->{comment}= $_[1]; return $_[0]; }
 sub comment        { return $_[0]->{comment}; }
-sub comment_string { return $COMMENT_START . $_[0]->{comment} . $COMMENT_END; }
+sub comment_string { return $COMMENT_START . _comment_escaped_string( $_[0]->{comment}) . $COMMENT_END; }
+# comments cannot start or end with 
+sub _comment_escaped_string 
+  { my( $c)= @_;
+    $c=~ s{^-}{ -};  
+    $c=~ s{-$}{- };
+    $c=~ s{--}{- -}g;
+    return $c;
+  }
 
 sub set_ent  { $_[0]->{ent}= $_[1]; return $_[0]; }
 sub ent      { return $_[0]->{ent}; }
@@ -4991,8 +5047,7 @@ sub set_cdata
   }
   
 sub _set_cdata 
-  { delete $_[0]->{empty};
-    $_[0]->{cdata}= $_[1]; 
+  { $_[0]->{cdata}= $_[1]; 
     return $_[0];
   }
 
@@ -5095,7 +5150,7 @@ sub reset_cond_cache { %cond_cache=(); }
               $test = qq{ \$_[0]->gi=~ $1 }; 
             }
           elsif( $cond=~ m{^\s*($REG_NAME_WC)?\s*  # $1
-                           \[\s*(-?)\s*(\d+)\s*\] #   [$2]
+                           \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
                            \s*$}xo
                )
             { my( $gi, $neg, $index)= ($1, $2, $3);
@@ -5238,8 +5293,7 @@ sub parent
   }
 
 sub set_first_child 
-  { delete $_[0]->{empty};
-    $_[0]->{'first_child'}= $_[1]; 
+  { $_[0]->{'first_child'}= $_[1]; 
   }
 
 sub first_child
@@ -5280,8 +5334,7 @@ sub set_field
   }
 
 sub set_last_child 
-  { delete $_[0]->{empty};
-    $_[0]->{'last_child'}= $_[1];
+  { $_[0]->{'last_child'}= $_[1];
     if( $XML::Twig::weakrefs) { weaken( $_[0]->{'last_child'}); }
   }
 
@@ -6396,9 +6449,13 @@ sub cut
 
     if( $parent->{first_child} == $elt)
       { $parent->{first_child}=  $elt->{next_sibling};
-        unless( $elt->{next_sibling}) { $parent->{empty}= 1; }
+        # cutting can make the parent empty
+        if( ! $parent->{first_child}) { $parent->{empty}=  1; }
       }
-    if( $parent->{last_child} == $elt) {  delete $parent->{empty}; $parent->{last_child}=$elt->{prev_sibling}; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
+
+    if( $parent->{last_child} == $elt)
+      {  $parent->{empty}=0; $parent->{last_child}=$elt->{prev_sibling}; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+      }
 
     if( $prev_sibling= $elt->{prev_sibling})
       { $prev_sibling->{next_sibling}=  $elt->{next_sibling}; }
@@ -6410,6 +6467,8 @@ sub cut
     $elt->{prev_sibling}=undef; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
     $elt->{next_sibling}=  undef;
 
+    # merge 2 (now) consecutive text nodes if they are of the same type 
+    # (type can be PCDATA or CDATA)
     if( $prev_sibling && $next_sibling && $prev_sibling->is_text && ( $XML::Twig::index2gi[$prev_sibling->{'gi'}] eq $XML::Twig::index2gi[$next_sibling->{'gi'}]))
       { $prev_sibling->merge_text( $next_sibling); }
 
@@ -6425,8 +6484,18 @@ sub cut_children
   { my( $elt, $exp)= @_;
     my @children= $elt->children( $exp);
     foreach (@children) { $_->cut; }
+    $elt->{empty}=  1;
     return @children;
   }
+
+sub cut_descendants
+  { my( $elt, $exp)= @_;
+    my @descendants= $elt->descendants( $exp);
+    foreach ($elt->descendants( $exp)) { $_->cut; }
+    if( ! $elt->has_children) { $elt->{empty}=  1; }
+    return @descendants;
+  }
+
 
 
 sub erase
@@ -6648,7 +6717,7 @@ BEGIN
         $next_sibling= $ref->{next_sibling};
 
         $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
-        if( $parent->{last_child}== $ref) {  delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
+        if( $parent->{last_child}== $ref) {  $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
 
         $prev_sibling->{next_sibling}=  $elt;
         $elt->{prev_sibling}=$prev_sibling; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
@@ -6664,11 +6733,10 @@ BEGIN
         my( $parent, $prev_sibling, $next_sibling );
         $parent= $ref;
         $next_sibling= $ref->{first_child};
-        delete $ref->{empty};
 
         $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
         $parent->{first_child}=  $elt;
-        unless( $parent->{last_child}) {  delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
+        unless( $parent->{last_child}) {  $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ; }
 
         $elt->{prev_sibling}=undef; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
 
@@ -6682,10 +6750,9 @@ BEGIN
         my( $parent, $prev_sibling, $next_sibling );
         $parent= $ref;
         $prev_sibling= $ref->{last_child};
-        delete $ref->{empty};
 
         $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
-         delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
+         $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
         unless( $parent->{first_child}) { $parent->{first_child}=  $elt; }
 
         $elt->{prev_sibling}=$prev_sibling; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
@@ -6965,7 +7032,7 @@ sub split_at
     my $string= $text_elt->text; 
     my $left_string= substr( $string, 0, $offset);
     my $right_string= substr( $string, $offset);
-    $text_elt->set_pcdata( $left_string);
+    $text_elt->{pcdata}= (delete $text_elt->{empty} || 1) &&  $left_string;
     my $new_elt= $elt->new( $XML::Twig::index2gi[$elt->{'gi'}], $right_string);
     $new_elt->paste( after => $elt);
     return $new_elt;
@@ -7237,10 +7304,9 @@ sub copy
     if( $elt->{extra_data_before_end_tag}) { $copy->_set_extra_data_before_end_tag( $elt->{extra_data_before_end_tag}); }
 
     if( $elt->is_asis)   { $copy->set_asis; }
-    $copy->{empty}=  $elt->{'empty'}; # do not swap or speedup will mess up this                         
 
     if( (exists $elt->{'pcdata'})) 
-      { $copy->set_pcdata( $elt->{pcdata}); 
+      { $copy->{pcdata}= (delete $copy->{empty} || 1) &&  $elt->{pcdata}; 
         if( $elt->{extra_data_in_pcdata}) { $copy->_set_extra_data_in_pcdata( $elt->{extra_data_in_pcdata}); }
       }
     elsif( (exists $elt->{'cdata'}))
@@ -7641,6 +7707,9 @@ BEGIN {
       # force empty if suitable HTML tag, otherwise use the value from the input tree
       if( ($empty_tag_style eq $HTML) && !$elt->{first_child} && !$elt->{extra_data_before_end_tag} && $html_empty_elt{$gi})
         { $elt->{empty}= 1; }
+      my $empty= defined $elt->{empty} ? $elt->{empty} 
+               : $elt->{first_child}    ? 1
+               :                         0;
 
       $tag .= (!$elt->{empty} || $elt->{extra_data_before_end_tag})  ? '>'            # element has content
             : (($empty_tag_style eq $HTML) && $html_empty_elt{$gi}) ? ' />'          # html empty element 
@@ -8211,10 +8280,10 @@ BEGIN {
         { if( $keep_encoding)
             { my $data= $cdata->{cdata};
               $data=~ s{([&<"'])}{$XML::Twig::base_ent{$1}}g;
-              $cdata->set_pcdata( $data);
+              $cdata->{pcdata}= (delete $cdata->{empty} || 1) &&  $data;
             }
           else
-            { $cdata->set_pcdata( $cdata->{cdata}); }
+            { $cdata->{pcdata}= (delete $cdata->{empty} || 1) &&  $cdata->{cdata}; }
           $cdata->{gi}=$XML::Twig::gi2index{$PCDATA} or $cdata->set_gi( $PCDATA);
           undef $cdata->{cdata};
         }
@@ -8400,12 +8469,12 @@ sub set_text
   { my( $elt, $string, %option)= @_;
 
     if( $XML::Twig::index2gi[$elt->{'gi'}] eq $PCDATA) 
-      { return $elt->set_pcdata( $string); }
+      { return $elt->{pcdata}= (delete $elt->{empty} || 1) &&  $string; }
     elsif( $XML::Twig::index2gi[$elt->{'gi'}] eq $CDATA)  
       { if( $option{force_pcdata})
           { $elt->{gi}=$XML::Twig::gi2index{$PCDATA} or $elt->set_gi( $PCDATA);
             $elt->_set_cdata('');
-            return $elt->set_pcdata( $string);
+            return $elt->{pcdata}= (delete $elt->{empty} || 1) &&  $string;
           }
         else
           { return $elt->_set_cdata( $string); }
@@ -8422,7 +8491,7 @@ sub set_text
     my $pcdata= $elt->_new_pcdata( $string);
     $pcdata->paste( $elt);
 
-    delete $elt->{empty};
+    $elt->{empty}=0;
 
     return $elt;
   }
@@ -8461,6 +8530,8 @@ sub set_content
     foreach my $child (@{[$elt->_children]})
       { $child->delete; }
 
+    if( @_) { $elt->{empty}=0; }
+
     foreach my $child (@_)
       { if( ref( $child) && isa( $child, 'XML::Twig::Elt'))
           { # argument is an element
@@ -8470,7 +8541,7 @@ sub set_content
           { # argument is a string
             if( (my $pcdata= $elt->{last_child}) && $elt->{last_child}->is_pcdata)
               { # previous child is also pcdata: just concatenate
-                $pcdata->set_pcdata( $pcdata->{pcdata} . $child) 
+                $pcdata->{pcdata}= (delete $pcdata->{empty} || 1) &&  $pcdata->{pcdata} . $child 
               }
             else
               { # previous child is not a string: creat a new pcdata element
@@ -8480,7 +8551,6 @@ sub set_content
           }
       }
 
-    delete $elt->{empty};
 
     return $elt;
   }
@@ -8502,7 +8572,7 @@ sub insert
           { $new_elt->set_atts( shift @args); }
         # paste the element
         $new_elt->paste( $elt);
-        delete $elt->{empty};
+        $elt->{empty}=0;
         $elt= $new_elt;
       }
     # paste back the children
@@ -8550,7 +8620,7 @@ sub wrap_in
         if( my $parent= $elt->{parent})
           { $new_elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $new_elt->{parent});} ; 
             if( $parent->{first_child} == $elt) { $parent->{first_child}=  $new_elt; }
-             if( $parent->{last_child} == $elt) {  delete $parent->{empty}; $parent->{last_child}=$new_elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;  }
+             if( $parent->{last_child} == $elt) {  $parent->{empty}=0; $parent->{last_child}=$new_elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;  }
           }
         else
           { # wrapping the root
@@ -8569,7 +8639,7 @@ sub wrap_in
             $next_sibling->{prev_sibling}=$new_elt; if( $XML::Twig::weakrefs) { weaken( $next_sibling->{prev_sibling});} ;
           }
         $new_elt->{first_child}=  $elt;
-         delete $new_elt->{empty}; $new_elt->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $new_elt->{last_child});} ;
+         $new_elt->{empty}=0; $new_elt->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $new_elt->{last_child});} ;
 
         $elt->{parent}=$new_elt; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
         $elt->{prev_sibling}=undef; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
@@ -8593,7 +8663,7 @@ sub replace
     if( my $parent= $ref->{parent})
       { $elt->{parent}=$parent; if( $XML::Twig::weakrefs) { weaken( $elt->{parent});} ;
         if( $parent->{first_child} == $ref) { $parent->{first_child}=  $elt; }
-        if( $parent->{last_child} == $ref)  {  delete $parent->{empty}; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});}  ; }
+        if( $parent->{last_child} == $ref)  {  $parent->{empty}=0; $parent->{last_child}=$elt; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});}  ; }
       }
     if( my $prev_sibling= $ref->{prev_sibling})
       { $elt->{prev_sibling}=$prev_sibling; if( $XML::Twig::weakrefs) { weaken( $elt->{prev_sibling});} ;
@@ -8636,7 +8706,7 @@ sub prefix
     if( (exists $elt->{'pcdata'}) 
         && (($asis && $elt->{asis}) || (!$asis && ! $elt->{asis}))
       )
-      { $elt->set_pcdata( $prefix . $elt->{pcdata}); }
+      { $elt->{pcdata}= (delete $elt->{empty} || 1) &&  $prefix . $elt->{pcdata}; }
     elsif( $elt->{first_child} && $elt->{first_child}->is_pcdata
         && (   ($asis && $elt->{first_child}->{asis}) 
             || (!$asis && ! $elt->{first_child}->{asis}))
@@ -8659,7 +8729,7 @@ sub suffix
     if( (exists $elt->{'pcdata'})
         && (($asis && $elt->{asis}) || (!$asis && ! $elt->{asis}))
       )
-      { $elt->set_pcdata( $elt->{pcdata} . $suffix); }
+      { $elt->{pcdata}= (delete $elt->{empty} || 1) &&  $elt->{pcdata} . $suffix; }
     elsif( $elt->{last_child} && $elt->{last_child}->is_pcdata
         && (   ($asis && $elt->{last_child}->{asis}) 
             || (!$asis && ! $elt->{last_child}->{asis}))
@@ -9031,9 +9101,9 @@ to output the parts of it that have been completely processed.
 
 It allows minimal resource (CPU and memory) usage by building the tree
 only for the parts of the documents that need actual processing, through the 
-use of the C<L<twig_roots|/twig_roots> > and 
-C<L<twig_print_outside_roots|/twig_print_outside_roots> > options. The 
-C<L<finish|/finish> > and C<L<finish_print|/finish_print> > methods also help 
+use of the C<L<twig_roots> > and 
+C<L<twig_print_outside_roots> > options. The 
+C<L<finish> > and C<L<finish_print> > methods also help 
 to increase performances.
 
 XML::Twig tries to make simple things easy so it tries its best to takes care 
@@ -9062,22 +9132,22 @@ discarding them once they are processed.
 
 Other useful methods include:
 
-L<att|/att>: C<< $elt->{'att'}->{'foo'} >> return the C<foo> attribute for an 
+L<att>: C<< $elt->{'att'}->{'foo'} >> return the C<foo> attribute for an 
 element,
 
-L<set_att|/set_att> : C<< $elt->set_att( foo => "bar") >> sets the C<foo> 
+L<set_att> : C<< $elt->set_att( foo => "bar") >> sets the C<foo> 
 attribute to the C<bar> value,
 
-L<next_sibling|/next_sibling>: C<< $elt->{next_sibling} >> return the next sibling
+L<next_sibling>: C<< $elt->{next_sibling} >> return the next sibling
 in the document (in the example C<< $title->{next_sibling} >> is the first
 C<para>, you can also (and actually should) use 
 C<< $elt->next_sibling( 'para') >> to get it 
 
-The document can also be transformed through the use of the L<cut|/cut>, 
-L<copy|/copy>, L<paste|/paste> and L<move|/move> methods: 
+The document can also be transformed through the use of the L<cut>, 
+L<copy>, L<paste> and L<move> methods: 
 C<< $title->cut; $title->paste( after => $p); >> for example
 
-And much, much more, see L<XML::Twig::Elt>.
+And much, much more, see L<XML::Twig::Elt|/XML::Twig::Elt>.
 
 =head2 Processing an XML document chunk by chunk
 
@@ -9088,9 +9158,9 @@ memory-expensive, the expansion factor being often around 10).
 To do this you can define handlers, that will be called once a specific 
 element has been completely parsed. In these handlers you can access the
 element and process it as you see fit, using the navigation and the
-cut-n-paste methods, plus lots of convenient ones like C<L<prefix|/prefix> >.
-Once the element is completely processed you can then C<L<flush|/flush> > it, 
-which will output it and free the memory. You can also C<L<purge|/purge> > it 
+cut-n-paste methods, plus lots of convenient ones like C<L<prefix> >.
+Once the element is completely processed you can then C<L<flush> > it, 
+which will output it and free the memory. You can also C<L<purge> > it 
 if you don't need to output it (if you are just extracting some data from 
 the document for example). The handler will be called again once the next 
 relevant element has been parsed.
@@ -9136,9 +9206,9 @@ You can also trigger a handler on a test on an attribute:
                        );
                   ->parsefile( 'doc.xml');
 
-You can also use C<L<start_tag_handlers|/start_tag_handlers> > to process an 
-element as soon as the start tag is found. Besides C<L<prefix|/prefix> > you
-can also use C<L<suffix|/suffix> >, 
+You can also use C<L<start_tag_handlers> > to process an 
+element as soon as the start tag is found. Besides C<L<prefix> > you
+can also use C<L<suffix> >, 
 
 =head2 Processing just parts of an XML document
 
@@ -9251,16 +9321,16 @@ that you are running, is given by running C<t/zz_dump_config.t>
 =item Whitespaces
 
 Whitespaces that look non-significant are discarded, this behaviour can be 
-controlled using the C<L<keep_spaces|/keep_spaces> >, 
-C<L<keep_spaces_in|/keep_spaces_in> > and 
-C<L<discard_spaces_in|/discard_spaces_in> > options.
+controlled using the C<L<keep_spaces> >, 
+C<L<keep_spaces_in> > and 
+C<L<discard_spaces_in> > options.
 
 =item Encoding
 
 You can specify that you want the output in the same encoding as the input
 (provided you have valid XML, which means you have to specify the encoding
 either in the document or when you create the Twig object) using the 
-C<L<keep_encoding|/keep_encoding> > option
+C<L<keep_encoding> > option
 
 You can also use C<L<output_encoding>> to convert the internal UTF-8 format
 to the required encoding.
@@ -9280,8 +9350,8 @@ us humans.
 XML parsers are supposed to react violently when fed improper XML. 
 XML::Parser just dies.
 
-XML::Twig provides the C<L<safe_parse|/safe_parse> > and the 
-C<L<safe_parsefile|/safe_parsefile> > methods which wrap the parse in an eval
+XML::Twig provides the C<L<safe_parse> > and the 
+C<L<safe_parsefile> > methods which wrap the parse in an eval
 and return either the parsed twig or 0 in case of failure.
 
 =item Private attributes
@@ -9324,7 +9394,7 @@ C<L<XML::Twig::XPath::Elt>>
 
 A twig is a subclass of XML::Parser, so all XML::Parser methods can be
 called on a twig object, including parse and parsefile.
-C<setHandlers> on the other hand cannot be used, see C<L<BUGS|/BUGS> >
+C<setHandlers> on the other hand cannot be used, see C<L<BUGS> >
 
 
 =over 4
@@ -9410,7 +9480,7 @@ handler is called, except a C<_all_> handler which will be called anyway.
 
 If a handler returns a true value and other handlers apply, then the next
 applicable handler will be called. Repeat, rinse, lather..; The exception
-to that rule is when the C<L<do_not_chain_handlers|/do_not_chain_handlers>>
+to that rule is when the C<L<do_not_chain_handlers>>
 option is set, in which case only the first handler will be called.
 
 Note that it might be a good idea to explicitly return a short true value
@@ -9554,7 +9624,7 @@ appeared in the original document, if the handler returns a a C<false> value
 then the start tag will B<not> be printed (so you can print a modified string 
 yourself for example).
 
-Note that you can use the L<ignore|/ignore> method in C<start_tag_handlers> 
+Note that you can use the L<ignore> method in C<start_tag_handlers> 
 (and only there). 
 
 =item end_tag_handlers
@@ -9599,11 +9669,19 @@ the element to ignore is a sibling of elements you are interested in.
 
 Example:
 
-  my $twig= XML::Twig->new( ignore_elts => { elt => 1 });
+  my $twig= XML::Twig->new( ignore_elts => { elt => 'discard' });
   $twig->parsefile( 'doc.xml');
 
 This will build the complete twig for the document, except that all C<elt> 
 elements (and their children) will be left out.
+
+The keys in the hash are triggers, limited to the same subset as 
+C<L<start_tag_handlers>>. The values can be C<discard>, to discard
+the element, C<print>, to output the element as-is, C<string> to 
+store the text of the ignored element(s), including markup, in a field of
+the twig: C<< $t->{twig_buffered_string} >> or a reference to a scalar, in
+which case the text of the ignored element(s), including markup, will be
+stored in the scalar. Any other value will be treated as C<discard>.
 
 
 =item char_handler
@@ -9680,7 +9758,9 @@ Pre-defined filters:
 
 uses either C<Encode>, C<Text::Iconv> or C<Unicode::Map8> and C<Unicode::String>
 or a regexp (which works only with XML::Parser 2.27), in this order, to convert 
-all characters to ISO-8859-1 (aka latin1)
+all characters to ISO-8859-15 (usually latin1 is synonym to ISO-8859-1, but
+in practice it seems that ISO-8859-15, which includes the euro sign, is more 
+useful and probably what most people want).
 
 =item html
 
@@ -9789,7 +9869,7 @@ attributes in a hash (or in a list attribute_name/attribute value).
 
 When this option is used external entities (that are defined) are expanded
 when the document is output using "print" functions such as C<L<print> >,
-C<L<sprint|/sprint> >, C<L<flush|/flush> > and C<L<xml_string|/xml_string> >. 
+C<L<sprint> >, C<L<flush> > and C<L<xml_string> >. 
 Note that in the twig the entity will be stored as an element with a 
 tag 'C<#ENT>', the entity will not be expanded there, so you might want to 
 process the entities before outputting it.
@@ -9831,7 +9911,7 @@ Does not output a prolog (XML declaration and DTD)
 This optional argument gives the name of an attribute that can be used as
 an ID in the document. Elements whose ID is known can be accessed through
 the elt_id method. id defaults to 'id'.
-See C<L<BUGS|/BUGS> >
+See C<L<BUGS> >
 
 =item discard_spaces
 
@@ -10489,7 +10569,7 @@ Performs a (very fast) global change. All elements C<$old_gi> are now
 C<$new_gi>. This is a bit dangerous though and should be avoided if
 < possible, as the new tag might be ignored in subsequent processing.
 
-See C<L<BUGS|/BUGS> >
+See C<L<BUGS> >
 
 =item flush            ($optional_filehandle, %options)
 
@@ -10962,11 +11042,11 @@ C<tag> and C<name> are synonyms of C<gi>.
 
 =item tag
 
-Same as C<L<gi|/gi>>
+Same as C<L<gi>>
 
 =item name
 
-Same as C<L<tag|/tag>>
+Same as C<L<tag>>
 
 =item set_gi         ($tag)
 
@@ -10974,11 +11054,11 @@ Set the gi (tag) of an element
 
 =item set_tag        ($tag)
 
-Set the tag (=C<L<tag|/tag>>) of an element
+Set the tag (=C<L<tag>>) of an element
 
 =item set_name       ($name)
 
-Set the name (=C<L<tag|/tag>>) of an element
+Set the name (=C<L<tag>>) of an element
 
 =item root 
 
@@ -11122,7 +11202,7 @@ returns true (the element) if the element is the first child of its parent
 
 =item is_last_child ($optional_condition)
 
-returns true (the element) if the element is the first child of its parent
+returns true (the element) if the element is the last child of its parent
 (optionally that satisfies the C<$optional_condition>)
 
 =item prev_sibling  ($optional_condition)
@@ -11313,6 +11393,13 @@ Cut all the children of the element (or all of those which satisfy the
 C<$optional_condition>).
 
 Return the list of children 
+
+=item cut_descendants ($optional_condition)
+
+Cut all the descendants of the element (or all of those which satisfy the
+C<$optional_condition>).
+
+Return the list of descendants 
 
 =item copy        ($elt)
 
@@ -11582,7 +11669,7 @@ and newly created ones)
 
 =item mark        ( $regexp, $optional_tag, $optional_attribute_ref)
 
-This method behaves exactly as L<split|/split>, except only the newly created 
+This method behaves exactly as L<split>, except only the newly created 
 elements are returned
 
 =item wrap_children ( $regexp_string, $tag, $optional_attribute_hashref)
@@ -11949,7 +12036,7 @@ set on the wrapping element:
 
 =item insert_new_elt ($opt_position, $tag, $opt_atts_hashref, @opt_content)
 
-Combines a C<L<new|/new> > and a C<L<paste|/paste> >: creates a new element using 
+Combines a C<L<new> > and a C<L<paste> >: creates a new element using 
 C<$tag>, C<$opt_atts_hashref >and C<@opt_content> which are arguments similar 
 to those for C<new>, then paste it, using C<$opt_position> or C<'first_child'>,
 relative to C<$elt>.
@@ -12224,6 +12311,13 @@ and C<< --> >>)
 
 Return the XML string for a comment (C<< <!-- comment --> >>)
 
+Note that an XML comment cannot start or end with a '-', or include '--'
+(http://www.w3.org/TR/2008/REC-xml-20081126/#sec-comments),
+if that is the case (because you have created the comment yourself presumably,
+as it could not be in the input XML), then a space will be inserted before
+an initial '-', after a trailing one or between two '-' in the comment
+(which could presumably mangle javascript "hidden" in an XHTML comment);
+
 =item set_ent ($entity)
 
 Set an (non-expanded) entity (C<#ENT>). C<$entity>) is the entity
@@ -12340,7 +12434,7 @@ The options are passed as a hashref, setting C<escape_gt> to a true value will a
 =item set_id       ($id)
 
 Set the C<id> attribute of the element to the value.
-See C<L<elt_id|/elt_id> > to change the id attribute name
+See C<L<elt_id> > to change the id attribute name
 
 =item id
 
@@ -12596,8 +12690,8 @@ and interesting, not to mention useful, ways to do it.
 =head2 cond
 
 Most of the navigation functions accept a condition as an optional argument
-The first element (or all elements for C<L<children|/children> > or 
-C<L<ancestors|/ancestors> >) that passes the condition is returned.
+The first element (or all elements for C<L<children> > or 
+C<L<ancestors> >) that passes the condition is returned.
 
 The condition is a single step of an XPath expression using the XPath subset
 defined by C<L<get_xpath>>. Additional conditions are:
@@ -12929,10 +13023,10 @@ DTD.
 =item memory leak
 
 If you use a lot of twigs you might find that you leak quite a lot of memory
-(about 2Ks per twig). You can use the C<L<dispose|/dispose> > method to free 
+(about 2Ks per twig). You can use the C<L<dispose> > method to free 
 that memory after you are done.
 
-If you create elements the same thing might happen, use the C<L<delete|/delete>>
+If you create elements the same thing might happen, use the C<L<delete>>
 method to get rid of them.
 
 Alternatively installing the C<Scalar::Util> (or C<WeakRef>) module on a version 
