@@ -2,8 +2,37 @@ $Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
 
-version: 3.35
+version 3.36
 date:
+# minor maintenance release
+added: the use_tidy option to XML::Twig->new, which uses
+       HTML::Tidy to convert HTML to well-formed XHTML, as an
+       alternative to the default conversion which uses
+       HTML::TreeBuilder
+added: XML::Twig::Elt method siblings which returns the
+       siblings of the element
+added: methods att_accessors, elt_accessors and field_accessor
+       as well as the similarly named options when creating an 
+       XML::Twig
+added: set_outer_xml XML::Twig::Elt method
+added: print_to_file on an XML::Twig::Elt
+added: can use the tag[nested] form in twig handlers that
+       triggers on elements 'tag' that include a child 'nested'
+added: aliased the add_to_class XML::Twig::Elt method to add_class,
+       which seems more natural
+added: the remove_class method
+added: made att and class lvalues (in perl 5.6 and up)
+fixed: copy did not copy the empty status of an element
+       RT#31664 spotted by Roland Minner
+       https://rt.cpan.org/Ticket/Display.html?id=31664
+fixed: cut_children would always set the empty status of an element,
+       even if it had children left
+fixed: tests did not pass with HTML::TreeBuilder 3.23_1 due to a
+       change in an error message
+
+
+version: 3.35
+date: 2010-05-15
 # minor maintenance release
 added: the by_file option to xml_grep that limits
        the number of hits per file
