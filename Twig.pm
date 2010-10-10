@@ -97,7 +97,7 @@ my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
 BEGIN
 { 
-$VERSION = '3.36';
+$VERSION = '3.37';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -936,15 +936,24 @@ sub _tidy_html
             { $$xml=~ s{<\?xml.*?\?>}{}g; 
               #warn " fixed xml declaration in the wrong place\n";
             }
-          elsif( $@=~ m{^\s*undefined entity}m)
-            { $$xml=~ s{&(amp;)?Amp;}{&amp;}g; # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped
-              if( _use( 'HTML::Entities::Numbered'))
-                { $$xml=name2hex_xml( $$xml); 
-                }
+          elsif( $@=~ m{undefined entity})
+            { $$xml=~ s{&(amp;)?Amp;}{&amp;}g if $HTML::TreeBuilder::VERSION < 4.00;
+              $$xml=name2hex_xml( $$xml)      if _use( 'HTML::Entities::Numbered');
             }
+          elsif( $@=~ m{&Amp; used in html})
+            # if $Amp; is used instead of &amp; then HTML::TreeBuilder's as_xml is tripped (old version)
+            { $$xml=~ s{&(amp;)?Amp;}{&amp;}g if $HTML::TreeBuilder::VERSION < 4.00; 
+            } 
           elsif( $@=~ m{^\s*not well-formed \(invalid token\)})
-            { if( $$xml=~ m{<img "="&#34;" }) 
-                { $$xml=~ s{<img "="&#34;" }{<img }g; } # happens with <img src="foo.png"" ...
+            { if( $HTML::TreeBuilder::VERSION < 4.00)
+                { $$xml=~ s{&(amp;)?Amp;}{&amp;}g; 
+                  $$xml=~  s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
+                }
+              my $q= '<img "="&#34;" '; # extracted so vim doesn't get confuse
+              if( _use( 'HTML::Entities::Numbered')) { $$xml=name2hex_xml( $$xml); }
+              if( $$xml=~ m{$q}) 
+                { $$xml=~ s{$q}{<img }g; # happens with <img src="foo.png"" ...
+                } 
               else
                 { my $encoding= _encoding_from_meta( $tree);
                   unless( keys %xml_parser_encoding) { %xml_parser_encoding= _xml_parser_encodings(); }
@@ -974,6 +983,9 @@ sub _tidy_html
                     }
                 }
             }
+        elsif( $@=~ m{has an invalid attribute name})
+          { $$xml=~ s{(<[^>]* )(\d+=)"}{$1a$2"}g; # <table 1> comes out as <table 1="1">, "fix the attribute
+          }
       }
   }
 
