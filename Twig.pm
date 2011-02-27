@@ -38,16 +38,16 @@ my $expat_1_95_2=0;
 
 # xml name (leading # allowed)
 # first line is for perl 5.005, second line for modern perl, that accept character classes
-my $REG_NAME       = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*)};     # does not work for leading non-ascii letters
-   $REG_NAME       = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
+my $REG_NAME       = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*)};     # does not work for leading non-ascii letters
+   $REG_NAME       = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
 
 # name or wildcard (* or '') (leading # allowed)
-my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
-   $REG_NAME_W     = q{(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
+my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
+   $REG_NAME_W     = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
 
 # name or wildcard (* or '') (leading # allowed) with optional class
-my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # does not work for leading non-ascii letters
-   $REG_NAME_WC    = q{(?:(?:(?:[[:alpha:]:#])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
+my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # does not work for leading non-ascii letters
+   $REG_NAME_WC    = q{(?:(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
 
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
@@ -97,7 +97,7 @@ my( $PCDATA, $CDATA, $PI, $COMMENT, $ENT, $ELT, $TEXT, $ASIS, $EMPTY, $BUFSIZE);
 
 BEGIN
 { 
-$VERSION = '3.37';
+$VERSION = '3.38';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -783,6 +783,13 @@ sub safe_parseurl_html
     return $@ ? $t->_reset_twig_after_error : $t;
   }
 
+sub parseurl_html
+  { my $t= shift;
+    _use( 'LWP::Simple') or croak "missing LWP::Simple"; 
+    $t->parse_html( LWP::Simple::get( shift()), @_); 
+  }
+
+
 # uses eval to catch the parser's death
 sub safe_parse_html
   { my $t= shift;
@@ -847,7 +854,7 @@ sub _parse_as_xml_or_html
     if( _is_well_formed_xml( $_[0]))
       { $t->parse( @_) }
     else
-      { my $html= _html2xml( $_[0]);
+      { my $html= $t->{use_tidy} ?  _tidy_html( $_[0]) : _html2xml( $_[0]);
         if( _is_well_formed_xml( $html))
           { $t->parse( $html); }
         else
@@ -913,7 +920,7 @@ sub _tidy_html
                          wrap => 0,
                          break_before_br => 0,
                        };
-
+    $options ||= {};
     my $tidy_options= { %$TIDY_DEFAULTS, %$options};
     my $tidy = HTML::Tidy->new( $tidy_options);
     $tidy->ignore( type => 1, type => 2 ); # 1 is TIDY_WARNING, 2 is TIDY_ERROR, not clean
@@ -1366,7 +1373,7 @@ sub _set_level_handler
 sub _set_regexp_handler
   { my( $handlers, $path, $handler, $prev_handler)= @_; 
     # if the expression was a regexp it is now a string (it was stringified when it became a hash key)
-    if( $path=~ m{^\(\?([xism]*)(?:-[xism]*)?:(.*)\)$}) 
+    if( $path=~ m{^\(\?([\^xism]*)(?:-[\^xism]*)?:(.*)\)$}) 
       { my $regexp= qr/(?$1:$2)/; # convert it back into a regexp
         my $sub= sub { my( $stack)= @_; return( $stack->[-1]->{_tag} =~ $regexp ) }; 
         my $handler_data=  { tag=> '*', score => { type => $REGEXP_TRIGGER} , trigger => $sub, 
@@ -5522,9 +5529,12 @@ sub next_sibling
   }
 
 # methods dealing with the class attribute, convenient if you work with xhtml
-sub class     
+sub class   {   $_[0]->{att}->{class}; }
+# lvalue version of class. separate from class to avoid problem like RT#
+sub lclass     
           :lvalue    # > perl 5.5
-{ my( $elt)= @_; $elt->{'att'}->{'class'}; }
+  { $_[0]->{att}->{class}; }
+
 sub set_class { my( $elt, $class)= @_; $elt->set_att( class => $class); }
 
 # adds a class to an element
@@ -5611,9 +5621,12 @@ sub set_att
     return $elt;
   }
  
-sub att 
+sub att {  $_[0]->{att}->{$_[1]}; }
+# lvalue version of att. separate from class to avoid problem like RT#
+sub latt 
           :lvalue    # > perl 5.5
-{ $_[0]->{att}->{$_[1]}; }
+  { $_[0]->{att}->{$_[1]}; }
+
 sub del_att 
   { my $elt= shift;
     while( @_) { delete $elt->{'att'}->{shift()}; }
@@ -7327,22 +7340,25 @@ sub mark
       my $replacement_string;
       my $is_string= _is_string( $replace);
       foreach my $text_elt ($elt->descendants_or_self( $TEXT))
-        { if( $is_string)
+        { 
+          if( $is_string)
             { my $text= $text_elt->text;
               $text=~ s{$regexp}{ _replace_var( $replace, $1, $2, $3, $4, $5, $6, $7, $8, $9)}egx;
               $text_elt->set_text( $text);
            }
           else
-            { 
+            {  
               no utf8; # = perl 5.6
               my $replace_sub= ( $replace_sub{$replace} ||= _install_replace_sub( $replace)); 
               my $text= $text_elt->text;
               my $pos=0;  # used to skip text that was previously matched
+              my $found_hit;
               while( my( $pre_match_string, $match_string, @var)= ($text=~ m{(.*?)($regexp)}sg))
-                { my $match_start  = length( $pre_match_string);
-                  my $match        = $text_elt->split_at( $match_start + $pos);
+                { $found_hit=1;
+                  my $match_start  = length( $pre_match_string);
+                  my $match        = $match_start ? $text_elt->split_at( $match_start + $pos) : $text_elt;
                   my $match_length = length( $match_string);
-                  my $post_match   = $match->split_at( $match_length);
+                  my $post_match   = $match->split_at( $match_length); 
                   $replace_sub->( $match, @var);
                   # merge previous text with current one
                   my $next_sibling;
@@ -7357,21 +7373,12 @@ sub mark
                   # go to next 
                   $text_elt= $post_match;
                   $text= $post_match->text;
-                  # merge last text element with next one if needed,
-                  # the match will be against the non-matched text,
-                  # so $pos is used to skip the merged part
-                  my $prev_sibling;
-                  if(    ($prev_sibling=  $post_match->{prev_sibling})
-                      && ($XML::Twig::index2gi[$post_match->{'gi'}] eq $XML::Twig::index2gi[$prev_sibling->{'gi'}])
-                    )
-                    { $pos= length( $prev_sibling->text);
-                      $prev_sibling->merge_text( $post_match); 
-                    }
 
                   # if the match is at the end of the text an empty #PCDATA is left: remove it 
                   if( !$text_elt->text) { $text_elt->delete; } 
                   
                 }
+              if( $found_hit) { $text_elt->normalize; } # in case consecutive #PCDATA have been created 
               
             }
         }
@@ -7392,22 +7399,22 @@ sub mark
   sub _install_replace_sub
     { my $replace_exp= shift;
       my @item= split m{(&e[ln]t\s*\([^)]*\))}, $replace_exp;
-      my $sub= q{ my( $match, @var)= @_; unshift @var, undef; my $new; };
+      my $sub= q{ my( $match, @var)= @_; my $new; my $last_inserted=$match;};
       my( $gi, $exp);
       foreach my $item (@item)
-        { if(    $item=~ m{^&elt\s*\(([^)]*)\)})
-            { $exp= $1;
-            }
+        { next if ! length $item;
+          if(    $item=~ m{^&elt\s*\(([^)]*)\)})
+            { $exp= $1; }
           elsif( $item=~ m{^&ent\s*\(\s*([^\s)]*)\s*\)})
             { $exp= " '#ENT' => $1"; }
           else
             { $exp= qq{ '#PCDATA' => "$item"}; }
-          $exp=~ s{\$(\d)}{\$var[$1]}g; # replace references to matches
+          $exp=~ s{\$(\d)}{my $i= $1-1; "\$var[$i]"}eg; # replace references to matches
           $sub.= qq{ \$new= \$match->new( $exp); };
-          $sub .= q{ $new->paste( before => $match); };
+          $sub .= q{ $new->paste( after => $last_inserted); $last_inserted=$new;};
         }
       $sub .= q{ $match->delete; };
-      #$sub=~ s/;/;\n/g;
+      #$sub=~ s/;/;\n/g; warn "subs: $sub"; 
       my $coderef= eval "sub { $NO_WARNINGS; $sub }";
       if( $@) { croak( "invalid replacement expression $replace_exp: ",$@); }
       return $coderef;
@@ -8440,6 +8447,7 @@ sub _is_private_name { return $_[0]=~ m{^#(?!default:)};                }
 
 } # end of block containing package globals ($pretty_print, $quotes, keep_encoding...)
 
+# merges consecutive #PCDATAs in am element
 sub normalize
   { my( $elt)= @_;
     my @descendants= $elt->descendants( $PCDATA);
@@ -10486,13 +10494,15 @@ newlines are removed, and (at least on the version I use), comments
 get get an extra CDATA section inside ( <!-- foo --> becomes
 <!-- <![CDATA[ foo ]]> -->
 
-=item parsefile_html
+=item parsefile_html ($file)
 
 parse an HTML file (by converting it to XML using HTML::TreeBuilder, which 
-needs to be available). The file is loaded completely in memory and converted
-to XML before being parsed.
+needs to be available, or HTML::Tidy if the C<use_tidy> option was used).
+The file is loaded completely in memory and converted to XML before being parsed.
 
-B<Alpha>: implementation, and thus generated XML could change. 
+=item parseurl_html ($url $optional_user_agent)
+
+parse an URL as html the same way C<L<parse_html>> does
 
 =item safe_parseurl_html ($url $optional_user_agent)
 
@@ -11546,7 +11556,11 @@ Return the element if it passes the C<$condition>
 
 Return the value of attribute C<$att> or C<undef>
 
-this method is an lvalue, so you can do C<< $elt->{'att'}->{'foo'}= 'bar' >>
+=item latt          ($att)
+
+Return the value of attribute C<$att> or C<undef>
+
+this method is an lvalue, so you can do C<< $elt->latt( 'foo')= 'bar' >> or C<< $elt->latt( 'foo')++; >>
 
 =item set_att      ($att, $att_value)
 
@@ -12665,7 +12679,10 @@ Return the C<class> attribute for the element (methods on the C<class>
 attribute are quite convenient when dealing with XHTML, or plain XML that
 will eventually be displayed using CSS)
 
-this method is an lvalue, so you can do C<< $elt->class= "foo" >>
+=item lclass
+
+same as class, except that
+this method is an lvalue, so you can do C<< $elt->lclass= "foo" >>
 
 =item set_class ($class)
 

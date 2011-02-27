@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               XML-Twig
-version:            3.37
+version:            3.38
 abstract:           XML, The Perl Way
 author:
     - Michel Rodriguez <mirod@xmltwig.com>

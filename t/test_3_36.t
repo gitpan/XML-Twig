@@ -12,7 +12,7 @@ my $DEBUG=0;
  
 use XML::Twig;
 
-my $TMAX=66;
+my $TMAX=67;
 print "1..$TMAX\n";
 
 { my $doc=q{<d><s id="s1"><t>title 1</t><s id="s2"><t>title 2</t></s><s id="s3"></s></s><s id="s4"></s></d>};
@@ -84,19 +84,22 @@ print "1..$TMAX\n";
 
 { if( $] >= 5.006)
     { my $t= XML::Twig->parse( q{<d><e/></d>});
-      $t->first_elt( 'e')->att( 'a')= 'b';
+      $t->first_elt( 'e')->latt( 'a')= 'b';
       is( $t->sprint, q{<d><e a="b"/></d>}, 'lvalued attribute (no attributes)');
-      $t->first_elt( 'e')->att( 'c')= 'd';
+      $t->first_elt( 'e')->latt( 'c')= 'd';
       is( $t->sprint, q{<d><e a="b" c="d"/></d>}, 'lvalued attribute (attributes)');
-      $t->first_elt( 'e')->att( 'c')= '';
+      $t->first_elt( 'e')->latt( 'c')= '';
       is( $t->sprint, q{<d><e a="b" c=""/></d>}, 'lvalued attribute (modifying existing attributes)');
-      $t->root->class= 'foo';
+      $t->root->lclass= 'foo';
       is( $t->sprint, q{<d class="foo"><e a="b" c=""/></d>}, 'lvalued class (new class)');
-      $t->root->class=~ s{fo}{tot};
+      $t->root->lclass=~ s{fo}{tot};
       is( $t->sprint, q{<d class="toto"><e a="b" c=""/></d>}, 'lvalued class (modify class)');
+      $t= XML::Twig->parse( '<d a="1"/>');
+      $t->root->latt( 'a')++;
+      is( $t->sprint, '<d a="2"/>', '++ on attribute');
     }
   else
-    { skip( 5 => "cannot use lvalued attributes with perl $]"); }
+    { skip( 6 => "cannot use lvalued attributes with perl $]"); }
 }
 
 # used for all HTML parsing tests with HTML::Tidy 
@@ -112,7 +115,6 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
     }
   else
     {
-
       my $doc= '<html><head><title>a title</title></head><body>par 1<p>par 2<br>after the break</body></html>';
       my $t= XML::Twig->new( use_tidy => 1)->parse_html( $doc);
       my $inner= '<ul><li>foo</li><li>bar</li></ul>';
@@ -240,7 +242,7 @@ my $NS= 'xmlns="http://www.w3.org/1999/xhtml"';
 
 { if( XML::Twig::_use( 'HTML::TreeBuilder'))
     { my $html_with_Amp= XML::Twig->new->parse_html( '<html><head></head><body>&Amp;</body></html>')->sprint;
-      if( $HTML::TreeBuilder::VERSION < 4.00)
+      if( $HTML::TreeBuilder::VERSION <= 3.23)
         { is( $html_with_Amp, '<html><head></head><body>&amp;</body></html>', '&Amp; used in html (fixed HTB < 4.00)'); }
       else
         { is( $html_with_Amp, '<html><head></head><body>&amp;Amp;</body></html>', '&Amp; used in html (NOT fixed HTB > r.00)'); }
