@@ -1,22 +1,51 @@
 $Id: /xmltwig/trunk/Changes 33 2008-04-30T08:03:41.004487Z mrodrigu  $
 
 CHANGES
+version 3.40
+date: 2012-05-10
+# minor maintenance release
+added: support for alternations ('|') at the top level of handler
+       triggers and navigation
+       you can now have twig_handlers => { 't1|t2' => \&handler }
+       and $elt->children( 't1|t2')
+added: the discard_all_spaces option that discards more aggressively
+       non-significant white spaces
+       see RT #71164 https://rt.cpan.org/Ticket/Display.html?id=71164 
+fixed: used $[ instead of $] in 3 tests,
+       see RT#72765 https://rt.cpan.org/Ticket/Display.html?id=72765
+       reported by Kevin Ryde
+fixed: did not use Text::Wrap with indented_c
+       see RT #71375 https://rt.cpan.org/Ticket/Display.html?id=71375
+       reported and patch provided by Martin Strömberg 
+fixed: doc change for XML::Twig::Elt flush, see RT #72279
+       https://rt.cpan.org/Ticket/Display.html?id=72279
+fixed: replaced HTML::TreeBuilder::as_XML with am XML::Twig specific
+       version, to avoid bugs in the original version and improve
+       stability of the output
+       
+
+version 3.39
+date: 2011-09-22
+# minor maintenance release
+fixed: xml_pp -i would blank all files after the first one 
+       thanks to dvercande for spotting this 
+added: findvalues method (XML::Twig and XML::Twig::Elt)
+       same as findvalue except that it returns an array of value
+added: the output_html_doctype option to XML::Twig::new, that
+       outputs the DOCTYPE declaration for HTML docs converted
+       by HTML::TreeBuilder (fixing it if necessary)
+       see RT #71009: https://rt.cpan.org/Ticket/Display.html?id=71009
+fixed: t/test_autoencoding_conversion.t failed with $PERL_UNICODE
+       set to SA* (which prevents autoconversion)
+       reported by Martin J Evans, RT #71084
+       https://rt.cpan.org/Ticket/Display.html?id=71084 
+
 version 3.38
-date: 2011-07-27
+date: 2011-02-27
 # minor maintenance release
 fixed: RT 65865: _ should be allowed at the start on an XML name
        https://rt.cpan.org/Ticket/Display.html?id=65865
        reported by Steve Prokopowich
-removed: making att and class lvalues created problems: in certain
-       context they made regular calls to the method create empty 
-       attributes. I could find no satisfactory fix,they were either
-       incompletes, or to complex for often used methods. So att and
-       class are back to being regular, non l-value methods. 
-       latt and lclass are the l-value versions.
-added: documented the -html option for xml_grep, that allows processing
-       HTML input
-added: the -Tidy option to xml_grep, that uses HTML::Tidy to convert
-       HTML to XML
 
 version 3.37
 date: 2010-10-08

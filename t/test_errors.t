@@ -14,7 +14,7 @@ use tools;
 
 use XML::Twig;
 
-my $TMAX=110; 
+my $TMAX=118; 
 print "1..$TMAX\n";
 
 my $error_file= File::Spec->catfile('t','test_errors.errors');
@@ -84,17 +84,28 @@ my $init_warn= $SIG{__WARN__};
 }
 
 { eval {XML::Twig->new( keep_spaces => 1, discard_spaces => 1 )};
-  matches( $@, "cannot use both keep_spaces and discard_spaces", "invalid option combination 1");
+  matches( $@, "cannot use both keep_spaces and discard_spaces", "invalid option combination keep_spaces and discard_spaces");
+  eval {XML::Twig->new( keep_spaces => 1, discard_all_spaces => 1 )};
+  matches( $@, "cannot use both keep_spaces and discard_all_spaces", "invalid option combination keep_spaces and discard_all_spaces");
   eval {XML::Twig->new( keep_spaces => 1, keep_spaces_in => ['p'])};
-  matches( $@, "cannot use both keep_spaces and keep_spaces_in", "invalid option combination 2");
+  matches( $@, "cannot use both keep_spaces and keep_spaces_in", "invalid option combination keep_spaces and keep_spaces_in");
+  eval {XML::Twig->new( discard_spaces => 1, discard_all_spaces => 1)};
+  matches( $@, "cannot use both discard_spaces and discard_all_spaces", "invalid option combination discard_spaces and discard_all_spaces");
   eval {XML::Twig->new( discard_spaces => 1, keep_spaces_in => ['p'])};
-  matches( $@, "cannot use both discard_spaces and keep_spaces_in", "invalid option combination 3");
+  matches( $@, "cannot use both discard_spaces and keep_spaces_in", "invalid option combination discard_spaces and keep_spaces_in");
   eval {XML::Twig->new( keep_spaces_in => [ 'doc' ], discard_spaces_in => ['p'])};
-  matches( $@, "cannot use both keep_spaces_in and discard_spaces_in", "invalid option combination 4");
+  matches( $@, "cannot use both keep_spaces_in and discard_spaces_in", "invalid option combination keep_spaces_in and discard_spaces_in");
+  eval {XML::Twig->new( discard_spaces => 1, discard_spaces_in => ['p'])};
+  matches( $@, "cannot use both discard_spaces and discard_spaces_in", "invalid option combination discard_spaces and discard_spaces_in");
+  eval {XML::Twig->new( keep_spaces_in => [ 'doc' ], discard_all_spaces => 1)};
+  matches( $@, "cannot use both keep_spaces_in and discard_all_spaces", "invalid option combination keep_spaces_in and discard_all_spaces");
+  eval {XML::Twig->new( discard_all_spaces => 1, discard_spaces_in => ['p'])};
+  matches( $@, "cannot use both discard_all_spaces and discard_spaces_in", "invalid option combination discard_all_spaces and discard_spaces_in");
   eval {XML::Twig->new( comments => 'wrong') };
   matches( $@, "wrong value for comments argument: 'wrong'", "invalid option value for comment");
   eval {XML::Twig->new( pi => 'wrong') };
   matches( $@, "wrong value for pi argument: 'wrong'", "invalid option value for pi");
+
 }
 
 { my $t=XML::Twig->new->parse( '<doc><p> p1</p><p>p 2</p></doc>');
@@ -137,6 +148,11 @@ my $init_warn= $SIG{__WARN__};
     { eval { $t->root->first_child( qq{$bad_cond})};
       matches( $@, "wrong navigation condition '\Q$bad_cond\E'", "bad navigation condition '$bad_cond'");
     }
+}
+
+{ my $t= XML::Twig->new->parse( '<doc/>');
+  eval { XML::Twig->parse( twig_handlers => { q{foo[@a="$sd"]} => sub {  } }, "<foo/>"); };
+  matches( $@, "^wrong handler condition", 'perl syntax in attribute value');
 }
 
 { my $t= XML::Twig->new->parse( '<doc><field/></doc>');
@@ -304,6 +320,16 @@ my $init_warn= $SIG{__WARN__};
 
       matches( slurp( $error), "cannot parse the output of a pipe", 'parse a pipe with perlIO layer set to UTF8 (RT #17500)');
     }
+}
+
+{ my $e1= XML::Twig::Elt->new( 'foo');
+  my $e2= XML::Twig::Elt->new( 'foo');
+
+  eval { $e1->paste_before( $e2); };
+  matches( $@, "cannot paste before an orphan element", 'paste before an orphan element' );
+
+  eval { $e1->paste_after( $e2); };
+  matches( $@, "cannot paste after an orphan element", 'paste after an orphan element' );
 }
 
 exit 0;

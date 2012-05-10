@@ -64,7 +64,7 @@ print "1..$TMAX\n";
     { my $t= XML::Twig->nparse( '<doc><sect><elt/></sect></doc>');
       $sect= $t->root->first_child( 'sect');
     }
-  unless( $XML::Twig::weakrefs) { $sect->cut; } # or the twig is not destroyed
+  $sect->cut;
   is( $sect->get_xpath( './elt', 0)->sprint, '<elt/>', " XPath query ok");
   eval { $sect->get_xpath( '/doc/elt'); };
   matches( $@, qr/^cannot use an XPath query starting with a \/ on a node not attached to a whole twig/, "XPath query starting with a /")
@@ -227,21 +227,31 @@ print "1..$TMAX\n";
 if( _use( 'HTML::TreeBuilder', 4.00) )
   { # first alternative is pre-3.23_1, second one with 3.23_1 (and beyond?)
     
-    { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p>\</body></html>};
-      eval { XML::Twig->nparse( $doc); };
-      ok( $@, "error in html (normal mode, HTB < 2.23 or >= 4.00): $@"); 
-      eval { XML::Twig->nparse_e( $doc); };
-      ok( $@, "error in html (nparse_e mode): $@"); 
+    { my $doc=qq{<html><head><meta 555="er"/></head><body><p>dummy</p></body></html>};
+      is_like( XML::Twig->nparse( $doc)->sprint, '<html><head><meta a555="er"/></head><body><p>dummy</p></body></html>', 'invalid att');
+      is_like( XML::Twig->nparse_e( $doc)->sprint, '<html><head><meta a555="er"/></head><body><p>dummy</p></body></html>', 'invalid att (nparse_e)');
     }
     
-    { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a">dummy</p></body></html>};
-      eval { XML::Twig->nparse_e( $doc); };
-      ok( $@, "error in html (nparse_e mode 2, HTB < 3.23 or >= 4.00: $@)");
+    { my $doc=qq{<html><head></head><body><!-- <foo> bar </foo> --><p 1="a" c!ass="duh">dummy</p></body></html>};
+      # used to trigger an error, now XML::Twig is fault tolerant to bad attributes
+      #eval { XML::Twig->nparse_e( $doc); };
+      #ok( $@, "error in html (nparse_e mode 2, HTB < 3.23 or >= 4.00: $@)");
+      is_like( XML::Twig->nparse_e( $doc)->sprint,
+               '<html><head></head><body><!-- <foo> bar </foo> --><p a1="a" cass="duh">dummy</p></body></html>', 
+               'wrong attributes, nparse_e mode 2, HTB < 3.23 or >= 4.00'
+             ); 
+      
     }
     
-    { my $doc=qq{<html><head></head><body><![CDATA[  <foo> bar </foo>  ]]>\n\n<p 1="a">dummy</p></body>\n</html>};
-      eval { XML::Twig->nparse_e( $doc); };
-      ok( $@, "error in html (nparse_e mode 3, HTB < 3.23 or >= 4.00: $@)");
+    { my $doc=qq{<html><head><script type="text/javascript"><![CDATA[ a>b || a<b ]]></script></head><body c!ass="foo"><p 1="a">dummy</p></body></html>};
+      # used to trigger an error, now XML::Twig is fault tolerant to bad attributes
+      #eval { XML::Twig->nparse_e( $doc); };
+      #ok( $@, "error in html (nparse_e mode 3, HTB < 3.23 or >= 4.00: $@)");
+      is_like( XML::Twig->nparse_e( $doc)->sprint,
+               '<html><head><script type="text/javascript"><![CDATA[ a>b || a<b]]></script></head><body cass="foo"><p a1="a">dummy</p></body></html>', 
+               'wrong attributes, nparse_e mode 2, HTB < 3.23 or >= 4.00'
+             ); 
+      
     }
   }
 else

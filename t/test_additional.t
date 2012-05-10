@@ -819,8 +819,8 @@ is( $elt->first_child_text, "text bold text more text and text  even more text",
 
 # more tests on subs_text
 { 
-my $doc='<doc><p>link to http://www.xmltwig.com but do not link to http://bad.com, though link to toto and link to http://www.xml.com</p><p>now http://www.nolink.com and do not link to this and do not link to http://www.bad.com and do not link to http://www.bad2.com and link to http://link.com also</p></doc>';
-my $expected='<doc><p>see <a href="http://www.xmltwig.com">www.xmltwig.com</a> but do not link to http://bad.com, though link to toto and see <a href="http://www.xml.com">www.xml.com</a></p><p>now http://www.nolink.com and do not link to this and do not link to http://www.bad.com and do not link to http://www.bad2.com and see <a href="http://link.com">link.com</a> also</p></doc>';
+my $doc='<doc><p>link to http://www.xmltwig.org but do not link to http://bad.com, though link to toto and link to http://www.xml.com</p><p>now http://www.nolink.com and do not link to this and do not link to http://www.bad.com and do not link to http://www.bad2.com and link to http://link.com also</p></doc>';
+my $expected='<doc><p>see <a href="http://www.xmltwig.org">www.xmltwig.org</a> but do not link to http://bad.com, though link to toto and see <a href="http://www.xml.com">www.xml.com</a></p><p>now http://www.nolink.com and do not link to this and do not link to http://www.bad.com and do not link to http://www.bad2.com and see <a href="http://link.com">link.com</a> also</p></doc>';
 my $t= XML::Twig->new->parse( $doc);
 my $got= $t->subs_text( qr{(?<!do not )link to (http://(\S+[\w/]))}, 'see &elt( a =>{ href => $1 }, $2)');
 is( $got->sprint, $expected, 'complex substitution with subs_text');# test 284
@@ -1265,8 +1265,8 @@ sub rot13 { $_[0]=~ tr/a-z/n-za-m/; $_[0]; }
       $t->root->toSAX1( $writer);
       is( normalize_xml( $writer->end_document), $doc, 'root toSAX1');# test 360
 
-      my $doc_flush="<doc><p>p 1</p><add/><p/><p>text<flush/> more text</p></doc>";
-      my $doc_flushed=qq{<?xml version="1.0" encoding="UTF-8"?><doc><p>p 1</p><add/><g>a</g><p/><p>text<flush/> more text</p></doc>};
+      my $doc_flush='<!DOCTYPE doc [<!ENTITY foo "bar">]><doc><p>p 1</p><add/><p/><p>text<flush/> more text &foo; </p></doc>';
+      my $doc_flushed=qq{<?xml version="1.0" encoding="UTF-8"?><doc><p>p 1</p><add/><g>a</g><p/><p>text<flush/> more text bar </p></doc>};
       $writer = XML::Handler::YAWriter->new( AsString => 1, Pretty => { CatchEmptyElement => 1 });
       $writer->start_document;
 

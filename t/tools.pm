@@ -134,6 +134,18 @@ if( grep /^-v$/, @ARGV) { $DEBUG= 1; }
 
     }
 
+  sub sys_nok
+    { my $message=pop;
+      $test_nb++; 
+      my $status= system join " ", @_, "2>$devnull";
+      if( $status)
+        { print "ok $test_nb"; 
+          print " $message" if( $DEBUG); 
+          print "\n";
+        }
+      else { print "not ok $test_nb\n"; warn "$message: $!\n"; }
+
+    }
 
 
   sub is_like
@@ -354,10 +366,13 @@ sub string_ent_text
 sub _use
   { my( $module, $version)= @_;
     $version ||= 0;
+    $version=~ s{^\s*(\d+\.\d+).*}{$1}; # trim version numbers like 2.42_01 
     if( eval "require $module") { import $module; 
                                   no strict 'refs';
-                                  if( ${"${module}::VERSION"} >= $version ) { return 1; }
-                                  else                                      { return 0; }
+                                  my $mversion= ${"${module}::VERSION"};
+                                  $mversion=~ s{^\s*(\d+\.\d+).*}{$1}; # trim version numbers like 2.42_01 
+                                  if( $mversion >= $version ) { return 1; }
+                                  else                        { return 0; }
                                 }
   }
 
