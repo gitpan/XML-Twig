@@ -56,19 +56,22 @@ is( $t->sprint, '<d><x class="foo">foo</x> b<a class="ar">ar</a> <x class="fooo"
 
   my $t= XML::Twig->new->parse( $well_formed);
   is_like( $t->sprint, $well_formed, 'valid xhtml');
-  my $th= XML::Twig->new->parse_html( $well_formed);
-  is_like( $t->sprint, $well_formed, 'valid xhtml (parsed as html)');
+  if( _use( 'HTML::TreeBuilder'))
+    { my $th= XML::Twig->new->parse_html( $well_formed);
+      is_like( $t->sprint, $well_formed, 'valid xhtml (parsed as html)');
 
-  
+      my $t3= XML::Twig->new->parse_html( $short_doctype);
+      is_like( $t3->sprint, $html, 'xhtml without SYSTEM in DOCTYPE (parsed as html, no DOCTYPE output)');
+
+      my $t4= XML::Twig->new( output_html_doctype => 1)->parse_html( $short_doctype);
+      is_like( $t4->sprint, $well_formed, 'xhtml without SYSTEM in DOCTYPE (parsed as html, with proper DOCTYPE output)');
+    }
+  else
+    { skip( 3); }
 
   my $t2= XML::Twig->new->safe_parse( $short_doctype);
   nok( $t2, 'xhtml without SYSTEM in DOCTYPE');
 
-  my $t3= XML::Twig->new->parse_html( $short_doctype);
-  is_like( $t3->sprint, $html, 'xhtml without SYSTEM in DOCTYPE (parsed as html, no DOCTYPE output)');
-
-  my $t4= XML::Twig->new( output_html_doctype => 1)->parse_html( $short_doctype);
-  is_like( $t4->sprint, $well_formed, 'xhtml without SYSTEM in DOCTYPE (parsed as html, with proper DOCTYPE output)');
 
 }
 

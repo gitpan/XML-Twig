@@ -65,6 +65,10 @@ my $REG_COMP       = q{(?:>=|<=|!=|<|>|=)};
 
 my $REG_TAG_IN_PREDICATE= $REG_NAME . q{(?=\s*(?i:and\b|or\b|\]|$))};
 
+# keys in the context stack, chosen not to interfere with att names, even private (#-prefixed) ones
+my $ST_TAG = '##tag';
+my $ST_ELT = '##elt';
+my $ST_NS  = '##ns' ;
 
 # used in the handler trigger code
 my $REG_NAKED_PREDICATE= qq{((?:"[^"]*"|'[^']*'|$REG_STRING_ARG|$REG_FUNCTION|\@$REG_NAME_W|$REG_MATCH\\s*$REG_REGEXP|[\\s\\d><=!()+.-]|(?i:and)|(?i:or)|$REG_TAG_IN_PREDICATE)*)};
@@ -120,7 +124,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.40';
+$VERSION = '3.41';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -1467,13 +1471,12 @@ sub _set_handler
         || _set_xpath_handler           ( $handlers, $path, $handler, $prev_handler)
         || croak "unrecognized expression in handler: '$whole_path'";
     
+        # this both takes care of the simple (gi) handlers and store
+        # the handler code reference for other handlers
         $handlers->{handlers}->{string}->{$path}= $handler;
       }
 
     if( $cpath) { croak "unrecognized expression in handler: '$whole_path'"; }
-
-    # this both takes care of the simple (gi) handlers and store
-    # the handler code reference for other handlers
 
     return $prev_handler;
   }
@@ -1542,7 +1545,7 @@ sub _set_level_handler
   { my( $handlers, $path, $handler, $prev_handler)= @_;
     if( $path =~ m{^ \s* level \s* \( \s* ([0-9]+) \s* \) \s* $}ox )
       { my $level= $1;
-        my $sub= sub { my( $stack)= @_; return( ($stack->[-1]->{_tag} !~ m{^#}) && (scalar @$stack == $level + 1) ) }; 
+        my $sub= sub { my( $stack)= @_; return( ($stack->[-1]->{$ST_TAG} !~ m{^#}) && (scalar @$stack == $level + 1) ) }; 
         my $handler_data=  { tag=> '*', score => { type => $LEVEL_TRIGGER}, trigger => $sub, 
                              path => $path, handler => $handler, test_on_text => 0
                            };
@@ -1558,7 +1561,7 @@ sub _set_regexp_handler
     # if the expression was a regexp it is now a string (it was stringified when it became a hash key)
     if( $path=~ m{^\(\?([\^xism]*)(?:-[\^xism]*)?:(.*)\)$}) 
       { my $regexp= qr/(?$1:$2)/; # convert it back into a regexp
-        my $sub= sub { my( $stack)= @_; return( $stack->[-1]->{_tag} =~ $regexp ) }; 
+        my $sub= sub { my( $stack)= @_; return( $stack->[-1]->{$ST_TAG} =~ $regexp ) }; 
         my $handler_data=  { tag=> '*', score => { type => $REGEXP_TRIGGER} , trigger => $sub, 
                              path => $path, handler => $handler, test_on_text => 0 
                            };
@@ -1714,7 +1717,7 @@ sub _tag_cond
   { my( $full_tag)= @_;
 
     my( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef);
-    my $tag_cond= $tag && $tag ne '*' ? qq#(\$elt->{_tag} eq "$tag")# : '';
+    my $tag_cond= $tag && $tag ne '*' ? qq#(\$elt->{'$ST_TAG'} eq "$tag")# : '';
     my $class_cond= defined $class ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
     my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond));
     
@@ -1751,29 +1754,29 @@ sub _parse_predicate_in_handler
                if( $func || $str_regexp || $str_test_num || $str_test_alpha ) { $flag->{test_on_text}= 1;   }
 
                if( defined $str)      { $token }
-               elsif( $tag)           { qq{(\$elt->{_elt} && \$elt->{_elt}->has_child( '$tag'))} }
-               elsif( $att)           { $att=~ m{^#} ? qq{ (\$elt->{_elt} && \$elt->{_elt}->{att}->{'$att'})}
+               elsif( $tag)           { qq{(\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->has_child( '$tag'))} }
+               elsif( $att)           { $att=~ m{^#} ? qq{ (\$elt->{'$ST_ELT'} && \$elt->{'$ST_ELT'}->{att}->{'$att'})}
                                                      : qq{\$elt->{'$att'}}
                                       }
                                         # for some reason Devel::Cover flags the following lines as not tested. They are though.
-               elsif( $bare_att)      { $bare_att=~ m{^#} ? qq{(\$elt->{_elt} && defined(\$elt->{_elt}->{att}->{'$bare_att'}))}
+               elsif( $bare_att)      { $bare_att=~ m{^#} ? qq{(\$elt->{'$ST_ELT'} && defined(\$elt->{'$ST_ELT'}->{att}->{'$bare_att'}))}
                                                           : qq{defined( \$elt->{'$bare_att'})}
                                       }
                elsif( $num_test && ($num_test eq '=') ) { "==" } # others tests are unchanged
                elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                elsif( $func && $func=~ m{^string})
-                                      { "\$elt->{_elt}->text"; }
+                                      { "\$elt->{'$ST_ELT'}->text"; }
                elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
-                                      { "defined( _first_n {  \$_->text $2 $3 } 1, \$elt->{_elt}->_children( '$1'))"; }
+                                      { "defined( _first_n {  \$_->text $2 $3 } 1, \$elt->{'$ST_ELT'}->_children( '$1'))"; }
                elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
                                       { my( $tag, $op, $str)= ($1, $2, $3);
                                         $str=~ s{(?<=.)'(?=.)}{\\'}g; # escape a quote within the string 
                                         $str=~ s{^"}{'};
                                         $str=~ s{"$}{'};
-                                        "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{_elt}->children( '$tag'))"; }
+                                        "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{'$ST_ELT'}->children( '$tag'))"; }
                elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
                                       { my $test= ($2 eq '=') ? '==' : $2;
-                                        "defined( _first_n { \$_->text $test $3 } 1, \$elt->{_elt}->children( '$1'))"; 
+                                        "defined( _first_n { \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))"; 
                                       }
                elsif( $and_or)        { $score->{tests}++; $and_or eq 'and' ? '&&' : '||' ; }
                else                   { $token; }
@@ -1940,7 +1943,7 @@ sub _reset_twig
     delete $t->{twig_stored_space};
     delete $t->{twig_entity_list};
     $t->root->delete if( $t->root);
-    delete $t->{root};
+    delete $t->{twig_root};
     return $t;
   }
 
@@ -1963,15 +1966,15 @@ sub _add_or_discard_stored_spaces
         else
           { my $current_gi= $XML::Twig::index2gi[$current->{'gi'}];
 
-            if( $t->{twig_discard_all_spaces}) { $t->{twig_stored_spaces}=''; return; }
+            if( ! $t->{twig_discard_all_spaces}) 
+              { if( ! defined( $t->{twig_space_policy}->{$current_gi}))
+                  { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
 
-            if( ! defined( $t->{twig_space_policy}->{$current_gi}))
-              { $t->{twig_space_policy}->{$current_gi}= _space_policy( $t, $current_gi); }
-
-            if(    $t->{twig_space_policy}->{$current_gi} ||  ($t->{twig_stored_spaces}!~ m{\n})
-                || $t->{twig_preserve_space}
-              )
-              { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
+                if(    $t->{twig_space_policy}->{$current_gi} ||  ($t->{twig_stored_spaces}!~ m{\n})
+                    || $t->{twig_preserve_space}
+                  )
+                  { _insert_pcdata( $t, $t->{twig_stored_spaces} ); }
+              }
             $t->{twig_stored_spaces}='';
 
           }
@@ -2019,14 +2022,17 @@ sub _twig_start
         foreach my $att (@att) { $att= $filter->($att); } 
       }
 
-    if( $t->{twig_map_xmlns}) { _replace_ns( $t, \$gi, \@att); }
+    my $ns_decl;
+    if( $t->{twig_map_xmlns}) 
+      { $ns_decl= _replace_ns( $t, \$gi, \@att); }
 
     my $elt= $t->{twig_elt_class}->new( $gi);
     $elt->set_atts( @att);
- 
+
     # now we can store the tag and atts
-    my $context= { _tag => $gi, _elt => $elt, @att};
-    if( $weakrefs) { weaken( $context->{_elt}); }
+    my $context= { $ST_TAG => $gi, $ST_ELT => $elt, @att};
+    $context->{$ST_NS}= $ns_decl if $ns_decl; 
+    if( $weakrefs) { weaken( $context->{$ST_ELT}); }
     push @{$t->{_twig_context_stack}}, $context;
 
     delete $parent->{'twig_current'} if( $parent);
@@ -2102,9 +2108,11 @@ sub _twig_start
 
 sub _replace_ns
   { my( $t, $gi, $atts)= @_;
+    my $decls;
     foreach my $new_prefix ( $t->parser->new_ns_prefixes)
       { my $uri= $t->parser->expand_ns_prefix( $new_prefix);
         # replace the prefix if it is mapped
+        $decls->{$new_prefix}= $uri;
         if( !$t->{twig_keep_original_prefix} && (my $mapped_prefix= $t->{twig_map_xmlns}->{$uri}))
           { $new_prefix= $mapped_prefix; }
         # now put the namespace declaration back in the element
@@ -2147,7 +2155,7 @@ sub _replace_ns
             else           {  $att_name=1; }
           }
       }
-    return;
+    return $decls;
   }
 
 
@@ -2174,6 +2182,18 @@ sub _a_proper_ns_prefix
       }
     return;
   }
+
+# returns the uri bound to a prefix in the original document
+# only works in a handler
+# can be used to deal with xsi:type attributes
+sub original_uri
+  { my( $t, $prefix)= @_;
+    my $ST_NS  = '##ns' ;
+    foreach my $ns (map { $_->{$ST_NS} if  $_->{$ST_NS} } reverse @{$t->{_twig_context_stack}})
+      { return $ns->{$prefix} || next; }
+    return;
+  }
+
 
 sub _fill_default_atts
   { my( $t, $gi, $atts)= @_;
@@ -2215,8 +2235,10 @@ sub _parse_start_tag
 sub set_root
   { my( $t, $elt)= @_;
     $t->{twig_root}= $elt;
-    $elt->{twig}= $t;
-    if( $weakrefs) { weaken(  $elt->{twig}); }
+    if( $elt)
+      { $elt->{twig}= $t;
+        if( $weakrefs) { weaken(  $elt->{twig}); }
+      }
     return $t;
   }
 
@@ -2490,7 +2512,7 @@ sub _twig_cdataend
     my $cdata= $elt->{cdata};
     $elt->_set_cdata( $cdata);
 
-    push @{$t->{_twig_context_stack}}, { _tag => $CDATA };
+    push @{$t->{_twig_context_stack}}, { $ST_TAG => $CDATA };
 
     if( $t->{twig_handlers})
       { # look for handlers
@@ -2668,7 +2690,7 @@ sub _twig_final
         push @args,  @{$t->{twig_autoflush_data}->{args}} if( $t->{twig_autoflush_data}->{args});
         $t->flush( @args);
         delete $t->{twig_autoflush_data};
-        $t->root->delete;
+        $t->root->delete if $t->root;
       }
 
     # tries to clean-up (probably not very well at the moment)
@@ -3362,7 +3384,7 @@ sub sprint
       
     my $string=   $t->prolog( %args)       # xml declaration and doctype
                 . $t->_leading_cpi( %args) # leading comments and pi's in 'process' mode
-                . $t->{twig_root}->sprint  
+                . ( ($t->{twig_root} && $t->{twig_root}->sprint) || '')
                 . $t->_trailing_cpi        # trailing comments and pi's (elements, in 'process' mode)
                 . $t->_trailing_cpi_text   # trailing comments and pi's (in 'keep' mode)
                 ;
@@ -3970,11 +3992,14 @@ sub _twig_start_check_roots
     
     my $fh= $t->{twig_output_fh} || select() || \*STDOUT;
 
+    my $ns_decl;
     unless( $p->depth == 0)
-      { if( $t->{twig_map_xmlns}) { _replace_ns( $t, \$gi, \@_); }
+      { if( $t->{twig_map_xmlns}) { $ns_decl= _replace_ns( $t, \$gi, \@_); }
       }
 
-    push @{$t->{_twig_context_stack}}, { _tag => $gi, @_};
+    my $context= { $ST_TAG => $gi, @_};
+    $context->{$ST_NS}= $ns_decl if $ns_decl;
+    push @{$t->{_twig_context_stack}}, $context;
     my %att= @_;
 
     if( _handler( $t, $t->{twig_roots}, $gi))
@@ -4158,7 +4183,7 @@ sub _twig_ignore_end
     return;    
   }
 
-#sub _dump_stack { my( $stack)= @_; return join( ":", map { $_->{_tag} } @$stack); }
+#sub _dump_stack { my( $stack)= @_; return join( ":", map { $_->{$ST_TAG} } @$stack); }
     
 sub ignore
   { my( $t, $elt, $action)= @_;
@@ -4215,7 +4240,7 @@ sub _level_in_stack
   { my( $t, $elt)= @_;
     my $level=1;
     foreach my $elt_in_stack ( @{$t->{_twig_context_stack}} )
-      { if( $elt_in_stack->{_elt} && ($elt == $elt_in_stack->{_elt})) { return $level }
+      { if( $elt_in_stack->{$ST_ELT} && ($elt == $elt_in_stack->{$ST_ELT})) { return $level }
         $level++;
       }
   }
@@ -5050,7 +5075,7 @@ sub _current_ns_prefix_map
                       ;
             if( ! exists $map->{$prefix}) { $map->{$prefix}= $elt->{'att'}->{$att}; }
           }
-        $elt= $elt->{parent} || $elt->former_parent;
+        $elt= $elt->{parent} || ($elt->{former} && $elt->{former}->{parent});
       }
     return $map;
   }
@@ -5448,7 +5473,7 @@ sub root
 
 sub _root_through_cut
   { my $elt= shift;
-    while( $elt->{parent} || $elt->former_parent) { $elt= $elt->{parent} || $elt->former_parent; }
+    while( $elt->{parent} || ($elt->{former} && $elt->{former}->{parent})) { $elt= $elt->{parent} || ($elt->{former} && $elt->{former}->{parent}); }
     return $elt;
   }
 
@@ -6047,7 +6072,7 @@ sub _inherit_att_through_cut
            && ( !%tags || $tags{$XML::Twig::index2gi[$elt->{'gi'}]})
           )
           { return $elt->{'att'}->{$att}; }
-      } while( $elt= $elt->{parent} || $elt->former_parent);
+      } while( $elt= $elt->{parent} || ($elt->{former} && $elt->{former}->{parent}));
     return undef;
   }
 
@@ -6827,8 +6852,18 @@ sub cut
   { my $elt= shift;
     my( $parent, $prev_sibling, $next_sibling, $last_elt);
 
-    # you can't cut the root, sorry
-    unless( $parent= $elt->{parent}) { return; }
+    $parent=  $elt->{parent};
+    if( ! $parent)
+      { # are we cutting the root?
+         my $t= $elt->{twig};
+        if( $t && ! $t->{twig_parsing})
+          { delete $t->{twig_root}; 
+            delete $elt->{twig};
+            return $elt;
+          }  # cutt`ing the root
+        else
+          { return;  }  # cutting an orphan, returning $elt would break backward compatibility
+      }
 
     # save the old links, that'll make it easier for some loops
     foreach my $link ( qw(parent prev_sibling next_sibling) )
@@ -9388,7 +9423,7 @@ sub _dump
         if( (exists $elt->{'pcdata'}))
           { $dump .= "$indent|-PCDATA:  '"  . _short_text( $elt->{pcdata}, $short_text) . "'\n" }
         elsif( (exists $elt->{'ent'}))
-          { warn "here"; $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->{ent}, $short_text) . "'\n" }
+          { $dump .= "$indent|-ENTITY:  '" . _short_text( $elt->{ent}, $short_text) . "'\n" }
         elsif( (exists $elt->{'cdata'}))
           { $dump .= "$indent|-CDATA:   '" . _short_text( $elt->{cdata}, $short_text) . "'\n" }
         elsif( (exists $elt->{'comment'}))
@@ -10556,6 +10591,11 @@ This will output:
   <doc xmlns:gr="http://www.w3.org/2000/svg">
      <gr:circle cx="10" cy="90" r="20"/>
   </doc>
+
+=item original_uri ($prefix)
+
+called within a handler, this will return the uri bound to the namespace prefix
+in the original document.
 
 =item index ($arrayref or $hashref)
 
@@ -11858,7 +11898,7 @@ This makes it easier to write loops where you cut elements:
 
     my $child= $parent->first_child( 'achild');
     while( $child->{'att'}->{'cut'}) 
-      { $child->cut; $child= $child->former_next_sibling; }
+      { $child->cut; $child= ($child->{former} && $child->{former}->{next_sibling}); }
 
 =item former_prev_sibling
 
