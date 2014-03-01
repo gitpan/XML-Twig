@@ -39,19 +39,39 @@ use vars qw( $weakrefs);
 # wrt doctype handling. This is global for performance reasons. 
 my $expat_1_95_2=0;
 
-# xml name (leading # allowed)
+# a slight non-xml mod: # is allowed as a first character
+my $REG_TAG_FIRST_LETTER;
+#$REG_TAG_FIRST_LETTER= q{(?:[^\W\d]|[:#_])};  # < perl 5.6 - does not work for leading non-ascii letters
+$REG_TAG_FIRST_LETTER= q{(?:[[:alpha:]:#_])}; # >= perl 5.6
+
+my $REG_TAG_LETTER= q{(?:[\w_.-]*)};
+
+# a simple name (no colon)
+my $REG_NAME_TOKEN= qq{(?:$REG_TAG_FIRST_LETTER$REG_TAG_LETTER*)};
+
+# a tag name, possibly including namespace
+my $REG_NAME= qq{(?:(?:$REG_NAME_TOKEN:)?$REG_NAME_TOKEN)};
+
+# tag name (leading # allowed)
 # first line is for perl 5.005, second line for modern perl, that accept character classes
-my $REG_NAME       = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*)};     # does not work for leading non-ascii letters
-   $REG_NAME       = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*)};    # > perl 5.5
+my $REG_TAG_NAME=$REG_NAME;
 
 # name or wildcard (* or '') (leading # allowed)
-my $REG_NAME_W     = q{(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # does not work for leading non-ascii letters
-   $REG_NAME_W     = q{(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)}; # > perl 5.5
+my $REG_NAME_W = qq{(?:$REG_NAME|[*])}; 
 
-# name or wildcard (* or '') (leading # allowed) with optional class
-my $REG_NAME_WC    = q{(?(?:(?:[^\W\d]|[:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # does not work for leading non-ascii letters
-   $REG_NAME_WC    = q{(?:(?:(?:[[:alpha:]:#_])(?:[\w.-]*:)?[\w.-]*|\*)(?:\.[\w-]+)?|(?:\.[\w-]+))}; # > perl 5.5
+# class and ids are deliberatly permissive
+my $REG_NTOKEN_FIRST_LETTER;
+#$REG_NTOKEN_FIRST_LETTER= q{(?:[^\W\d]|[:_])};  # < perl 5.6 - does not work for leading non-ascii letters
+$REG_NTOKEN_FIRST_LETTER= q{(?:[[:alpha:]:_])}; # >= perl 5.6
 
+my $REG_NTOKEN_LETTER= q{(?:[\w_:.-]*)};
+
+my $REG_NTOKEN= qq{(?:$REG_NTOKEN_FIRST_LETTER$REG_NTOKEN_LETTER*)};
+my $REG_CLASS = $REG_NTOKEN;
+my $REG_ID    = $REG_NTOKEN;
+
+# allow <tag> #<tag> (private elt) * <tag>.<class> *.<class> <tag>#<id> *#<id>
+my $REG_TAG_PART= qq{(?:$REG_NAME_W(?:[.]$REG_CLASS|[#]$REG_ID)?|[.]$REG_CLASS)};
 
 my $REG_REGEXP     = q{(?:/(?:[^\\/]|\\.)*/[eimsox]*)};               # regexp
 my $REG_MATCH      = q{[!=]~};                                        # match (or not)
@@ -63,7 +83,7 @@ my $REG_FUNCTION   = q{(?:string|text)\(\s*\)};
 my $REG_STRING_ARG = qq{(?:string|text)\\(\\s*$REG_NAME_W\\s*\\)};
 my $REG_COMP       = q{(?:>=|<=|!=|<|>|=)};
 
-my $REG_TAG_IN_PREDICATE= $REG_NAME . q{(?=\s*(?i:and\b|or\b|\]|$))};
+my $REG_TAG_IN_PREDICATE= $REG_NAME_W . q{(?=\s*(?i:and\b|or\b|\]|$))};
 
 # keys in the context stack, chosen not to interfere with att names, even private (#-prefixed) ones
 my $ST_TAG = '##tag';
@@ -81,7 +101,7 @@ my @supported_axis= ( 'ancestor', 'ancestor-or-self', 'child', 'descendant', 'de
 my $REG_AXIS       = "(?:" . join( '|', @supported_axis) .")";
 
 # only used in the "xpath"engine (for get_xpath/findnodes) for now
-my $REG_PREDICATE_ALT  = qr{\[(?:(?:string\(\s*\)|\@$REG_NAME)\s*$REG_MATCH\s*$REG_REGEXP\s*|[^\]]*)\]};
+my $REG_PREDICATE_ALT  = qr{\[(?:(?:string\(\s*\)|\@$REG_TAG_NAME)\s*$REG_MATCH\s*$REG_REGEXP\s*|[^\]]*)\]};
 
 # used to convert XPath tests on strings to the perl equivalent 
 my %PERL_ALPHA_TEST= ( '=' => ' eq ', '!=' => ' ne ', '>' => ' gt ', '>=' => ' ge ', '<' => ' lt ', '<=' => ' le ');
@@ -124,7 +144,7 @@ my $SEP= qr/\s*(?:$|\|)/;
 
 BEGIN
 { 
-$VERSION = '3.44';
+$VERSION = '3.45';
 
 use XML::Parser;
 my $needVersion = '2.23';
@@ -868,12 +888,14 @@ sub parsefile_html
 
 sub parse_html
   { my $t= shift;
+    my $options= ref $_[0] && ref $_[0] eq 'HASH' ? shift() : {};
+    my $use_tidy= exists $options->{use_tidy} ? $options->{use_tidy} : $t->{use_tidy};
     my $content= shift;
     my $indent= $t->{ErrorContext} ? 1 : 0;
     $t->set_empty_tag_style( 'html');
-    my $html2xml=  $t->{use_tidy} ? \&_tidy_html : \&_html2xml;
-    my $options= $t->{use_tidy} ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
-    $t->parse( $html2xml->( isa( $content, 'GLOB') ? _slurp_fh( $content) : $content, $options), @_);
+    my $html2xml=  $use_tidy ? \&_tidy_html : \&_html2xml;
+    my $conv_options= $use_tidy ? $t->{tidy_options} || {} :  { indent => $indent, html_doctype => $t->{html_doctype} };
+    $t->parse( $html2xml->( isa( $content, 'GLOB') ? _slurp_fh( $content) : $content, $conv_options), @_);
     return $t;
   }
 
@@ -965,7 +987,7 @@ sub _html2xml
                   }xe;
 
         # then check that the declaration looks OK (so it parses), if not remove it,
-        # better to parse without the declaration than to die stupidely
+        # better to parse without the declaration than to die stupidly
         if(    $decl =~ m{<!DOCTYPE \s+ (?i:HTML) (\s+ PUBLIC \s+ "[^"]*" \s+ (SYSTEM \s+)? "[^"]*")? \s*>}x # PUBLIC then SYSTEM
             || $decl =~ m{<!DOCTYPE \s+ (?i:HTML) \s+ SYSTEM \s+ "[^"]*" \s*>}x                             # just SYSTEM
           )
@@ -1133,9 +1155,8 @@ sub _as_XML {
                   }
               }
             elsif( $node=~ /<!\[CDATA\[/)  # the content includes CDATA
-              { 
-                foreach my $chunk (split /(<!\[CDATA\[.*?\]\]>)/, $node) # chunks are CDATA sections or normal text
-                  { $xml.= $chunk !~ m{<!\[CDATA\[} ? $chunk : _xml_escape( $chunk); }
+              {  foreach my $chunk (split /(<!\[CDATA\[.*?\]\]>)/s, $node) # chunks are CDATA sections or normal text
+                  { $xml.= $chunk =~ m{<!\[CDATA\[} ? $chunk : _xml_escape( $chunk); }
               }
             else   # it's just text
               { $xml .= _xml_escape($node); }
@@ -1150,14 +1171,14 @@ sub _xml_escape
     $html =~ s{&(?!                     # An ampersand that isn't followed by...
                   (  \#[0-9]+;       |  #   A hash mark, digits and semicolon, or
                     \#x[0-9a-fA-F]+; |  #   A hash mark, "x", hex digits and semicolon, or
-                    [\w]+               #   A valid unicode entity name and semicolon
+                    [\w]+;              #   A valid unicode entity name and semicolon
                   )
                 )
               }
               {&amp;}gx;    # Needs to be escaped to amp
 
     # in old versions of HTML::TreeBuilder &amp; can come out as &Amp;
-    if( $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
+    if( $HTML::TreeBuilder::VERSION && $HTML::TreeBuilder::VERSION <= 3.23) { $html=~ s{&Amp;}{&amp;}g; }
 
     # simple character escapes
     $html =~ s/</&lt;/g;
@@ -1450,11 +1471,11 @@ sub _is_fh { return unless $_[0]; return $_[0] if( isa( $_[0], 'GLOB') || isa( $
 sub _set_handler
   { my( $handlers, $whole_path, $handler)= @_;
 
-    my $H_SPECIAL = qr{($ALL|$DEFAULT|$COMMENT)};
+    my $H_SPECIAL = qr{($ALL|$DEFAULT|$COMMENT|$TEXT)};
     my $H_PI      = qr{(\?|$PI)\s*(([^\s]*)\s*)};
     my $H_LEVEL   = qr{level \s* \( \s* ([0-9]+) \s* \)}x;
     my $H_REGEXP  = qr{\(\?([\^xism]*)(-[\^xism]*)?:(.*)\)}x;
-    my $H_XPATH   = qr{(/?/?$REG_NAME_WC? \s* ($REG_PREDICATE\s*)?)+}x;
+    my $H_XPATH   = qr{(/?/?$REG_TAG_PART? \s* ($REG_PREDICATE\s*)?)+}x;
 
     my $prev_handler;
 
@@ -1485,7 +1506,7 @@ sub _set_handler
 
 sub _set_special_handler
   { my( $handlers, $path, $handler, $prev_handler)= @_;
-    if( $path =~ m{^\s*($ALL|$DEFAULT|$COMMENT)\s*$}io )
+    if( $path =~ m{^\s*($ALL|$DEFAULT|$COMMENT|$TEXT)\s*$}io )
       { $handlers->{handlers}->{$1}= $handler; 
         return 1;
       }
@@ -1587,7 +1608,7 @@ sub _parse_xpath_handler
     if( $DEBUG_HANDLER >=1) { _warn_debug_handler( "\n\nparsing path '$xpath'\n"); }
 
     my $path_to_check= $xpath;
-    $path_to_check=~ s{/?/?$REG_NAME_WC?\s*(?:$REG_PREDICATE\s*)?}{}g;
+    $path_to_check=~ s{/?/?$REG_TAG_PART?\s*(?:$REG_PREDICATE\s*)?}{}g;
     if( $DEBUG_HANDLER && $path_to_check=~ /\S/) { _warn_debug_handler( "left: $path_to_check\n"); }
     return if( $path_to_check=~ /\S/);
 
@@ -1598,7 +1619,7 @@ sub _parse_xpath_handler
 
     while( $xpath=~ s{^\s*
                        ( (//?)                                      # separator
-                        | (?:$REG_NAME_WC\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
+                        | (?:$REG_TAG_PART\s*(?:$REG_PREDICATE\s*)?) # tag name and optional predicate
                         | (?:$REG_PREDICATE)                        # just a predicate
                        )
                      }
@@ -1606,7 +1627,7 @@ sub _parse_xpath_handler
          )
       { # check that we have alternating separators and steps
         if( $2) # found a separator
-          { if(  $last_token_is_sep) { return 0; } # 2 seps in a row
+          { if(  $last_token_is_sep) { return 0; }                                 # 2 separators in a row
             $last_token_is_sep= 1;
           }
         else
@@ -1635,7 +1656,7 @@ sub _parse_xpath_handler
     my $flag= { test_on_text => 0 };
     my $sep='/';  # '/' or '//'
     while( my $xpath_step= pop @xpath_steps)
-      { my( $tag, $predicate)= $xpath_step =~ m{^($REG_NAME_WC)?(?:\[(.*)\])?\s*$};
+      { my( $tag, $predicate)= $xpath_step =~ m{^($REG_TAG_PART)?(?:\[(.*)\])?\s*$}; 
         $score->{steps}++;
         $tag||='*';
 
@@ -1653,6 +1674,8 @@ sub _parse_xpath_handler
        my $cond= join( " && ", grep { $_ } $tag_cond, $predicate) || 1;
 
        if( $css_sel && $tag=~ m{\.}) { $tag=~s{\.[^.]*$}{}; $tag ||='*'; }
+       $tag=~ s{(.)#.+$}{$1};
+
        $last_tag ||= $tag;
 
        if( $sep eq '/')
@@ -1714,13 +1737,21 @@ sub _parse_xpath_handler
 
 sub _join_n { return join( "\n", @_, ''); }
 
+# the "tag" part can be <tag>, <tag>.<class> or <tag>#<id> (where tag can be *, or start with # for hidden tags) 
 sub _tag_cond
   { my( $full_tag)= @_;
 
-    my( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef);
-    my $tag_cond= $tag && $tag ne '*' ? qq#(\$elt->{'$ST_TAG'} eq "$tag")# : '';
-    my $class_cond= defined $class ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
-    my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond));
+    my( $tag, $class, $id);
+    if( $full_tag=~ m{^(.+)#(.+)$})
+      { ($tag, $id)= ($1, $2); } # <tag>#<id>
+    else
+      { ( $tag, $class)= $css_sel ? $full_tag=~ m{^(.*?)(?:\.([^.]*))?$} : ($full_tag, undef); }
+
+    my $tag_cond   = $tag && $tag ne '*' ? qq#(\$elt->{'$ST_TAG'} eq "$tag")# : '';
+    my $id_cond    = defined $id         ? qq#(\$elt->{id} eq "$id")#  : '';
+    my $class_cond = defined $class      ? qq#(\$elt->{class}=~ m{(^| )$class( |\$)})# : '';
+
+    my $full_cond= join( ' && ', grep { $_ } ( $tag_cond, $class_cond, $id_cond));
     
     return $full_cond;
   }
@@ -1730,20 +1761,20 @@ sub _tag_cond
 #        the score 
 sub _parse_predicate_in_handler
   { my( $flag, $score)= @_[1..2];
-    $_[0]=~ s{(   ($REG_STRING)                        # strings
-                 |\@($REG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
-                 |\@($REG_NAME)                        # @att (not followed by a comparison operator)
-                 |=~|!~                                # matching operators
-                 |([><]=?|=|!=)(?=\s*[\d+-])           # test before a number
-                 |([><]=?|=|!=)                        # test, other cases
-                 |($REG_FUNCTION)                      # no arg functions
+    $_[0]=~ s{(   ($REG_STRING)                            # strings
+                 |\@($REG_TAG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
+                 |\@($REG_TAG_NAME)                        # @att (not followed by a comparison operator)
+                 |=~|!~                                    # matching operators
+                 |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
+                 |([><]=?|=|!=)                            # test, other cases
+                 |($REG_FUNCTION)                          # no arg functions
                  # this bit is a mess, but it is the only solution with this half-baked parser
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP)  # string( child)=~ /regexp/
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_STRING)   # string( child) = "value" (or other test)
                  |(string\(\s*$REG_NAME\s*\)\s*$REG_COMP\s*$REG_NUMBER)   # string( child) = nb (or other test)
                  |(and|or)
-                # |($REG_NAME(?=\s*(and|or|$)))         # nested tag name (needs to be after all other unquoted strings)
-                 |($REG_TAG_IN_PREDICATE)              # nested tag name (needs to be after all other unquoted strings)
+                # |($REG_NAME(?=\s*(and|or|$)))            # nested tag name (needs to be after all other unquoted strings)
+                 |($REG_TAG_IN_PREDICATE)                  # nested tag name (needs to be after all other unquoted strings)
                  
               )}
              { my( $token, $str, $att, $bare_att, $num_test, $alpha_test, $func, $str_regexp, $str_test_alpha, $str_test_num, $and_or, $tag) 
@@ -1767,15 +1798,15 @@ sub _parse_predicate_in_handler
                elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                elsif( $func && $func=~ m{^string})
                                       { "\$elt->{'$ST_ELT'}->text"; }
-               elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
+               elsif( $str_regexp     && $str_regexp     =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
                                       { "defined( _first_n {  \$_->text $2 $3 } 1, \$elt->{'$ST_ELT'}->_children( '$1'))"; }
-               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
+               elsif( $str_test_alpha && $str_test_alpha =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_STRING)})
                                       { my( $tag, $op, $str)= ($1, $2, $3);
                                         $str=~ s{(?<=.)'(?=.)}{\\'}g; # escape a quote within the string 
                                         $str=~ s{^"}{'};
                                         $str=~ s{"$}{'};
                                         "defined( _first_n { \$_->text $PERL_ALPHA_TEST{$op} $str } 1, \$elt->{'$ST_ELT'}->children( '$tag'))"; }
-               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
+               elsif( $str_test_num   && $str_test_num   =~ m{string\(\s*($REG_TAG_NAME)\s*\)\s*($REG_COMP)\s*($REG_NUMBER)})
                                       { my $test= ($2 eq '=') ? '==' : $2;
                                         "defined( _first_n { \$_->text $test $3 } 1, \$elt->{'$ST_ELT'}->children( '$1'))"; 
                                       }
@@ -1986,7 +2017,7 @@ sub _twig_start
     my $t=$p->{twig};
 
     # empty the stored pcdata (space stored in case they are really part of 
-    # a pcdata element) or stored it if the space policy dictades so
+    # a pcdata element) or stored it if the space policy dictates so
     # create a pcdata element with the spaces if need be
     _add_or_discard_stored_spaces( $t);
     my $parent= $t->{twig_current};
@@ -2217,7 +2248,7 @@ sub _parse_start_tag
 
     # get the gi (between < and the first space, / or > character)
     #if( $string=~ s{^<\s*([^\s>/]*)[\s>/]*}{}s)
-    if( $string=~ s{^<\s*($REG_NAME)\s*[\s>/]}{}s)
+    if( $string=~ s{^<\s*($REG_TAG_NAME)\s*[\s>/]}{}s)
       { $gi= $1; }
     else
       { croak "error parsing tag '$string'"; }
@@ -2242,6 +2273,10 @@ sub _twig_end
 
     my $t=$p->{twig};
 
+    if( $t->{twig_in_pcdata} && (my $text_handler= $t->{TwigHandlers}->{$TEXT}) )
+      { local $_= $t->{twig_current}; $text_handler->( $t, $_) if $_;
+      }
+
     if( $t->{twig_map_xmlns}) { $gi= $t->_replace_prefix( $gi); }
   
     _add_or_discard_stored_spaces( $t);
@@ -2252,7 +2287,8 @@ sub _twig_end
 
     # if we were parsing PCDATA then we exit the pcdata too
     if( $t->{twig_in_pcdata})
-      { $t->{twig_in_pcdata}= 0;
+      { 
+        $t->{twig_in_pcdata}= 0;
         $elt= $elt->{parent} if($elt->{parent});
         delete $elt->{'twig_current'};
       }
@@ -2595,7 +2631,7 @@ sub _twig_pi_comment
     if( $t->{twig_input_filter})
           { foreach my $arg (@parser_args) { $arg= $t->{twig_input_filter}->( $arg); } }
           
-    # if pi/comments are to be kept then we piggiback them to the current element
+    # if pi/comments are to be kept then we piggyback them to the current element
     if( $keep)
       { # first add spaces
         if( $t->{twig_stored_spaces})
@@ -3150,10 +3186,10 @@ sub doctype
     if( $update_dtd)
       { if( $doctype)  
           { my $internal=$doctype->{internal};
-            # awfull hack, but at least it works a little better that what was there before
+            # awful hack, but at least it works a little better that what was there before
             if( $internal)
               { # remove entity declarations (they will be re-generated from the updated entity list)
-                $internal=~ s{<! \s* ENTITY \s+ $REG_NAME \s+ ( ("[^"]*"|'[^']*') \s* | SYSTEM [^>]*) >\s*}{}xg;
+                $internal=~ s{<! \s* ENTITY \s+ $REG_TAG_NAME \s+ ( ("[^"]*"|'[^']*') \s* | SYSTEM [^>]*) >\s*}{}xg;
                 $internal=~ s{^\n}{};
               }
             $internal .= $t->entity_list->text ||'' if( $t->entity_list);
@@ -3212,12 +3248,29 @@ sub _trailing_cpi_text
 sub print_to_file
   { my( $t, $filename)= (shift, shift);
     my $out_fh;
+#    open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
     my $mode= $t->{twig_keep_encoding} ? '>' : '>:utf8';                             # >= perl 5.8
     open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
     $t->print( $out_fh, @_);
     close $out_fh;
     return $t;
   }
+
+# probably only works on *nix (at least the chmod bit)
+# first print to a temporary file, then rename that file to the desired file name, then change permissions
+# to the original file permissions (or to the current umask)
+sub safe_print_to_file
+  { my( $t, $filename)= (shift, shift);
+    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ;
+    XML::Twig::_use( 'File::Temp') || croak "need File::Temp to use safe_print_to_file\n";
+    my $tmpdir= dirname( $filename);    
+    my( $fh, $tmpfilename) = File::Temp::tempfile( DIR => $tmpdir);
+    $t->print_to_file( $tmpfilename, @_);
+    rename( $tmpfilename, $filename) or unlink $tmpfilename && _croak( "cannot move temporary file to $filename: $!"); 
+    chmod $perm, $filename;
+    return $t;
+  }
+    
 
 sub print
   { my $t= shift;
@@ -3714,8 +3767,8 @@ BEGIN
                            current_line current_column current_byte
                            recognized_string original_string 
                            xpcroak xpcarp 
-                           xml_escape
                            base current_element element_index 
+                           xml_escape
                            position_in_context);
     foreach my $method (@expat_methods)
       { 
@@ -3830,7 +3883,7 @@ sub dispose
   }
   
 sub DESTROY
-  { my $t= shift;
+  { my $t= shift; 
     if( $t->{twig_root} && isa(  $t->{twig_root}, 'XML::Twig::Elt')) 
       { $t->{twig_root}->delete } 
 
@@ -4592,7 +4645,7 @@ sub getParentNode      { return undef; }
 sub getChildNodes      { my @children= ($_[0]->root); return wantarray ? @children : \@children; }
 
 sub _weakrefs     { return $weakrefs;       }
-sub _set_weakrefs { $weakrefs=shift() || 0; } # for testing purposes
+sub _set_weakrefs { $weakrefs=shift() || 0; XML::Twig::Elt::set_destroy()if ! $weakrefs; } # for testing purposes
 
 sub _dump
   { my $t= shift;
@@ -5534,13 +5587,13 @@ sub reset_cond_cache { %cond_cache=(); }
                 { push @tests, qq{\$_[0]->is_elt}; }
               elsif( $cond=~ s{$TEXT$SEP}{}) 
                 { push @tests, qq{\$_[0]->is_text}; }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC)$SEP}{})                  
+              elsif( $cond=~ s{^\s*($REG_TAG_PART)$SEP}{})                  
                 { push @tests, _gi_test( $1); } 
               elsif( $cond=~ s{^\s*($REG_REGEXP)$SEP}{})
                 { # /regexp/
                   push @tests, qq{ \$_[0]->gi=~ $1 }; 
                 }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC)?\s*  # $1
+              elsif( $cond=~ s{^\s*($REG_TAG_PART)?\s*  # $1
                                \[\s*(-?)\s*(\d+)\s*\]  #   [$2]
                                $SEP}{}xo
                    )
@@ -5552,7 +5605,7 @@ sub reset_cond_cache { %cond_cache=(); }
                   else
                     { push @tests, qq{(scalar( $siblings) + 1 == $index)}; }
                 }
-              elsif( $cond=~ s{^\s*($REG_NAME_WC?)\s*($REG_PREDICATE)$SEP}{})
+              elsif( $cond=~ s{^\s*($REG_TAG_PART?)\s*($REG_PREDICATE)$SEP}{})
                 { my( $gi, $predicate)= ( $1, $2);
                   push @tests, _and( _gi_test( $gi), _parse_predicate_in_step( $predicate));
                 }
@@ -5581,7 +5634,7 @@ sub reset_cond_cache { %cond_cache=(); }
       my $index= $XML::Twig::gi2index{$full_gi};
       if( $index) { return qq{\$_[0]->{gi} == $index}; }
 
-      my( $gi, $class)= $full_gi=~ m{^(.*?)(?:\.([^.]*))?$};
+      my( $gi, $class, $id)= $full_gi=~ m{^(.*?)(?:[.]([^.]*)|[#](.*))?$};
 
       my $gi_test='';
       if( $gi && $gi ne '*' )
@@ -5605,8 +5658,15 @@ sub reset_cond_cache { %cond_cache=(); }
       #warn "class: '$class'";
       if( $class)
         { $class_test = qq{ defined( \$_[0]->{att}->{class}) && \$_[0]->{att}->{class}=~ m{\\b$class\\b} }; }
+
+      my $id_test='';
+      #warn "id: '$id'";
+      if( $id)
+        { $id_test = qq{ defined( \$_[0]->{att}->{$ID}) && \$_[0]->{att}->{$ID} eq '$id' }; }
+
+
       #warn "gi_test: '$gi_test' - class_test: '$class_test' returning ",  _and( $gi_test, $class_test);
-      return _and( $gi_test, $class_test);
+      return _and( $gi_test, $class_test, $id_test);
   }
 
 
@@ -5617,17 +5677,17 @@ sub reset_cond_cache { %cond_cache=(); }
 
       $cond=~ s{^\s*\[\s*}{};
       $cond=~ s{\s*\]\s*$}{};
-      $cond=~ s{(   ($REG_STRING|$REG_REGEXP)            # strings or regexps
-                   |\@($REG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
-                   |\@($REG_NAME)                        # @att (not followed by a comparison operator)
-                   |=~|!~                                # matching operators
-                   |([><]=?|=|!=)(?=\s*[\d+-])           # test before a number
-                   |([><]=?|=|!=)                        # test, other cases
-                   |($REG_FUNCTION)                      # no arg functions
+      $cond=~ s{(   ($REG_STRING|$REG_REGEXP)                # strings or regexps
+                   |\@($REG_TAG_NAME)(?=\s*(?:[><=!]|!~|=~)) # @att (followed by a comparison operator)
+                   |\@($REG_TAG_NAME)                        # @att (not followed by a comparison operator)
+                   |=~|!~                                    # matching operators
+                   |([><]=?|=|!=)(?=\s*[\d+-])               # test before a number
+                   |([><]=?|=|!=)                            # test, other cases
+                   |($REG_FUNCTION)                          # no arg functions
                    # this bit is a mess, but it is the only solution with this half-baked parser
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP) # string( child) =~ /regexp/
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*!?=\s*$REG_VALUE)         # string( child) = "value" (or !=)
-                   |((?:string|text)\(\s*$REG_NAME\s*\)\s*[<>]=?\s*$REG_VALUE)      # string( child) > "value"
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*$REG_MATCH\s*$REG_REGEXP) # string( child) =~ /regexp/
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*!?=\s*$REG_VALUE)         # string( child) = "value" (or !=)
+                   |((?:string|text)\(\s*$REG_TAG_NAME\s*\)\s*[<>]=?\s*$REG_VALUE)      # string( child) > "value"
                    |(and|or)
                 )}
                { my( $token, $string, $att, $bare_att, $num_test, $alpha_test, $func, $string_regexp, $string_eq, $string_test, $and_or)
@@ -5640,11 +5700,11 @@ sub reset_cond_cache { %cond_cache=(); }
                  elsif( $alpha_test)    { $PERL_ALPHA_TEST{$alpha_test} }
                  elsif( $func && $func=~ m{^(?:string|text)})
                                         { "\$_[0]->text"; }
-                 elsif( $string_regexp && $string_regexp =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
+                 elsif( $string_regexp && $string_regexp =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*($REG_MATCH)\s*($REG_REGEXP)})
                                         { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
-                 elsif( $string_eq     && $string_eq     =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*(!?=)\s*($REG_VALUE)})
+                 elsif( $string_eq     && $string_eq     =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*(!?=)\s*($REG_VALUE)})
                                         {"(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $PERL_ALPHA_TEST{$2} $3) } 1, \$_[0]->_children)"; }
-                 elsif( $string_test   && $string_test   =~ m{(?:string|text)\(\s*($REG_NAME)\s*\)\s*([<>]=?)\s*($REG_VALUE)})
+                 elsif( $string_test   && $string_test   =~ m{(?:string|text)\(\s*($REG_TAG_NAME)\s*\)\s*([<>]=?)\s*($REG_VALUE)})
                                         { "(XML::Twig::_first_n { (\$_->gi eq '$1') && (\$_->text $2 $3) } 1, \$_[0]->_children)"; }
                  elsif( $and_or)        { $and_or eq 'and' ? '&&' : '||' ; }
                  else                   { $token; }
@@ -5711,7 +5771,7 @@ sub set_field
     if( $child)
       { $child->set_content( @_); }
     else
-      { if( $cond=~ m{^\s*($REG_NAME)})
+      { if( $cond=~ m{^\s*($REG_TAG_NAME)})
           { my $gi= $1;
             $child= $record->insert_new_elt( last_child => $gi, @_); 
           }
@@ -6682,12 +6742,14 @@ sub next_siblings
       while( $xpath_exp &&
              $xpath_exp=~s{^\s*(/?)                            
                             # the xxx=~/regexp/ is a pain as it includes /  
-                            (\s*(?:(?:($REG_AXIS)::)?(\*|$REG_NAME|\.\.|\.)\s*)?($REG_PREDICATE_ALT*)
+                            (\s*(?:(?:($REG_AXIS)::)?(\*|$REG_TAG_PART|\.\.|\.)\s*)?($REG_PREDICATE_ALT*)
                             )
                             (/|$)}{}xo)
   
         { my( $wildcard, $sub_exp, $axis, $gi, $predicates)= ($1, $2, $3, $4, $5);
-          
+           if( $axis && ! $gi)
+                { _croak_and_doublecheck_xpath( $original_exp, "error in xpath expression $original_exp"); }
+
           # grab a parent
           if( $sub_exp eq '..')
             { _croak_and_doublecheck_xpath( $original_exp, "error in xpath expression $original_exp") if( $wildcard);
@@ -6696,9 +6758,9 @@ sub next_siblings
           # test the element itself
           elsif( $sub_exp=~ m{^\.(.*)$}s)
             { $sub .= "\@results= grep { \$_->matches( q{$1}) } \@results;" }
-              # grab children
+          # grab children
           else       
-            { 
+            {
               if( !$axis)             
                 { $axis= $wildcard ? 'descendant' : 'child'; }
               if( !$gi or $gi eq '*') { $gi=''; }
@@ -6764,17 +6826,17 @@ sub next_siblings
                                 }
                               elsif( $pred =~ s{^string\(\s*\)\s*}{}o)  # string() pred
                                 { $test .= "\$_->text"; }
-                             elsif( $pred=~ s{^@($REG_NAME)\s*($REG_OP)\s*($REG_STRING|$REG_NUMBER)}{}o)  # @att="val" pred
+                             elsif( $pred=~ s{^@($REG_TAG_NAME)\s*($REG_OP)\s*($REG_STRING|$REG_NUMBER)}{}o)  # @att="val" pred
                                 { my( $att, $oper, $val)= ($1, _op( $2), $3);
                                   $test .= qq{((defined \$_->{'att'}->{"$att"})  && (\$_->{'att'}->{"$att"} $oper $val))};
                                 }
-                             elsif( $pred =~ s{^@($REG_NAME)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # @att=~/regex/ pred XXX
+                             elsif( $pred =~ s{^@($REG_TAG_NAME)\s*($REG_MATCH)\s*($REG_REGEXP)\s*}{}o)  # @att=~/regex/ pred XXX
                                 { my( $att, $match, $regexp)= ($1, $2, $3);
                                   $test .= qq{((defined \$_->{'att'}->{"$att"})  && (\$_->{'att'}->{"$att"} $match $regexp))};; 
                                 }
-                             elsif( $pred=~ s{^@($REG_NAME)\s*}{}o)                      # @att pred
+                             elsif( $pred=~ s{^@($REG_TAG_NAME)\s*}{}o)                      # @att pred
                                 { $test .= qq{(defined \$_->{'att'}->{"$1"})}; }
-                             elsif( $pred=~ s{^\s*(?:not|!)\s*@($REG_NAME)\s*}{}o)       # not @att pred
+                             elsif( $pred=~ s{^\s*(?:not|!)\s*@($REG_TAG_NAME)\s*}{}o)       # not @att pred
                                 { $test .= qq{((\$_->is_elt) && (not defined \$_->{'att'}->{"$1"}))}; }
                               elsif( $pred=~ s{^\s*([()])}{})                            # ( or ) (just add to the test)
                                 { $test .= qq{$1};           }
@@ -6855,14 +6917,14 @@ sub _del_flushed { delete $_[0]->{flushed}; }
 
 sub cut
   { my $elt= shift;
-    my( $parent, $prev_sibling, $next_sibling, $last_elt);
-
-    $parent=  $elt->{parent};
-    if( ! $parent)
+    my( $parent, $prev_sibling, $next_sibling);
+    $parent=  $elt->{parent}; 
+    my $a= $elt->{'att'}->{'a'} || 'na';
+    if( ! $parent && $elt->is_elt)
       { # are we cutting the root?
-         my $t= $elt->{twig};
+        my $t= $elt->{twig};
         if( $t && ! $t->{twig_parsing})
-          { delete $t->{twig_root}; 
+          { delete $t->{twig_root};
             delete $elt->{twig};
             return $elt;
           }  # cutt`ing the root
@@ -6876,22 +6938,21 @@ sub cut
          if( $XML::Twig::weakrefs) { weaken( $elt->{former}->{$link}); }
       }
 
-    # it we cut the current element then its parent becomes the current elt
+    # if we cut the current element then its parent becomes the current elt
     if( $elt->{twig_current})
       { my $twig_current= $elt->{parent};
-        my $t= $elt->twig;
-        $t->{twig_current}= $twig_current;
+        $elt->twig->{twig_current}= $twig_current;
         $twig_current->{'twig_current'}=1;
         delete $elt->{'twig_current'};
       }
 
-    if( $parent->{first_child} == $elt)
+    if( $parent->{first_child} && $parent->{first_child} == $elt)
       { $parent->{first_child}=  $elt->{next_sibling};
         # cutting can make the parent empty
         if( ! $parent->{first_child}) { $parent->{empty}=  1; }
       }
 
-    if( $parent->{last_child} == $elt)
+    if( $parent->{last_child} && $parent->{last_child} == $elt)
       {  $parent->{empty}=0; $parent->{last_child}=$elt->{prev_sibling}; if( $XML::Twig::weakrefs) { weaken( $parent->{last_child});} ;
       }
 
@@ -6996,12 +7057,12 @@ sub erase
             if( $elt->{parent}->{twig_current} && $elt->{last_child}->is_text) {  $elt->{parent}->{twig_to_be_normalized}=1; }
 
             # elt is not referenced any more, so it will be DESTROYed
-            # so we'd better break the links to its children
+            # so we'd better break the links to its children ## FIX
             undef $elt->{first_child};
             undef $elt->{last_child};
             undef $elt->{parent};
-            undef $elt->{prev_sibling};
             undef $elt->{next_sibling};
+            undef $elt->{prev_sibling};
  
           }
           { # elt had no child, delete it
@@ -7532,7 +7593,7 @@ sub mark
       my $gi= $XML::Twig::index2gi[$elt->{'gi'}];
   
       # 2 uses: if split matches then the first substring reuses $elt
-      #         once a split has occured then the last match needs to be put in
+      #         once a split has occurred then the last match needs to be put in
       #         a new element      
       my $previous_match= 0;
 
@@ -7792,25 +7853,29 @@ sub copy
 sub delete
   { my $elt= shift;
     $elt->cut;
-    $elt->DESTROY unless( $XML::Twig::weakrefs);
+    $elt->DESTROY unless $XML::Twig::weakrefs;
     return undef;
   }
 
-{ 
-  sub DESTROY
-    { my $elt= shift;
-      return if( $XML::Twig::weakrefs);
-      my $t= shift || $elt->twig; # optional argument, passed in recursive calls
+sub __destroy
+  { my $elt= shift; 
+    return if( $XML::Twig::weakrefs); 
+    my $t= shift || $elt->twig; # optional argument, passed in recursive calls
+  
+    foreach( @{[$elt->_children]}) { $_->DESTROY( $t); }
+  
+    # the id reference needs to be destroyed
+    # lots of tests to avoid warnings during the cleanup phase
+    $elt->del_id( $t) if( $ID && $t && defined( $elt->{att}) && exists( $elt->{att}->{$ID}));
+    if( $elt->{former}) { foreach (keys %{$elt->{former}}) { delete $elt->{former}->{$_}; } delete $elt->{former}; } 
+    foreach (qw( keys %$elt)) { delete $elt->{$_}; }
+    undef $elt;
+  }
 
-      foreach( @{[$elt->_children]}) { $_->DESTROY( $t); }
-
-      # the id reference needs to be destroyed
-      # lots of tests to avoid warnings during the cleanup phase
-      $elt->del_id( $t) if( $ID && $t && defined( $elt->{att}) && exists( $elt->{att}->{$ID}));
-      undef $elt;
-    }
+BEGIN
+{ sub set_destroy { if( $XML::Twig::weakrefs) { undef *DESTROY } else { *DESTROY= *__destroy; } }
+  set_destroy();
 }
-
 
 # ignores the element
 sub ignore
@@ -8331,16 +8396,36 @@ BEGIN {
       print $elt->sprint( @_);
       select $old_select if( defined $old_select);
     }
- 
+
+
+# those next 2 methods need to be refactored, they are copies of the same methods in XML::Twig 
 sub print_to_file
   { my( $elt, $filename)= (shift, shift);
     my $out_fh;
+#    open( $out_fh, ">$filename") or _croak( "cannot create file $filename: $!");     # < perl 5.8
     my $mode= $keep_encoding ? '>' : '>:utf8';                                       # >= perl 5.8
     open( $out_fh, $mode, $filename) or _croak( "cannot create file $filename: $!"); # >= perl 5.8
     $elt->print( $out_fh, @_);
     close $out_fh;
     return $elt;
   }
+
+# probably only works on *nix (at least the chmod bit)
+# first print to a temporary file, then rename that file to the desired file name, then change permissions
+# to the original file permissions (or to the current umask)
+sub safe_print_to_file
+  { my( $elt, $filename)= (shift, shift);
+    my $perm= -f $filename ? (stat $filename)[2] & 07777 : ~umask() ;
+    XML::Twig::_use( 'File::Temp') || croak "need File::Temp to use safe_print_to_file\n";
+    XML::Twig::_use( 'File::Basename') || croak "need File::Basename to use safe_print_to_file\n";
+    my $tmpdir= File::Basename::dirname( $filename);    
+    my( $fh, $tmpfilename) = File::Temp::tempfile( DIR => $tmpdir);
+    $elt->print_to_file( $tmpfilename, @_);
+    rename( $tmpfilename, $filename) or unlink $tmpfilename && _croak( "cannot move temporary file to $filename: $!"); 
+    chmod $perm, $filename;
+    return $elt;
+  }
+
   
   # same as print but does not output the start tag if the element
   # is marked as flushed
@@ -8617,7 +8702,10 @@ sub print_to_file
   sub _att_xml_string 
     { my( $string, $escape)= @_;
       if( !defined( $string)) { return ''; }
-      unless( $keep_encoding)
+      if( $keep_encoding)
+        { $string=~ s{$quote}{$XML::Twig::base_ent{$quote}}g; 
+        }
+      else
         { 
           if( $do_not_escape_amp_in_atts)
             { $escape=~ s{^.}{}; # seems like the most backward compatible way to remove & from the list
@@ -8973,7 +9061,7 @@ sub set_content
                 $pcdata->{pcdata}= (delete $pcdata->{empty} || 1) &&  $pcdata->{pcdata} . $child 
               }
             else
-              { # previous child is not a string: creat a new pcdata element
+              { # previous child is not a string: create a new pcdata element
                 $pcdata= $elt->_new_pcdata( $child);
                 $pcdata->paste( 'last_child', $elt);  
               }
@@ -9521,11 +9609,15 @@ Huge documents (processed in combined stream/tree mode):
                          );
   $twig->parsefile( 'my_big.xml');
 
+  sub my_list_process
+    { my( $twig, $list)= @_;
+      # ...
+    }
+
 See L<XML::Twig 101|/XML::Twig 101> for other ways to use the module, as a 
 filter for example.
 
-
-=encoding utf8   # > perl 5.10.0 
+=encoding utf8   
 
 =head1 DESCRIPTION
 
@@ -9545,6 +9637,38 @@ to increase performances.
 XML::Twig tries to make simple things easy so it tries its best to takes care 
 of a lot of the (usually) annoying (but sometimes necessary) features that 
 come with XML and XML::Parser.
+
+=head1 TOOLS
+
+XML::Twig comes with a few command-line utilities:
+
+=head2 xml_pp - xml pretty-printer
+
+XML pretty printer using XML::Twig
+
+=head2 xml_grep - grep XML files looking for specific elements
+
+C<xml_grep> does a grep on XML files. Instead of using regular expressions 
+it uses XPath expressions (in fact the subset of XPath supported by 
+XML::Twig). 
+
+=head2 xml_split - cut a big XML file into smaller chunks
+
+C<xml_split> takes a (presumably big) XML file and split it in several smaller
+files, based on various criteria (level in the tree, size or an XPath 
+expression)
+
+=head2 xml_merge - merge back XML files split with xml_split
+
+C<xml_merge> takes several xml files that have been split using C<xml_split>
+and recreates a single file.
+
+=head2 xml_spellcheck - spellcheck XML files
+
+C<xml_spellcheck> lets you spell check the content of an XML file. It extracts
+the text (the content of elements and optionally of attributes), call a spell
+checker on it and then recreates the XML document.
+
 
 =head1 XML::Twig 101
 
@@ -9797,7 +9921,7 @@ You might want to look the C<L<elt_class>> option if you want to subclass C<XML:
 
 Attributes are just attached to their parent element, they are not objects per se. (Please
 use the provided methods C<L<att>> and C<L<set_att>> to access them, if you access them
-as a hash, then your code becomes implementaion dependent and might break in the future).
+as a hash, then your code becomes implementation dependent and might break in the future).
 
 Other classes that are seldom used are C<L<XML::Twig::Entity_list>> and C<L<XML::Twig::Entity>>.
 
@@ -9887,7 +10011,7 @@ they are not valid XML) are checked against the current twig.
 Handlers are triggered in fixed order, sorted by their type (xpath expressions
 first, then regexps, then level), then by whether they specify a full path 
 (starting at the root element) or
-not, then by by number of steps in the expression , then number of
+not, then by number of steps in the expression , then number of
 predicates, then number of tests in predicates. Handlers where the last
 step does not specify a step (C<foo/bar/*>) are triggered after other XPath 
 handlers. Finally C<_all_> handlers are triggered last. 
@@ -10037,8 +10161,8 @@ C<$t> (the twig), C<$tag> (the tag of the element) and C<%att> (a hash of the
 attributes of the element). 
 
 If the C<twig_print_outside_roots> argument is also used, if the last handler
-called returns  a C<true> value, then the the start tag will be output as it
-appeared in the original document, if the handler returns a a C<false> value
+called returns  a C<true> value, then the start tag will be output as it
+appeared in the original document, if the handler returns a C<false> value
 then the start tag will B<not> be printed (so you can print a modified string 
 yourself for example).
 
@@ -10197,7 +10321,7 @@ more
 
 =item safe_hex
 
-same as C<safe> except that the character entities are in hexa (C<&#xnnn;>)
+same as C<safe> except that the character entities are in hex (C<&#xnnn;>)
 
 =item encode_convert ($encoding)
 
@@ -10798,7 +10922,7 @@ HTML::TreeBuilder, which needs to be available).
 
 This works nicely, but some information gets lost in the process:
 newlines are removed, and (at least on the version I use), comments
-get get an extra CDATA section inside ( <!-- foo --> becomes
+get an extra CDATA section inside ( <!-- foo --> becomes
 <!-- <![CDATA[ foo ]]> -->
 
 =item parsefile_html ($file)
@@ -11123,6 +11247,19 @@ To be used only AFTER the parse.
 
 options: see C<flush>.
 
+=item safe_print_to_file    ($filename, %options)
+
+Prints the whole document associated with the twig to file C<$filename>.
+This variant, which probably only works on *nix prints to a temp file,
+then move the temp file to overwrite the original file.
+
+This is a bit safer when 2 processes an potentiallywrite the same file: 
+only the last one will succeed, but the file won't be corruted. I often
+use this for cron jobs, so testing the code doesn't interfere with the
+cron job running at the same time.   
+
+options: see C<flush>.
+
 =item sprint
 
 Return the text of the whole document associated with the twig. To be used only
@@ -11364,7 +11501,7 @@ the root element start tag.
 
 Returns the string from the document that was recognized in order
 to call the current handler. For instance, when called from a start
-handler, it will give us the the start-tag string. The string is
+handler, it will give us the start-tag string. The string is
 encoded in UTF-8.  This method doesn't return a meaningful string
 inside declaration handlers.
 
@@ -11795,7 +11932,7 @@ Return the list of following elements (as per the XPath following axis)
 
 =item preceding_elts
 
-Return the pst of preceding elements (as per the XPath preceding axis)
+Return the list of preceding elements (as per the XPath preceding axis)
 
 =item children     ($optional_condition)
 
@@ -11809,7 +11946,7 @@ C<$optional_condition>)
 
 =item children_text ($optional_condition)
 
-In array context, reeturns an array containing the text of children of the
+In array context, returns an array containing the text of children of the
 element (optionally which matches C<$optional_condition>)
 
 In scalar context, returns the concatenation of the text of children of
@@ -12100,7 +12237,7 @@ DATA::dumper or YAML to dump the data structure)
 B<Note>: there is no magic here, if you write 
 C<< $twig->parsefile( $file )->simplify(); >> then it will load the entire 
 document in memory. I am afraid you will have to put some work into it to 
-get just the bits you want and discard the rest. Look at the synopsys or
+get just the bits you want and discard the rest. Look at the synopsis or
 the XML::Twig 101 section at the top of the docs for more information.
 
 =over 4
@@ -13605,7 +13742,7 @@ several slightly incompatible versions of XML::Parser and of libexpat.
 Basically you can read the DTD, output it back properly, and update entities,
 but not much more.
 
-So use XML::Twig with standalone documents, or with documents refering to an
+So use XML::Twig with standalone documents, or with documents referring to an
 external DTD, but don't expect it to properly parse and even output back the
 DTD.
 
@@ -13835,7 +13972,7 @@ comments and non-significant whitespaces out of the way but preserving them in
 the output for example. As it does not stick to the DOM, is also usually leads 
 to shorter code than in XML::LibXML.
 
-Beyond the pure features of the 2 modules, XML::LibXML seems to be prefered by
+Beyond the pure features of the 2 modules, XML::LibXML seems to be preferred by
 "XML-purists", while XML::Twig seems to be more used by Perl Hackers who have 
 to deal with XML. As you have noted, XML::Twig also comes with quite a lot of 
 docs, but I am sure if you ask for help about XML::LibXML here or on Perlmonks
@@ -13847,7 +13984,7 @@ to (or I improve it ;--), while I have a very basic knowledge of XML::LibXML.
 So feature-wise, I'd rather use XML::Twig ;--). On the other hand, I am 
 painfully aware of some of the deficiencies, potential bugs and plain ugly code
 that lurk in XML::Twig, even though you are unlikely to be affected by them 
-(unless for example you need to change the DTD of a document programatically),
+(unless for example you need to change the DTD of a document programmatically),
 while I haven't looked much into XML::LibXML so it still looks shinny and clean
 to me.
 

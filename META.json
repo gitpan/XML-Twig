@@ -4,7 +4,7 @@
       "Michel Rodriguez <mirod@cpan.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.133380",
    "license" : [
       "perl_5"
    ],
@@ -42,5 +42,5 @@
          "url" : "http://github.com/mirod/xmltwig"
       }
    },
-   "version" : "3.44"
+   "version" : "3.45"
 }
